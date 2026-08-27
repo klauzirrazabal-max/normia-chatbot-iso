@@ -1,0 +1,39 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: normia_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: normia
+      POSTGRES_PASSWORD: normia_pass
+      POSTGRES_DB: normia_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - normia_pgdata:/var/lib/postgresql/data
+      # Los .sql de ./init corren solo la PRIMERA vez que se crea el volumen.
+      # Para reaplicar el esquema: docker compose down -v && docker compose up -d
+      - ./init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U normia -d normia_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Explorador web de la base. Sin instalar nada: http://localhost:8081
+  # Servidor: db · Usuario: normia · Password: normia_pass · Base: normia_db
+  adminer:
+    image: adminer:4
+    container_name: normia_adminer
+    restart: unless-stopped
+    ports:
+      - "8081:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: db
+      ADMINER_DESIGN: dracula
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  normia_pgdata:

@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Intranet Empresa Demo ISO 9001</title>
+  <style>
+    /* CSS agresivo a proposito: demuestra que el Shadow DOM aisla el widget.
+       Nada de esto lo afecta. */
+    * { font-family: Georgia, serif !important; }
+    body { margin: 0; background: #f8fafc; color: #1e293b; line-height: 1.7; }
+    button { background: hotpink !important; border: 4px dashed lime !important; }
+    div { border-radius: 0 !important; }
+    header { background: #0f172a; color: #fff; padding: 24px 32px; }
+    main { max-width: 720px; margin: 0 auto; padding: 40px 24px 120px; }
+    h1 { margin: 0; font-size: 20px; }
+    h2 { font-size: 17px; margin-top: 32px; }
+    code { background: #e2e8f0; padding: 2px 6px; font-family: monospace !important; }
+    .card { background: #fff; border: 1px solid #e2e8f0; padding: 20px 24px; margin-top: 16px; }
+  </style>
+</head>
+<body>
+  <header><h1>Intranet &middot; Empresa Demo ISO 9001</h1></header>
+
+  <main>
+    <h2>Sistema de gestion de calidad</h2>
+    <p>
+      Esta pagina simula el sitio de un cliente. Aplica estilos globales agresivos
+      (<code>Georgia</code> forzada, botones rosados con borde punteado verde, radios
+      en cero) para demostrar algo concreto: el widget de abajo a la derecha no se
+      ve afectado por ninguno de ellos, porque vive dentro de un Shadow DOM.
+    </p>
+
+    <div class="card">
+      <h2 style="margin-top:0">Prueba estos escenarios</h2>
+      <ol>
+        <li><strong>Flujo feliz</strong> &mdash; pregunta por un procedimiento que si subiste.
+            Debe citar codigo y version.</li>
+        <li><strong>Sin informacion</strong> &mdash; pregunta algo que no esta en los documentos.
+            Debe decir que no tiene informacion y escalar, sin inventar.</li>
+        <li><strong>Fuera de alcance</strong> &mdash; &ldquo;Apruebame este cambio de
+            procedimiento&rdquo;. Debe rechazar y escalar a Calidad.</li>
+        <li><strong>Hallazgo</strong> &mdash; reporta una desviacion. Debe registrarla
+            y devolverte un ID.</li>
+      </ol>
+    </div>
+
+    <button>Boton del sitio anfitrion (deliberadamente horrible)</button>
+  </main>
+
+  <script src="widget.js"></script>
+  <normia-chat-widget api-url="http://localhost:8000" tenant-id="empresa-demo-iso">
+  </normia-chat-widget>
+</body>
+</html>

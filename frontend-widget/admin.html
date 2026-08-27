@@ -1,0 +1,651 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NormIA · Gestión documental</title>
+<style>
+  :root {
+    --bg: #f8fafc; --panel: #ffffff; --text: #0f172a; --muted: #64748b;
+    --border: #e2e8f0; --accent: #2563eb; --accent-soft: #eff6ff;
+    --warn: #b45309; --warn-bg: #fffbeb; --warn-border: #fcd34d;
+    --err: #b91c1c; --err-bg: #fef2f2; --err-border: #fca5a5;
+    --ok: #15803d; --ok-bg: #f0fdf4;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.55;
+  }
+  header {
+    background: var(--panel); border-bottom: 1px solid var(--border);
+    padding: 18px 32px; display: flex; align-items: center; gap: 14px;
+    position: sticky; top: 0; z-index: 10;
+  }
+  header h1 { font-size: 17px; margin: 0; font-weight: 650; }
+  header .sub { color: var(--muted); font-size: 13px; }
+  .stats { margin-left: auto; display: flex; gap: 22px; }
+  .stat b { display: block; font-size: 19px; font-weight: 650; line-height: 1.2; }
+  .stat span { font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+
+  main { max-width: 1080px; margin: 0 auto; padding: 28px 24px 80px; }
+  section { margin-bottom: 32px; }
+  h2 { font-size: 15px; margin: 0 0 12px; font-weight: 620; }
+  h2 .count {
+    display: inline-block; margin-left: 8px; padding: 1px 8px;
+    background: var(--border); border-radius: 20px; font-size: 12px; font-weight: 600;
+  }
+
+  /* ---------- zona de carga ---------- */
+  .drop {
+    border: 2px dashed var(--border); border-radius: var(--radius);
+    background: var(--panel); padding: 34px; text-align: center;
+    transition: border-color .15s, background .15s; cursor: pointer;
+  }
+  .drop:hover, .drop.over { border-color: var(--accent); background: var(--accent-soft); }
+  .drop p { margin: 0; font-size: 14px; }
+  .drop .hint { color: var(--muted); font-size: 12.5px; margin-top: 6px; }
+  .drop input { display: none; }
+
+  /* ---------- tarjetas ---------- */
+  .card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px 16px; margin-bottom: 10px;
+  }
+  .card.warn { border-color: var(--warn-border); background: var(--warn-bg); }
+  .card.err  { border-color: var(--err-border); background: var(--err-bg); }
+  .card-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .fname { font-weight: 600; font-size: 14px; }
+  .meta { color: var(--muted); font-size: 12.5px; }
+
+  .badge {
+    font-size: 11px; font-weight: 620; padding: 2px 9px; border-radius: 20px;
+    text-transform: uppercase; letter-spacing: .03em; white-space: nowrap;
+  }
+  .b-listo { background: var(--ok-bg); color: var(--ok); }
+  .b-revision { background: #fef3c7; color: var(--warn); }
+  .b-error { background: #fee2e2; color: var(--err); }
+  .b-proc { background: var(--accent-soft); color: var(--accent); }
+  .b-vigente { background: var(--ok-bg); color: var(--ok); }
+  .b-obsoleto { background: #f1f5f9; color: var(--muted); }
+
+  .advice { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(0,0,0,.07); }
+  .advice + .advice { margin-top: 8px; }
+  .advice p { margin: 0 0 8px; font-size: 13.5px; }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  button {
+    font: inherit; font-size: 13px; font-weight: 550; cursor: pointer;
+    border-radius: 8px; padding: 6px 13px; border: 1px solid var(--border);
+    background: var(--panel); color: var(--text); transition: background .12s;
+  }
+  button:hover { background: var(--bg); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.primary:hover { background: #1d4ed8; }
+  button.danger { color: var(--err); border-color: var(--err-border); }
+  button.danger:hover { background: var(--err-bg); }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+
+  /* ---------- biblioteca ---------- */
+  details.area {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); margin-bottom: 8px; overflow: hidden;
+  }
+  details.area > summary {
+    padding: 12px 16px; cursor: pointer; font-weight: 600; font-size: 13.5px;
+    display: flex; align-items: center; gap: 10px; list-style: none;
+  }
+  details.area > summary::-webkit-details-marker { display: none; }
+  details.area > summary::before { content: "▸"; color: var(--muted); font-size: 11px; }
+  details.area[open] > summary::before { content: "▾"; }
+  details.area > summary .n { margin-left: auto; color: var(--muted); font-weight: 500; font-size: 12.5px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    text-align: left; padding: 7px 16px; color: var(--muted);
+    font-size: 11px; text-transform: uppercase; letter-spacing: .04em;
+    border-top: 1px solid var(--border); font-weight: 600;
+  }
+  tbody td { padding: 8px 16px; border-top: 1px solid var(--border); vertical-align: middle; }
+  tbody tr:hover { background: var(--bg); }
+  td.code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; white-space: nowrap; }
+  td.num { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+  tr.obsoleto td:not(.acts) { opacity: .55; }
+
+  .esc-head { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+  .esc-q { font-weight: 600; font-size: 14px; }
+  .esc-reason { color: var(--muted); font-size: 12.5px; margin: 6px 0 9px; }
+  .b-pendiente { background: #fef3c7; color: var(--warn); }
+  .b-en_revision { background: var(--accent-soft); color: var(--accent); }
+  .b-resuelta { background: var(--ok-bg); color: var(--ok); }
+  .b-descartada { background: #f1f5f9; color: var(--muted); }
+  .b-sin_contexto { background: #f1f5f9; color: var(--muted); }
+  .b-fuera_de_alcance { background: #f1f5f9; color: var(--muted); }
+  .b-error { background: #fee2e2; color: var(--err); }
+  .filtros { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+  .filtros button.activo { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  .empty { color: var(--muted); font-size: 13.5px; padding: 8px 2px; }
+  .toast {
+    position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
+    background: var(--text); color: #fff; padding: 10px 18px; border-radius: 8px;
+    font-size: 13.5px; box-shadow: 0 6px 22px rgba(15,23,42,.25);
+    opacity: 0; pointer-events: none; transition: opacity .2s;
+  }
+  .toast.show { opacity: 1; }
+  .spinner {
+    width: 13px; height: 13px; border: 2px solid var(--border);
+    border-top-color: var(--accent); border-radius: 50%;
+    display: inline-block; animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>NormIA · Gestión documental</h1>
+    <div class="sub" id="tenant-label">—</div>
+  </div>
+  <div class="stats">
+    <div class="stat"><b id="s-docs">—</b><span>Documentos</span></div>
+    <div class="stat"><b id="s-vig">—</b><span>Vigentes</span></div>
+    <div class="stat"><b id="s-obs">—</b><span>Obsoletos</span></div>
+    <div class="stat"><b id="s-chunks">—</b><span>Fragmentos</span></div>
+    <div class="stat"><b id="s-esc">—</b><span>Escaladas</span></div>
+  </div>
+</header>
+
+<main>
+  <section>
+    <div class="drop" id="drop">
+      <input type="file" id="file-input" multiple accept="application/pdf" />
+      <p><strong>Arrastra aquí tus documentos ISO</strong> o haz clic para elegirlos</p>
+      <div class="hint">
+        Solo PDF, hasta 25&nbsp;MB cada uno. NormIA lee el código y la versión del membrete
+        del propio documento y te avisa si algo no cuadra.
+      </div>
+    </div>
+  </section>
+
+  <section id="review-section" hidden>
+    <h2>Requieren tu revisión <span class="count" id="review-count">0</span></h2>
+    <div id="review-list"></div>
+  </section>
+
+  <section id="conflicts-section" hidden>
+    <h2>Conflictos de vigencia <span class="count" id="conflict-count">0</span></h2>
+    <div id="conflict-list"></div>
+  </section>
+
+  <section id="recent-section" hidden>
+    <h2>Procesados recientemente</h2>
+    <div id="recent-list"></div>
+  </section>
+
+  <section id="esc-section">
+    <h2>Consultas derivadas a Calidad <span class="count" id="esc-count">0</span></h2>
+    <div class="filtros" id="esc-filtros"></div>
+    <div id="esc-list"></div>
+  </section>
+
+  <section>
+    <h2>Biblioteca documental</h2>
+    <div id="library"><div class="empty">Cargando…</div></div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = "http://localhost:8000";
+const TENANT = new URLSearchParams(location.search).get("tenant") || "empresa-demo-iso";
+let pollTimer = null;
+
+document.getElementById("tenant-label").textContent = TENANT;
+
+/* ---------- utilidades ---------- */
+function toast(msg) {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove("show"), 3200);
+}
+
+function el(tag, cls, text) {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text != null) n.textContent = text;
+  return n;
+}
+
+const BADGE = {
+  pendiente: ["b-proc", "En cola"],
+  procesando: ["b-proc", "Procesando"],
+  requiere_revision: ["b-revision", "Revisar"],
+  listo: ["b-listo", "Listo"],
+  error: ["b-error", "Error"],
+};
+
+/* ---------- carga de archivos ---------- */
+const drop = document.getElementById("drop");
+const input = document.getElementById("file-input");
+
+drop.addEventListener("click", () => input.click());
+input.addEventListener("change", () => { upload(input.files); input.value = ""; });
+
+["dragenter", "dragover"].forEach(ev =>
+  drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); })
+);
+["dragleave", "drop"].forEach(ev =>
+  drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("over"); })
+);
+drop.addEventListener("drop", e => upload(e.dataTransfer.files));
+
+async function upload(fileList) {
+  const files = Array.from(fileList || []);
+  if (!files.length) return;
+
+  const form = new FormData();
+  files.forEach(f => form.append("files", f));
+  form.append("tenant_id", TENANT);
+
+  toast(`Subiendo ${files.length} archivo(s)…`);
+  try {
+    const res = await fetch(`${API}/api/admin/documents`, { method: "POST", body: form });
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+
+    if (data.rejected.length) {
+      data.rejected.forEach(r => toast(`${r.filename}: ${r.reason}`));
+    }
+    if (data.queued.length) {
+      toast(`${data.queued.length} archivo(s) en proceso.`);
+      startPolling();
+    }
+  } catch (err) {
+    toast("No se pudo subir. ¿El backend está corriendo?");
+  }
+}
+
+/* ---------- jobs ---------- */
+function startPolling() {
+  refreshJobs();
+  if (pollTimer) return;
+  pollTimer = setInterval(refreshJobs, 1500);
+}
+
+async function refreshJobs() {
+  let data;
+  try {
+    const res = await fetch(`${API}/api/admin/jobs?tenant_id=${encodeURIComponent(TENANT)}`);
+    data = await res.json();
+  } catch { return; }
+
+  if (data.pending === 0 && pollTimer) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+    refreshLibrary();
+  }
+
+  const revisar = data.jobs.filter(j => j.status === "requiere_revision" || j.status === "error");
+  const otros = data.jobs.filter(j => j.status !== "requiere_revision" && j.status !== "error");
+
+  renderJobs("review", revisar);
+  renderJobs("recent", otros.slice(0, 6));
+
+  document.getElementById("review-section").hidden = revisar.length === 0;
+  document.getElementById("review-count").textContent = revisar.length;
+  document.getElementById("recent-section").hidden = otros.length === 0;
+}
+
+function renderJobs(target, jobs) {
+  const host = document.getElementById(target + "-list");
+  host.innerHTML = "";
+
+  jobs.forEach(job => {
+    const worst = (job.advices || []).some(a => a.severity === "error") || job.status === "error"
+      ? "err"
+      : (job.advices || []).some(a => a.severity === "warning") ? "warn" : "";
+    const card = el("div", "card " + worst);
+
+    const head = el("div", "card-head");
+    head.appendChild(el("span", "fname", job.filename));
+
+    const [cls, label] = BADGE[job.status] || ["b-proc", job.status];
+    head.appendChild(el("span", "badge " + cls, label));
+
+    if (job.status === "procesando" || job.status === "pendiente") {
+      head.appendChild(el("span", "spinner"));
+    }
+    if (job.code) {
+      head.appendChild(el("span", "meta", `${job.code} ${job.version || ""}`));
+    }
+    if (job.chunks != null) {
+      head.appendChild(el("span", "meta", `· ${job.chunks} fragmentos`));
+    }
+    card.appendChild(head);
+
+    if (job.error) {
+      const box = el("div", "advice");
+      box.appendChild(el("p", null, job.error));
+      card.appendChild(box);
+    }
+
+    (job.advices || []).forEach(advice => {
+      if (advice.severity === "info") return;
+      const box = el("div", "advice");
+      box.appendChild(el("p", null, advice.message));
+
+      const acts = el("div", "actions");
+      const ids = advice.detail?.document_ids || [];
+
+      if (advice.action === "mark_previous_obsolete" && ids.length) {
+        const b = el("button", "primary", "Marcar anterior como obsoleta");
+        b.onclick = () => applyAction(job.id, advice.action, ids, b);
+        acts.appendChild(b);
+      }
+      if (advice.action === "review_version" && ids.length) {
+        const b = el("button", "primary", "Marcar esta como obsoleta");
+        b.onclick = () => markObsolete(job.document_id ? [job.document_id] : ids, b);
+        acts.appendChild(b);
+      }
+
+      const quitar = el("button", "danger", "Quitar archivo");
+      quitar.onclick = () => discardJob(job.id, quitar);
+      acts.appendChild(quitar);
+
+      box.appendChild(acts);
+      card.appendChild(box);
+    });
+
+    if (job.status === "error" && !(job.advices || []).length) {
+      const acts = el("div", "actions");
+      const quitar = el("button", "danger", "Quitar archivo");
+      quitar.onclick = () => discardJob(job.id, quitar);
+      acts.appendChild(quitar);
+      card.appendChild(acts);
+    }
+
+    host.appendChild(card);
+  });
+}
+
+async function applyAction(jobId, action, ids, btn) {
+  btn.disabled = true;
+  try {
+    const res = await fetch(`${API}/api/admin/jobs/${jobId}/apply`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, document_ids: ids }),
+    });
+    const data = await res.json();
+    toast(data.message);
+    refreshJobs();
+    refreshLibrary();
+  } catch {
+    toast("No se pudo aplicar la acción.");
+    btn.disabled = false;
+  }
+}
+
+async function discardJob(jobId, btn) {
+  btn.disabled = true;
+  try {
+    await fetch(`${API}/api/admin/jobs/${jobId}`, { method: "DELETE" });
+    toast("Archivo retirado. Puedes volver a cargarlo corregido.");
+    refreshJobs();
+    refreshLibrary();
+  } catch {
+    toast("No se pudo retirar.");
+    btn.disabled = false;
+  }
+}
+
+/* ---------- biblioteca ---------- */
+async function refreshLibrary() {
+  let data;
+  try {
+    const res = await fetch(`${API}/api/admin/documents?tenant_id=${encodeURIComponent(TENANT)}`);
+    data = await res.json();
+  } catch {
+    document.getElementById("library").innerHTML =
+      '<div class="empty">No se pudo conectar con el backend.</div>';
+    return;
+  }
+
+  document.getElementById("s-docs").textContent = data.totals.documents;
+  document.getElementById("s-vig").textContent = data.totals.vigentes;
+  document.getElementById("s-obs").textContent = data.totals.obsoletos;
+  document.getElementById("s-chunks").textContent = data.totals.chunks;
+
+  renderConflicts(data.conflicts || []);
+
+  const host = document.getElementById("library");
+  host.innerHTML = "";
+
+  const areas = Object.keys(data.areas).sort();
+  if (!areas.length) {
+    host.innerHTML = '<div class="empty">Todavía no hay documentos. Sube los primeros arriba.</div>';
+    return;
+  }
+
+  areas.forEach(area => {
+    const docs = data.areas[area];
+    const box = el("details", "area");
+    const sum = el("summary");
+    sum.appendChild(el("span", null, area));
+    sum.appendChild(el("span", "n", `${docs.length} documento(s)`));
+    box.appendChild(sum);
+
+    const table = el("table");
+    table.innerHTML =
+      "<thead><tr><th>Código</th><th>Versión</th><th>Título</th><th>Vigencia</th>" +
+      "<th>Estado</th><th style='text-align:right'>Fragmentos</th><th></th></tr></thead>";
+    const tbody = el("tbody");
+
+    docs.forEach(d => {
+      const tr = el("tr", d.status === "obsoleto" ? "obsoleto" : "");
+      tr.appendChild(el("td", "code", d.code));
+      tr.appendChild(el("td", "code", d.version));
+      tr.appendChild(el("td", null, d.title || "—"));
+      tr.appendChild(el("td", "meta", d.effective_date || "—"));
+
+      const st = el("td");
+      st.appendChild(el("span", "badge b-" + d.status, d.status));
+      tr.appendChild(st);
+
+      tr.appendChild(el("td", "num", d.chunks));
+
+      const acts = el("td", "acts");
+      const toggle = el("button", null, d.status === "vigente" ? "Marcar obsoleto" : "Reactivar");
+      toggle.onclick = () => setStatus(d.id, d.status === "vigente" ? "obsoleto" : "vigente", toggle);
+      acts.appendChild(toggle);
+      tr.appendChild(acts);
+
+      tbody.appendChild(tr);
+    });
+
+    table.appendChild(tbody);
+    box.appendChild(table);
+    host.appendChild(box);
+  });
+}
+
+function renderConflicts(conflicts) {
+  const section = document.getElementById("conflicts-section");
+  const host = document.getElementById("conflict-list");
+  section.hidden = conflicts.length === 0;
+  document.getElementById("conflict-count").textContent = conflicts.length;
+  host.innerHTML = "";
+
+  conflicts.forEach(c => {
+    const card = el("div", "card warn");
+    const head = el("div", "card-head");
+    head.appendChild(el("span", "fname", c.code));
+    head.appendChild(el("span", "meta", `versiones vigentes: ${c.versions.join(", ")}`));
+    card.appendChild(head);
+
+    const box = el("div", "advice");
+    box.appendChild(el("p", null,
+      "Hay más de una versión vigente del mismo documento. El asistente puede citar " +
+      "cualquiera de las dos, y eso es una no conformidad de control de información " +
+      "documentada. Deja vigente solo la última."));
+    card.appendChild(box);
+    host.appendChild(card);
+  });
+}
+
+async function setStatus(id, status, btn) {
+  btn.disabled = true;
+  try {
+    await fetch(`${API}/api/admin/documents/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+    toast(status === "obsoleto"
+      ? "Marcado como obsoleto. El asistente dejará de citarlo."
+      : "Reactivado como vigente.");
+    refreshLibrary();
+  } catch {
+    toast("No se pudo actualizar.");
+    btn.disabled = false;
+  }
+}
+
+async function markObsolete(ids, btn) {
+  btn.disabled = true;
+  for (const id of ids) {
+    await fetch(`${API}/api/admin/documents/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "obsoleto" }),
+    }).catch(() => {});
+  }
+  toast("Marcado como obsoleto.");
+  refreshJobs();
+  refreshLibrary();
+}
+
+/* ---------- escalaciones ---------- */
+const ESTADOS = ["pendiente", "en_revision", "resuelta", "descartada"];
+const ETIQUETA_ESTADO = {
+  pendiente: "Pendientes",
+  en_revision: "En revisión",
+  resuelta: "Resueltas",
+  descartada: "Descartadas",
+};
+let filtroEsc = "pendiente";
+
+async function refreshEscalations() {
+  let data;
+  try {
+    const url = `${API}/api/admin/escalations?tenant_id=${encodeURIComponent(TENANT)}` +
+      (filtroEsc ? `&status=${filtroEsc}` : "");
+    const res = await fetch(url);
+    data = await res.json();
+  } catch { return; }
+
+  document.getElementById("s-esc").textContent = data.pending;
+  document.getElementById("esc-count").textContent = data.escalations.length;
+
+  // Filtros con el conteo de cada estado: la cola pendiente es lo que importa,
+  // pero el historial resuelto es lo que demuestra que se atendio.
+  const filtros = document.getElementById("esc-filtros");
+  filtros.innerHTML = "";
+  ESTADOS.forEach((estado) => {
+    const b = el("button", filtroEsc === estado ? "activo" : "",
+      `${ETIQUETA_ESTADO[estado]} (${data.counts[estado] || 0})`);
+    b.onclick = () => { filtroEsc = estado; refreshEscalations(); };
+    filtros.appendChild(b);
+  });
+
+  const host = document.getElementById("esc-list");
+  host.innerHTML = "";
+
+  if (!data.escalations.length) {
+    host.appendChild(el("div", "empty",
+      filtroEsc === "pendiente"
+        ? "No hay consultas pendientes de revisión."
+        : `No hay consultas en estado "${ETIQUETA_ESTADO[filtroEsc]}".`));
+    return;
+  }
+
+  data.escalations.forEach((e) => {
+    const card = el("div", "card" + (e.status === "pendiente" ? " warn" : ""));
+
+    const head = el("div", "esc-head");
+    head.appendChild(el("span", "badge b-" + e.status, ETIQUETA_ESTADO[e.status] || e.status));
+    head.appendChild(el("span", "badge b-" + e.trigger, e.trigger_label));
+    head.appendChild(el("span", "meta", `#${e.id}`));
+    if (e.created_at) {
+      head.appendChild(el("span", "meta", "· " + e.created_at.slice(0, 16).replace("T", " ")));
+    }
+    if (e.channel) head.appendChild(el("span", "meta", "· " + e.channel));
+    card.appendChild(head);
+
+    card.appendChild(el("div", "esc-q", `“${e.question}”`));
+    card.appendChild(el("div", "esc-reason", e.reason));
+
+    if (e.resolution) {
+      card.appendChild(el("div", "esc-reason", "Resolución: " + e.resolution));
+    }
+
+    const acts = el("div", "actions");
+    if (e.status === "pendiente") {
+      const tomar = el("button", "primary", "Tomar en revisión");
+      tomar.onclick = () => patchEsc(e.id, { status: "en_revision" }, tomar);
+      acts.appendChild(tomar);
+    }
+    if (e.status !== "resuelta") {
+      const cerrar = el("button", e.status === "en_revision" ? "primary" : "", "Marcar resuelta");
+      cerrar.onclick = () => {
+        const nota = prompt("¿Cómo se resolvió? (opcional)") || "";
+        patchEsc(e.id, { status: "resuelta", resolution: nota }, cerrar);
+      };
+      acts.appendChild(cerrar);
+    }
+    if (e.status !== "descartada" && e.status !== "resuelta") {
+      const desc = el("button", "", "Descartar");
+      desc.onclick = () => patchEsc(e.id, { status: "descartada" }, desc);
+      acts.appendChild(desc);
+    }
+    if (e.status === "resuelta" || e.status === "descartada") {
+      const reabrir = el("button", "", "Reabrir");
+      reabrir.onclick = () => patchEsc(e.id, { status: "pendiente" }, reabrir);
+      acts.appendChild(reabrir);
+    }
+    card.appendChild(acts);
+
+    host.appendChild(card);
+  });
+}
+
+async function patchEsc(id, cambios, btn) {
+  btn.disabled = true;
+  try {
+    await fetch(`${API}/api/admin/escalations/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(cambios),
+    });
+    toast("Escalación actualizada.");
+    refreshEscalations();
+  } catch {
+    toast("No se pudo actualizar.");
+    btn.disabled = false;
+  }
+}
+
+refreshLibrary();
+refreshJobs();
+refreshEscalations();
+</script>
+</body>
+</html>

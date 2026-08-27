@@ -1,0 +1,37 @@
+# --- Secretos y entorno ---
+.env
+.venv/
+venv/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# --- Sistema ---
+.DS_Store
+
+# --- DOCUMENTACION CONTROLADA DEL CLIENTE ---
+#
+# Un SGC contiene procedimientos internos, organigramas y politicas de una
+# empresa real. NADA de eso puede acabar en un repositorio publico, ni los PDFs
+# ni lo que se derive de ellos.
+#
+# Es la razon de que este proyecto corra el modelo en local: si los documentos no
+# salen de la maquina, tampoco pueden salir por git.
+data/knowledge_base/*/*.pdf
+data/knowledge_base/*/metadata.csv
+
+# El FAQ generado reproduce el contenido de las clausulas: plazos, responsables,
+# flujos de trabajo. Mismo criterio que los PDFs.
+data/faq/
+
+# Lo que SI se versiona: el corpus sintetico de demo, para que el proyecto se
+# pueda clonar y ejecutar de punta a punta sin datos de ningun cliente.
+# Lo genera scripts/generate_demo_corpus.py y no contiene informacion real.
+!data/knowledge_base/demo-publica/
+!data/knowledge_base/demo-publica/**
+!data/knowledge_base/*/.gitkeep
+!data/knowledge_base/*/metadata.csv.ejemplo
