@@ -582,9 +582,30 @@ def buscar_documentos(db: Session, tenant_id: str, tema: str) -> dict[str, Any]:
             ),
         }
 
+    # Que palabras del tema no aparecen en NINGUN documento devuelto.
+    #
+    # Existe por la regresion de la cola de Calidad: "politica de vacaciones"
+    # clasifica "politica" como tipo y "vacaciones" como termino libre, y la linea
+    # de arriba descarta los libres cuando hay tipo. Resultado: devuelve TODAS las
+    # politicas, el modelo responde bien ("no hay ninguna de vacaciones, estas son
+    # las que hay") y el hueco no se registra en ninguna parte.
+    #
+    # No se cambia el filtro -- exigir los libres como AND rompe el recall de
+    # consultas legitimas -- sino que se REPORTA lo que no caso, para que el
+    # orquestador pueda registrar el hueco sin dejar de dar la respuesta util.
+    texto_encontrado = sin_acentos(
+        " ".join(f"{d.code} {d.title} {d.area or ''}" for d in documentos).lower()
+    )
+    sin_coincidencia = [
+        palabra
+        for palabra in libres
+        if sin_acentos(palabra.lower()) not in texto_encontrado
+    ]
+
     resultado = {
         "tema": tema,
         "total": len(documentos),
+        "terminos_sin_coincidencia": sin_coincidencia,
         "documentos": [
             {
                 "codigo": d.code,

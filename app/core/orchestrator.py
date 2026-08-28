@@ -41,6 +41,7 @@ from app.core.guardrails.grounding_check import (
     repair_cited_versions,
     response_cites_source,
 )
+from app.core.routing import TipoTurno, clasificar_turno, respuesta_social
 from app.core.rag.retriever import (
     RetrievalResult,
     RetrievedChunk,
@@ -67,6 +68,10 @@ DEFAULT_SYSTEM_PROMPT = (
     "Si te preguntan por TI -- que puedes hacer, en que ayudas, quien eres, como funcionas -- "
     "llama a describir_capacidades y responde con eso. Eso NO es una consulta al SGC: no la "
     "escales a Calidad ni digas que te falta informacion."
+)
+
+SIN_RESPUESTA_MESSAGE = (
+    "No estoy seguro de a que te refieres. ¿Puedes concretarme un poco mas la consulta?"
 )
 
 ESCALATED_MESSAGE = (
@@ -467,67 +472,6 @@ _PETICION_SECCION_RE = re.compile(
 )
 
 
-# Formulas sociales: un saludo no es una consulta al SGC.
-#
-# "Hola" acababa en "no tengo informacion suficiente... lo derivo al Responsable
-# de Calidad". Es lo primero que escribe cualquiera, asi que era la peor primera
-# impresion posible, y ademas ensuciaba la cola de Calidad.
-#
-# Se resuelve en el servidor y ANTES del RAG, no por prompt: pedirselo al modelo
-# fallaba la mitad de las veces -- escribia el saludo y el guardrail bloqueante lo
-# descartaba, porque no habia contexto ni herramienta en que apoyarse. Ademas asi
-# es instantaneo, sin los ~10 s de generacion.
-#
-# La coincidencia es ESTRICTA: el mensaje entero, sin signos, tiene que ser la
-# formula. "hola, cual es el plazo?" NO entra aqui y sigue su camino normal.
-_SALUDOS = frozenset({
-    "hola", "holaa", "ola", "buenas", "buenos dias", "buenas tardes", "buenas noches",
-    "que tal", "como estas", "hey", "saludos", "buen dia", "hola normia", "hola!",
-})
-_CORTESIA = frozenset({
-    "gracias", "muchas gracias", "mil gracias", "ok gracias", "vale gracias",
-    "perfecto gracias", "genial gracias", "ok", "vale", "perfecto", "entendido",
-})
-_DESPEDIDAS = frozenset({
-    "adios", "hasta luego", "chao", "chau", "nos vemos", "hasta pronto", "bye",
-})
-
-# Texto que LEE el usuario: va con acentos, a diferencia de los comentarios.
-RESPUESTA_SALUDO = (
-    "¡Hola! Soy NormIA: respondo sobre la documentación ISO vigente de la organización, "
-    "citando siempre el documento y la sección de donde sale la respuesta. "
-    "¿Qué necesitas consultar?"
-)
-RESPUESTA_CORTESIA = "¡A ti! Si te surge otra consulta sobre la documentación, aquí estoy."
-RESPUESTA_DESPEDIDA = (
-    "Hasta luego. Vuelve cuando necesites consultar algo del sistema de gestión de calidad."
-)
-
-MAX_CHARS_SOCIAL = 40
-
-
-def _mensaje_social(texto: str) -> str | None:
-    """
-    Respuesta a una formula social, o None si el mensaje no lo es.
-
-    Estricto a proposito: se compara el mensaje COMPLETO, normalizado y sin
-    signos. Un falso positivo aqui se saltaria el RAG en una consulta real, que
-    es mucho peor que responder despacio a un saludo.
-    """
-    limpio = (texto or "").strip().strip("!¡?¿.,;: \t\n")
-    if not limpio or len(limpio) > MAX_CHARS_SOCIAL:
-        return None
-    limpio = sin_acentos(limpio.lower())
-    limpio = re.sub(r"\s+", " ", limpio).strip()
-    if limpio in _SALUDOS:
-        return RESPUESTA_SALUDO
-    if limpio in _CORTESIA:
-        return RESPUESTA_CORTESIA
-    if limpio in _DESPEDIDAS:
-        return RESPUESTA_DESPEDIDA
-    return None
-
-
 def _direct_section_request(db: Session, tenant_id: str, text: str) -> RetrievalResult | None:
     """
     Carga una clausula concreta sin pasar por la busqueda vectorial.
@@ -584,6 +528,28 @@ def _direct_section_request(db: Session, tenant_id: str, text: str) -> Retrieval
         extra={"code": codigo, "section": seccion, "chunks": len(chunks)},
     )
     return RetrievalResult(accepted=chunks, rejected=[], max_distance=0.0)
+
+
+def _terminos_sin_coincidencia(
+    tool_results: list[tuple[str, dict[str, Any]]],
+) -> list[str]:
+    """
+    Palabras del tema buscado que no aparecen en ningun documento del catalogo.
+
+    Es la senal que faltaba para la cola de Calidad. Preguntar por "politica de
+    vacaciones" devuelve todas las politicas -- el filtro descarta el termino
+    libre cuando hay tipo -- asi que el modelo responde correctamente que no
+    existe, y el hueco no quedaba registrado en ninguna parte.
+
+    Responder bien y registrar el hueco no son excluyentes: esto permite las dos
+    cosas sin tocar el filtro de busqueda, que si se endurece rompe el recall de
+    consultas legitimas.
+    """
+    faltantes: list[str] = []
+    for nombre, resultado in tool_results or []:
+        if nombre in CATALOG_TOOLS:
+            faltantes.extend(resultado.get("terminos_sin_coincidencia") or [])
+    return sorted(set(faltantes))
 
 
 def _record_escalation(
@@ -868,11 +834,17 @@ def handle_message(db: Session, msg: IncomingMessage) -> BotResponse:
     db.add(Message(conversation_id=conversation.id, role="user", content=msg.text))
     db.flush()
 
-    # Un saludo se responde aqui mismo: ni RAG, ni modelo, ni guardrails. Ver
-    # _mensaje_social. Instantaneo y sin ensuciar la cola de Calidad.
-    social = _mensaje_social(msg.text)
+    # De que tipo es este turno. Se decide ANTES de recuperar, con reglas
+    # deterministas: ver app/core/routing.py. Un saludo se responde aqui mismo,
+    # sin RAG, sin modelo y sin guardrails.
+    hay_turno_previo = (
+        db.query(Message.id).filter_by(conversation_id=conversation.id).count() > 1
+    )
+    tipo_turno = clasificar_turno(msg.text, hay_turno_previo=hay_turno_previo)
+
+    social = respuesta_social(msg.text) if tipo_turno is TipoTurno.SOCIAL else None
     if social is not None:
-        logger.info("orchestrator.social", extra={"tenant_id": msg.tenant_id})
+        logger.info("orchestrator.social", extra={"tenant_id": msg.tenant_id, "tipo": tipo_turno.value})
         return _persist_and_return(
             db,
             conversation.id,
@@ -1038,7 +1010,18 @@ def handle_message(db: Session, msg: IncomingMessage) -> BotResponse:
         logger.warning("llm.echoed_system_prompt", extra={"answer": answer[:120]})
         answer = ""
 
-    if not grounded_context and not data_tools_ran:
+    # El guardrail bloqueante solo aplica a los turnos DOCUMENTALES.
+    #
+    # Antes se disparaba en cualquier turno sin respaldo, y ese era el fallo que
+    # se parcheo tres veces por separado: un saludo, una pregunta por las
+    # capacidades o una peticion de formato acababan en "no tengo informacion
+    # suficiente" y en la cola de Calidad. Ninguna afirma nada sobre un documento,
+    # asi que no hay nada que fundamentar ni ningun hueco que registrar.
+    #
+    # Para lo documental el comportamiento no cambia en absoluto.
+    exige_respaldo = tipo_turno is TipoTurno.DOCUMENTAL
+
+    if exige_respaldo and not grounded_context and not data_tools_ran:
         # Guardrail BLOQUEANTE: sin respaldo documental y sin un dato de
         # herramienta, NADA de lo que escriba el modelo es confiable -- se
         # descarta completo. Es el paso que impide alucinar un procedimiento.
@@ -1063,8 +1046,12 @@ def handle_message(db: Session, msg: IncomingMessage) -> BotResponse:
         response = BotResponse(text=NO_CONTEXT_MESSAGE, escalate=True, grounded=False)
     elif not answer and escalated_by_tool:
         response = BotResponse(text=ESCALATED_MESSAGE, escalate=True, grounded=False)
-    elif not answer:
+    elif not answer and exige_respaldo:
         response = BotResponse(text=NO_CONTEXT_MESSAGE, escalate=True, grounded=False)
+    elif not answer:
+        # Turno no documental en el que el modelo no escribio nada. Pedir que se
+        # concrete es correcto; derivarlo a Calidad, no.
+        response = BotResponse(text=SIN_RESPUESTA_MESSAGE, escalate=False, grounded=True)
     else:
         cites = response_cites_source(answer, retrieval.accepted) if grounded_context else False
         catalog_ran = bool(CATALOG_TOOLS & set(executed_tools))
@@ -1080,7 +1067,11 @@ def handle_message(db: Session, msg: IncomingMessage) -> BotResponse:
             citations=document_citations
             or catalog_citations
             or _citations(retrieval.accepted, answer, executed_tools, tool_results),
-            escalate=escalated_by_tool or (not grounded_context and not data_tools_ran),
+            # Acotado a lo documental, igual que el guardrail: si no se puede
+            # bloquear ni registrar, tampoco se puede anunciar al usuario que se
+            # derivo. Decia "lo derive a Calidad" sin que existiera la fila.
+            escalate=escalated_by_tool
+            or (exige_respaldo and not grounded_context and not data_tools_ran),
             # Citar un documento real que NO se recupero significa que el modelo
             # tiro de memoria, no del contexto: la respuesta deja de estar
             # fundamentada aunque el codigo exista.
@@ -1118,6 +1109,24 @@ def handle_message(db: Session, msg: IncomingMessage) -> BotResponse:
                 or not response_cites_source(answer, retrieval.accepted)
             ),
         )
+
+    # El SGC no cubre el tema, aunque la respuesta haya sido util. La cola de
+    # Calidad es la lista de huecos de la documentacion, y un hueco que nadie
+    # registra no se corrige nunca. Se registra sin tocar la respuesta.
+    if exige_respaldo and not response.escalate:
+        faltantes = _terminos_sin_coincidencia(tool_results)
+        if faltantes and not retrieval.accepted:
+            _record_escalation(
+                db,
+                msg,
+                conversation.id,
+                f"El SGC no cubre: {', '.join(faltantes)}. Se respondio desde el catalogo.",
+                "sin_contexto",
+            )
+            logger.info(
+                "guardrail.hueco_registrado",
+                extra={"tenant_id": msg.tenant_id, "terminos": faltantes},
+            )
 
     return _persist_and_return(
         db, conversation.id, response, retrieval, executed_tools, started

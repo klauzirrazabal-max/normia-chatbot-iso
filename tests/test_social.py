@@ -15,11 +15,11 @@ from __future__ import annotations
 
 import pytest
 
-from app.core.orchestrator import (
+from app.core.routing import (
     RESPUESTA_CORTESIA,
     RESPUESTA_DESPEDIDA,
     RESPUESTA_SALUDO,
-    _mensaje_social,
+    respuesta_social as _mensaje_social,
 )
 
 
