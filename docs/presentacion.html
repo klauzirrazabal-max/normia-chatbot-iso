@@ -218,7 +218,7 @@ code,.mono,.cod{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,mo
   <header class="membrete"><span class="cod">NormIA · 04</span><span class="sec">Por qué se eligió</span></header>
   <div class="cuerpo">
     <p class="entradilla">Justificación</p>
-    <h2 class="titular">Un corpus que ya venía hecho para esto</h2>
+    <h2 class="titular">Por qué este problema y no otro</h2>
     <div class="rejilla r2">
       <div class="tarjeta"><h3>Impacto real</h3><p>La consulta «¿qué dice el procedimiento?» ocurre a diario y hoy consume tiempo de la persona que menos debería dedicarlo a buscar archivos.</p></div>
       <div class="tarjeta"><h3>Viabilidad técnica</h3><p>Un SGC ya está escrito en cláusulas numeradas, con código y versión en el membrete. Es el caso casi ideal para un asistente asi: el documento ya viene partido en piezas con sentido propio.</p></div>
@@ -312,21 +312,21 @@ code,.mono,.cod{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,mo
 <section class="lamina">
   <header class="membrete"><span class="cod">NormIA · 09</span><span class="sec">Herramientas</span></header>
   <div class="cuerpo">
-    <p class="entradilla">Stack</p>
+    <p class="entradilla">Con qué está hecho</p>
     <h2 class="titular">Todo local, todo reproducible</h2>
     <table class="tabla">
       <thead><tr><th>Capa</th><th>Elección</th><th>Por qué esa</th></tr></thead>
       <tbody>
-        <tr><td>Framework de IA</td><td>RAG propio · FastAPI · Python 3.12</td><td><b>Sin LangChain ni LlamaIndex.</b> Cada paso —troceado, umbral, guardrails— es código legible y testeable; un framework habría escondido justo la parte que aporta el valor. 29 módulos, 177 tests.</td></tr>
+        <tr><td>Framework de IA</td><td>RAG propio · FastAPI · Python 3.12</td><td><b>Sin LangChain ni LlamaIndex.</b> Cada paso —troceado, umbral, guardrails— es código legible y comprobable; un framework habría escondido justo la parte que aporta el valor. 29 módulos, 177 tests.</td></tr>
         <tr><td>Modelo</td><td><code>qwen3.8:27b-mlx</code> vía Ollama</td><td>Elegido por medición, no por fama: acertó cláusula, sección, herramienta y escalación en el banco de pruebas.</td></tr>
         <tr><td>Comprensión del texto</td><td><code>BAAI/bge-m3</code></td><td>Convierte cada cláusula en una huella numérica de su significado, que es lo que permite buscar por sentido y no por palabras exactas. Multilingüe y solvente en español técnico.</td></tr>
         <tr><td>Base de datos</td><td>PostgreSQL 16 · pgvector · <code>unaccent</code></td><td>Guarda documentos, conversaciones y la traza de auditoría, y busca por significado. También ignora los acentos: sin eso, «auditoria» no encontraba «auditoría».</td></tr>
         <tr><td>Mensajería</td><td>Widget web · Web Component + Shadow DOM</td><td>Una etiqueta y un <code>&lt;script&gt;</code>; los estilos del anfitrión no lo tocan. WhatsApp queda para Fase 2.</td></tr>
-        <tr><td>Despliegue</td><td>Docker Compose · <code>uv</code></td><td>Local, sin nube: el corpus es documentación interna. Clonar, instalar, configurar <code>.env</code>, ejecutar.</td></tr>
+        <tr><td>Despliegue</td><td>Docker Compose · <code>uv</code></td><td>Local, sin nube: los documentos son internos y no pueden salir de la empresa. Clonar, instalar, configurar <code>.env</code>, ejecutar.</td></tr>
       </tbody>
     </table>
   </div>
-  <footer class="pie"><span>Stack tecnológico</span><span class="num">09 / 12</span></footer>
+  <footer class="pie"><span>Herramientas y despliegue</span><span class="num">09 / 12</span></footer>
 </section>
 
 <!-- 10 --------------------------------------------------------------- -->
