@@ -28,6 +28,7 @@ tocar codigo.
 ### Vista general
 
 ```mermaid
+%%{init: {'flowchart':{'htmlLabels':false}}}%%
 flowchart TB
     subgraph cli["Cliente"]
         W["Widget web<br/><i>Web Component + Shadow DOM</i>"]
@@ -79,6 +80,7 @@ documentacion controlada. Cualquiera de ellos puede **descartar** la respuesta y
 redactada y escalar a Calidad.
 
 ```mermaid
+%%{init: {'flowchart':{'htmlLabels':false}}}%%
 flowchart TD
     Q(["Pregunta del usuario"]) --> D{"Pide una clausula<br/>concreta?"}
     D -->|"si — 'seccion 6.2 del COD-XX-01'"| DS["Carga directa de la seccion<br/><i>sin pasar por el vector</i>"]
@@ -117,6 +119,7 @@ distancia LIMIT k` siempre devuelve algo, por irrelevante que sea.
 ### Ingesta de documentos
 
 ```mermaid
+%%{init: {'flowchart':{'htmlLabels':false}}}%%
 flowchart LR
     U["PDF subido"] --> EXT["Extraccion<br/><i>texto + tablas</i>"]
     EXT --> CK["Troceado por clausula<br/><i>'1. OBJETIVO', '6.2 ...'</i>"]
