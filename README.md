@@ -14,7 +14,7 @@ cuando no hay evidencia en los documentos, NormIA no inventa — escala.
 |---|---|---|
 | Backend | Python 3.12 + FastAPI | Async, estandar, facil de testear |
 | Base de datos | PostgreSQL 16 + pgvector | Integridad relacional (vigente/obsoleto) **y** busqueda vectorial en un solo motor |
-| LLM | Qwen 3.8 27B (MLX) via Ollama, local | Sin costo, sin rate limits, sin internet. Los documentos ISO nunca salen de la maquina. Elegido midiendo, no por ser el mas nuevo -- ver *Comparar modelos* |
+| LLM | Qwen3.5 27B (FP4) via Ollama, local | Sin costo, sin rate limits, sin internet. Los documentos ISO nunca salen de la maquina. Elegido midiendo, no por ser el mas nuevo -- ver *Comparar modelos* |
 | Embeddings | `BAAI/bge-m3` (local, 1024 dim) | Corre en CPU/GPU local, sin API key |
 | Canal | Widget web (Web Component + Shadow DOM) | Embebible en cualquier sitio sin conflicto de estilos |
 | Gestor de paquetes | `uv` | Instala Python y dependencias, con lockfile reproducible |
@@ -213,6 +213,8 @@ cp .env.example .env                     # los valores por defecto funcionan tal
 
 ```bash
 ollama pull qwen3.8:27b-mlx              # ~18 GB, una sola vez
+# La etiqueta dice 3.8 y mlx, pero el modelo reporta arquitectura qwen3_5 y
+# cuantizacion nvfp4: es Qwen3.5 27B en FP4. La etiqueta es del empaquetado.
 ollama serve &
 
 cd docker && docker compose up -d && cd ..
