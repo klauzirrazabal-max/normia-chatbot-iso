@@ -771,6 +771,13 @@ def _citations(
         )
         if escalando or catalogo_vacio:
             return []
+        # Si la respuesta no nombra el documento ni por codigo ni por titulo, no
+        # esta afirmando nada sobre el. Adjuntar los fragmentos recuperados
+        # sugiere un respaldo inexistente: al registrar una no conformidad
+        # aparecian tres secciones de Atencion de Solicitudes Tecnologicas,
+        # que no respaldaban ni una palabra de lo dicho.
+        if not response_cites_source(answer, chunks):
+            return []
 
     fuente = relevantes or chunks
 
@@ -1006,9 +1013,16 @@ def handle_message(db: Session, msg: IncomingMessage) -> BotResponse:
             # registro o el documento, no los fragmentos del RAG. Un procedimiento
             # que menciona sus propios formatos (STI-FO-01, STI-FO-02) los cita con
             # razon aunque el RAG no los haya recuperado.
+            # Una herramienta de datos tambien es respaldo verificable: el ID de un
+            # hallazgo o el estado de una CAPA salen de la base, no de la memoria del
+            # modelo. Sin esto, "he registrado la no conformidad con el ID 14" salia
+            # con el aviso de "no pude verificar esta respuesta", que es justo lo
+            # contrario de lo que pasaba -- y el aviso perdia todo su valor por
+            # aparecer donde no tocaba.
             grounded=(
                 bool(document_citations)
                 or bool(catalog_citations)
+                or data_tools_ran
                 or (grounded_context and cites and not unretrieved_codes)
             ),
         )
