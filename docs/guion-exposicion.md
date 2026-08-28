@@ -274,7 +274,7 @@ No lo menciones tú. Si preguntan:
 > troceado por cláusula no es ningún splitter estándar, y la verificación de que
 > el código citado existe no está en ninguna. Con un framework habría entregado
 > antes y **entendido menos**, y necesitaba poder explicar por qué el umbral vale
-> 0.49.»
+> 0.527.»
 
 Si insisten en que LangChain también tiene umbral (`similarity_score_threshold`,
 y es cierto): concédelo y reconduce al argumento fuerte:

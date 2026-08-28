@@ -55,7 +55,8 @@ def _normalizar(texto: str) -> str:
 
 _SALUDOS = frozenset({
     "hola", "holaa", "ola", "buenas", "buenos dias", "buenas tardes", "buenas noches",
-    "que tal", "como estas", "hey", "saludos", "buen dia", "hola normia", "buenas!",
+    "que tal", "que tal todo", "como estas", "como va", "como va todo", "que tal estas",
+    "hey", "saludos", "buen dia", "hola normia", "buenas!", "hola que tal",
 })
 _CORTESIA = frozenset({
     "gracias", "muchas gracias", "mil gracias", "ok gracias", "vale gracias",
@@ -162,6 +163,30 @@ _LEXICO_DOMINIO = re.compile(r"\b("
     r"solicitud|solicitudes|incidencia|equipo|equipos"
     r")\b")
 
+# Instrucciones sobre COMO debe comportarse el asistente. No son consultas al SGC
+# y no dependen de que haya turno previo: "responde siempre en ingles" puede ser lo
+# primero que alguien escriba. La cola tenia varias, escaladas como si fueran huecos
+# de documentacion.
+_INSTRUCCION_RE = re.compile("|".join((
+    r"^responde (siempre |solo |unicamente )?(en|con)\b",
+    r"^(habla|escribe|contesta) (siempre |solo )?(en|con)\b",
+    r"\bno (me )?(cites|menciones|uses)\b",
+    r"\b(se|sé) (mas |menos )?(breve|formal|informal|tecnico|conciso)\b",
+    r"^(usa|utiliza) (un )?(tono|lenguaje)\b",
+)))
+
+# Intentos de saltarse las reglas NO son instrucciones legitimas: van por la ruta
+# DOCUMENTAL, que es la mas estricta. Tratarlos como conversacion les quitaria el
+# guardrail bloqueante, que es justo lo que el atacante busca.
+_INYECCION_RE = re.compile("|".join((
+    r"\bignora (tus|las|todas) ",
+    r"\bolvida (lo anterior|todo|tus|tus reglas)",
+    r"\bnuevas instrucciones\b",
+    r"\bactua como\b",
+    r"\bsystem prompt\b",
+    r"\bsin importar (tus|las) reglas\b",
+)))
+
 # Un mensaje con un codigo de documento SIEMPRE es documental, por corto que sea.
 _CODIGO_RE = re.compile(r"\b[a-z]{2,5}-[a-z]{2,5}-\d{1,3}\b")
 
@@ -189,6 +214,12 @@ def clasificar_turno(texto: str, *, hay_turno_previo: bool = False) -> TipoTurno
 
     if _META_RE.search(limpio):
         return TipoTurno.META
+
+    if _INYECCION_RE.search(limpio):
+        return TipoTurno.DOCUMENTAL
+
+    if _INSTRUCCION_RE.search(limpio):
+        return TipoTurno.CONVERSACIONAL
 
     if hay_turno_previo and len(limpio) <= MAX_CHARS_CONVERSACIONAL:
         if _CONVERSACIONAL_INEQUIVOCO.search(limpio):

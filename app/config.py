@@ -50,7 +50,15 @@ class Settings(BaseSettings):
 
     # RAG
     rag_top_k: int = 4
-    rag_max_distance: float = 0.49
+    # Calibrado con scripts/calibrate_threshold.py sobre el corpus demo: 10
+    # preguntas dentro de alcance y 8 fuera. Peor caso dentro 0.5070, mejor caso
+    # fuera 0.5046 -- se solapan, asi que ningun valor los separa del todo.
+    #
+    # Estaba en 0.49 y descartaba tres consultas legitimas cuya clausula correcta
+    # se recuperaba a 0.4976-0.5070. Se comprobo en vivo que el unico falso
+    # positivo que introduce 0.527 lo frenan igualmente los guardrails de aguas
+    # abajo: las 8 preguntas fuera de alcance siguen negandose, ninguna inventa.
+    rag_max_distance: float = 0.527
     rag_relative_margin: float = 0.08
 
     # Widget web
