@@ -202,7 +202,23 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const API = "http://localhost:8000";
+const API = "";  // mismo origen
+// La clave solo hace falta si el servidor la exige (ADMIN_API_KEY). Se guarda
+// en el navegador de quien administra; nunca viaja al repositorio.
+let ADMIN_KEY = localStorage.getItem("normia_admin_key") || "";
+const _fetch = window.fetch.bind(window);
+window.fetch = (url, opts = {}) => {
+  if (ADMIN_KEY && String(url).includes("/api/admin/")) {
+    opts.headers = { ...(opts.headers || {}), "X-Admin-Key": ADMIN_KEY };
+  }
+  return _fetch(url, opts).then(r => {
+    if (r.status === 401) {
+      const k = prompt("Clave de administracion:");
+      if (k) { ADMIN_KEY = k; localStorage.setItem("normia_admin_key", k); location.reload(); }
+    }
+    return r;
+  });
+};
 const TENANT = new URLSearchParams(location.search).get("tenant") || "demo-publica";
 let pollTimer = null;
 

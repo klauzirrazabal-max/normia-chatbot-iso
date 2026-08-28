@@ -59,6 +59,14 @@ class Settings(BaseSettings):
     # Tenant
     default_tenant_id: str = "empresa-demo-iso"
 
+    # --- Exponer fuera de localhost. Vacio = apagado, que es lo correcto en local. ---
+    # Con esto puesto, /api/chat ignora el tenant que mande el cliente y sirve solo este.
+    public_tenant_id: str = ""
+    # Con esto puesto, /api/admin/* exige la cabecera X-Admin-Key.
+    admin_api_key: str = ""
+    # Consultas por minuto y por IP. 0 = sin limite.
+    rate_limit_per_minute: int = 0
+
     @property
     def allowed_origins_list(self) -> list[str]:
         return [o.strip() for o in self.widget_allowed_origins.split(",") if o.strip()]

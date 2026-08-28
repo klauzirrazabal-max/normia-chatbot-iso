@@ -6,6 +6,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 from sqlalchemy import text
 
 from app.channels import admin_adapter, web_adapter
@@ -81,3 +83,12 @@ def health() -> dict[str, object]:
         "ok" if checks["database"] == "ok" and checks["llm"] == "ok" else "degraded"
     )
     return checks
+
+
+# El widget y el panel se sirven desde la propia API, no desde otro puerto.
+# Asi el navegador del visitante habla con el mismo origen del que descargo la
+# pagina: sin esto, `api-url="http://localhost:8000"` apuntaria al localhost DE
+# QUIEN VISITA. Ademas hace innecesario el CORS.
+_FRONTEND = Path(__file__).resolve().parent.parent / "frontend-widget"
+if _FRONTEND.is_dir():
+    app.mount("/", StaticFiles(directory=str(_FRONTEND), html=True), name="frontend")

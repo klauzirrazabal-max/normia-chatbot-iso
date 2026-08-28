@@ -40,6 +40,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.core.docs.pipeline import apply_advice_action, process_job
 from app.db.session import get_db
+from app.security import require_admin_key
 from app.models.db_models import (
     Document,
     DocumentChunk,
@@ -50,7 +51,13 @@ from app.models.db_models import (
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/admin", tags=["admin"])
+# La dependencia va en el router entero: si se anade un endpoint nuevo queda
+# protegido sin que nadie tenga que acordarse.
+router = APIRouter(
+    prefix="/api/admin",
+    tags=["admin"],
+    dependencies=[Depends(require_admin_key)],
+)
 
 MAX_UPLOAD_BYTES = 25 * 1024 * 1024  # 25 MB por archivo
 UPLOAD_DIR = Path("data/knowledge_base")

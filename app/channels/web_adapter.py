@@ -10,12 +10,13 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from app.core import orchestrator
 from app.db.session import get_db
 from app.models.schemas import IncomingMessage, WebChatRequest, WebChatResponse
+from app.security import check_rate_limit, resolve_tenant
 
 logger = logging.getLogger(__name__)
 
@@ -27,9 +28,16 @@ router = APIRouter(prefix="/api", tags=["web"])
 # atenderia una sola conversacion a la vez. Con `def`, FastAPI lo despacha a un
 # threadpool y mantiene la concurrencia.
 @router.post("/chat", response_model=WebChatResponse)
-def chat(payload: WebChatRequest, db: Session = Depends(get_db)) -> WebChatResponse:
+def chat(
+    payload: WebChatRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+) -> WebChatResponse:
+    check_rate_limit(request)
+    # El tenant NO se toma del cuerpo sin filtrar: ver app/security.py.
+    tenant_id = resolve_tenant(payload.tenant_id)
     msg = IncomingMessage(
-        tenant_id=payload.tenant_id,
+        tenant_id=tenant_id,
         channel="web",
         external_user_id=payload.session_id,
         text=payload.message,
@@ -39,7 +47,7 @@ def chat(payload: WebChatRequest, db: Session = Depends(get_db)) -> WebChatRespo
         response = orchestrator.handle_message(db, msg)
     except Exception:
         db.rollback()
-        logger.exception("web.chat_failed", extra={"tenant_id": payload.tenant_id})
+        logger.exception("web.chat_failed", extra={"tenant_id": tenant_id})
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="No se pudo procesar el mensaje.",

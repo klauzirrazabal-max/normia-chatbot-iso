@@ -219,7 +219,10 @@
     }
 
     get apiUrl() {
-      return (this.getAttribute("api-url") || "http://localhost:8000").replace(/\/$/, "");
+      // Un api-url vacio significa "mismo origen": es lo que permite servir el
+      // widget y la API detras del mismo tunel sin tocar nada.
+      const attr = this.getAttribute("api-url");
+      return (attr === null ? "http://localhost:8000" : attr).replace(/\/$/, "");
     }
     get tenantId() {
       return this.getAttribute("tenant-id") || "demo-publica";
