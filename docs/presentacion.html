@@ -382,7 +382,7 @@ code,.mono,.cod{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,mo
     <table class="tabla">
       <thead><tr><th>Capa</th><th>Elección</th><th>Por qué esa</th></tr></thead>
       <tbody>
-        <tr><td>Framework de IA</td><td>RAG propio · FastAPI · Python 3.12</td><td><b>Sin LangChain ni LlamaIndex.</b> Cada paso —troceado, umbral, guardrails— es código legible y comprobable; un framework habría escondido justo la parte que aporta el valor. 30 módulos, 195 tests.</td></tr>
+        <tr><td>Framework de IA</td><td>RAG propio · FastAPI · Python 3.12</td><td>Cada paso —troceado, umbral, guardrails— es <b>código legible y comprobable</b>, no una caja negra: se puede explicar por qué el umbral vale lo que vale. 30 módulos con responsabilidades separadas y 195 tests.</td></tr>
         <tr><td>Modelo</td><td>Qwen3.8 27B · FP4 · vía Ollama</td><td>Elegido por medición, no por fama: acertó cláusula, sección, herramienta y escalación en el banco de pruebas.</td></tr>
         <tr><td>Comprensión del texto</td><td><code>BAAI/bge-m3</code></td><td>Convierte cada cláusula en una huella numérica de su significado, que es lo que permite buscar por sentido y no por palabras exactas. Multilingüe y solvente en español técnico.</td></tr>
         <tr><td>Base de datos</td><td>PostgreSQL 16 · pgvector · <code>unaccent</code></td><td>Guarda documentos, conversaciones y la traza de auditoría, y busca por significado. También ignora los acentos: sin eso, «auditoria» no encontraba «auditoría».</td></tr>
