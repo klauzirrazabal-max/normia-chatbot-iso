@@ -25,16 +25,114 @@ tocar codigo.
 
 ## Arquitectura
 
+### Vista general
+
+```mermaid
+flowchart TB
+    subgraph cli["Cliente"]
+        W["Widget web<br/><i>Web Component + Shadow DOM</i>"]
+        A["Panel de administracion"]
+    end
+
+    subgraph api["API — FastAPI"]
+        WA["POST /api/chat"]
+        AA["/api/admin/*<br/><i>documentos, jobs, escalaciones</i>"]
+    end
+
+    subgraph core["Nucleo"]
+        O["Orquestador<br/><i>decide RAG vs herramienta</i>"]
+        R["Recuperacion<br/><i>FAQ + clausulas</i>"]
+        T["Herramientas<br/><i>5 tools</i>"]
+        G["Guardrails<br/><i>4 capas</i>"]
+        P["Pipeline de ingesta<br/><i>en segundo plano</i>"]
+    end
+
+    subgraph mod["Modelos — todo local"]
+        E["BAAI/bge-m3<br/><i>embeddings 1024d</i>"]
+        L["Qwen3.8 27B<br/><i>via Ollama</i>"]
+    end
+
+    DB[("PostgreSQL 16<br/>+ pgvector (HNSW)<br/>+ unaccent")]
+
+    W --> WA --> O
+    A --> AA --> P
+    O --> R
+    O --> T
+    O --> G
+    O <--> L
+    R --> E
+    P --> E
+    R --> DB
+    T --> DB
+    G --> DB
+    P --> DB
 ```
-Usuario (widget web)
-   -> Channel adapter        normaliza el mensaje a IncomingMessage
-   -> Orquestador            arma el contexto y decide RAG vs herramienta
-   -> RAG (retrieval)        chunks de documentos VIGENTES, filtrados por umbral de distancia
-   -> Agentes / tools        registrar hallazgo, consultar CAPA, escalar
-   -> LLM                    genera la respuesta, con function calling
-   -> Guardrail de grounding si no hay contexto suficiente, descarta la respuesta y escala
-   -> Respuesta              formateada de vuelta al canal de origen
+
+Ningun dato sale de la maquina: el modelo de lenguaje corre en Ollama y los
+embeddings en local. Un SGC contiene procedimientos internos y politicas, y eso
+no puede viajar a una API de terceros.
+
+### Flujo de una consulta
+
+Los cuatro guardrails son la diferencia entre un buscador y un asistente sobre
+documentacion controlada. Cualquiera de ellos puede **descartar** la respuesta ya
+redactada y escalar a Calidad.
+
+```mermaid
+flowchart TD
+    Q(["Pregunta del usuario"]) --> D{"Pide una clausula<br/>concreta?"}
+    D -->|"si — 'seccion 6.2 del COD-XX-01'"| DS["Carga directa de la seccion<br/><i>sin pasar por el vector</i>"]
+    D -->|no| EMB["Embedding de la pregunta"]
+
+    EMB --> PAR["Dos busquedas HNSW en paralelo"]
+    PAR --> FAQ["FAQ<br/><i>preguntas vectorizadas</i>"]
+    PAR --> CH["Clausulas<br/><i>solo documentos VIGENTES</i>"]
+
+    FAQ --> G1
+    CH --> G1
+    DS --> G1
+
+    G1{"<b>1. Umbral semantico</b><br/>distancia absoluta<br/>+ margen relativo"}
+    G1 -->|"nada lo supera"| NO
+    G1 -->|hay contexto| LLM["LLM redacta<br/><i>con function calling</i>"]
+
+    LLM --> TC{"Invoco una<br/>herramienta?"}
+    TC -->|si| EX["Ejecuta + segunda pasada"] --> G2
+    TC -->|no| G2
+
+    G2["<b>2. Version citada</b><br/>corrige contra la version real"] --> G3
+    G3{"<b>3. Codigo citado</b><br/>existe el documento?"}
+    G3 -->|"codigo inventado"| NO
+    G3 -->|ok| G4
+    G4{"<b>4. Fundamentacion</b><br/>hay respaldo documental<br/>o dato verificable?"}
+    G4 -->|no| NO
+    G4 -->|si| OUT(["Respuesta + referencias<br/>+ traza de auditoria"])
+
+    NO(["No responde:<br/>escala a Calidad"])
 ```
+
+El filtro por umbral es el que hace real al guardrail: sin el, `ORDER BY
+distancia LIMIT k` siempre devuelve algo, por irrelevante que sea.
+
+### Ingesta de documentos
+
+```mermaid
+flowchart LR
+    U["PDF subido"] --> EXT["Extraccion<br/><i>texto + tablas</i>"]
+    EXT --> CK["Troceado por clausula<br/><i>'1. OBJETIVO', '6.2 ...'</i>"]
+    CK --> DET["Deteccion de hallazgos<br/><i>duplicados, version, codigo</i>"]
+    DET --> EMB2["Embeddings"] --> DBI[("pgvector")]
+    DET --> REV["Lista de revision"]
+    REV --> QM(["Responsable de Calidad<br/><i>decide y aplica</i>"])
+```
+
+El troceado es **por clausula**, no por tamano fijo: en un documento controlado
+la unidad de sentido es la clausula, y es lo que permite citar "seccion 6.2" con
+trazabilidad. El sistema **detecta y avisa**; no modifica los documentos del
+cliente.
+
+Los tres diagramas estan tambien como PNG en [`docs/diagramas/`](docs/diagramas/),
+incluida una variante horizontal del flujo de consulta pensada para diapositivas.
 
 Todo queda en PostgreSQL: conversaciones, mensajes, documentos, hallazgos y acciones
 correctivas — mas una traza de auditoria por turno (`messages.retrieval_debug`) con que se
