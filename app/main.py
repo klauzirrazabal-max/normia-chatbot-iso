@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 from sqlalchemy import text
@@ -89,6 +90,18 @@ def health() -> dict[str, object]:
 # Asi el navegador del visitante habla con el mismo origen del que descargo la
 # pagina: sin esto, `api-url="http://localhost:8000"` apuntaria al localhost DE
 # QUIEN VISITA. Ademas hace innecesario el CORS.
+@app.get("/", include_in_schema=False)
+def raiz() -> RedirectResponse:
+    """
+    La raiz lleva al chat.
+
+    Sin esto, entrar al dominio pelado devuelve {"detail":"Not Found"}: el
+    montaje estatico busca un index.html que no existe. Y entrar al dominio
+    pelado es lo primero que hace cualquiera a quien le pasas el enlace.
+    """
+    return RedirectResponse(url="/demo.html")
+
+
 _FRONTEND = Path(__file__).resolve().parent.parent / "frontend-widget"
 if _FRONTEND.is_dir():
     app.mount("/", StaticFiles(directory=str(_FRONTEND), html=True), name="frontend")
