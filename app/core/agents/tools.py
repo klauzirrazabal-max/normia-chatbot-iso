@@ -173,12 +173,15 @@ TOOLS_SCHEMA: list[dict[str, Any]] = [
         "function": {
             "name": "describir_capacidades",
             "description": (
-                "Describe QUE puede hacer este asistente y sobre que documentacion "
-                "responde. Usala cuando el usuario pregunte por el asistente en si "
-                "('que puedes hacer?', 'en que me ayudas?', 'quien eres?', 'como "
-                "funcionas?', 'ayuda'), y NO por el contenido de un documento. "
-                "Preguntar por las capacidades no es una consulta al SGC: no la "
-                "escales a Calidad."
+                "Responde sobre EL ASISTENTE y sobre COMO ESTA ORGANIZADA la "
+                "documentacion. Usala para CUALQUIER pregunta que no sea sobre el "
+                "CONTENIDO de un documento concreto: que puedes hacer, quien eres, "
+                "como funcionas, de que tienes certeza, que documentacion cubres, "
+                "cuantos documentos hay, si estan versionados, que pasa con las "
+                "versiones obsoletas, si puedes consultar una version antigua. "
+                "Ninguna de esas es una consulta al SGC: no las escales a Calidad ni "
+                "digas que te falta informacion. Ante la duda entre esta herramienta y "
+                "escalar, usa esta."
             ),
             "parameters": {
                 "type": "object",
@@ -453,6 +456,19 @@ def describir_capacidades(db: Session, tenant_id: str) -> dict[str, Any]:
         "asistente": "NormIA",
         "documentos_vigentes": len(filas),
         "areas": areas,
+        "control_de_versiones": (
+            "Si. Cada documento tiene codigo, version y estado. Solo respondo sobre los "
+            "VIGENTES: las versiones obsoletas quedan fuera de toda respuesta, y por eso "
+            "cada respuesta indica la version exacta sobre la que se apoya."
+        ),
+        "versiones_antiguas": (
+            "No consulto versiones obsoletas. Si necesitas el texto de una version "
+            "anterior, pideselo al Responsable de Calidad: el historico es suyo."
+        ),
+        "de_que_tengo_certeza": (
+            "De lo que dicen los documentos vigentes que tengo cargados, citando la "
+            "clausula. Fuera de eso no respondo: lo digo y lo derivo a Calidad."
+        ),
         "puedo": [
             "Responder que dice un procedimiento, politica o manual vigente, citando "
             "codigo, version y seccion.",
