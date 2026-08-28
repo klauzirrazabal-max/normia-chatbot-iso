@@ -150,10 +150,10 @@ repositorio (`demo-publica`), con el modelo en local.
 
 ![Respuesta con cita](docs/capturas/02-respuesta-con-cita.png)
 
-La pagina anfitriona fuerza `Georgia`, botones rosados y bordes punteados; el
-widget no se entera, porque vive dentro de un Shadow DOM. La respuesta lleva el
-dato en negrita, y debajo la referencia con el titulo por delante -- el codigo y
-la version quedan como respaldo, no como protagonistas.
+El widget se integra en la intranet del cliente sin heredar ni imponer estilos:
+vive dentro de un Shadow DOM, asi que ni el sitio lo despeina ni el rompe el sitio.
+La respuesta lleva el dato en negrita, y debajo la referencia con el titulo por
+delante -- el codigo y la version quedan como respaldo, no como protagonistas.
 
 ### El guardrail cuando no hay respaldo
 

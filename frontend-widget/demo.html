@@ -1,60 +1,186 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Intranet Empresa Demo ISO 9001</title>
-  <style>
-    /* CSS agresivo a proposito: demuestra que el Shadow DOM aisla el widget.
-       Nada de esto lo afecta. */
-    * { font-family: Georgia, serif !important; }
-    body { margin: 0; background: #f8fafc; color: #1e293b; line-height: 1.7; }
-    button { background: hotpink !important; border: 4px dashed lime !important; }
-    div { border-radius: 0 !important; }
-    header { background: #0f172a; color: #fff; padding: 24px 32px; }
-    main { max-width: 720px; margin: 0 auto; padding: 40px 24px 120px; }
-    h1 { margin: 0; font-size: 20px; }
-    h2 { font-size: 17px; margin-top: 32px; }
-    code { background: #e2e8f0; padding: 2px 6px; font-family: monospace !important; }
-    .card { background: #fff; border: 1px solid #e2e8f0; padding: 20px 24px; margin-top: 16px; }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Intranet · Servicorp</title>
+<style>
+  :root{
+    --tinta:#1a2230; --suave:#5a6779; --linea:#e2e6ec; --fondo:#f5f7fa;
+    --panel:#ffffff; --marca:#14508c; --marca-clara:#eaf1f9; --ok:#1c6b45; --aviso:#8a5a10;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--fondo); color:var(--tinta);
+    font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  a{color:var(--marca); text-decoration:none}
+  a:hover{text-decoration:underline}
+
+  header.top{background:var(--panel); border-bottom:1px solid var(--linea)}
+  .barra{max-width:1140px; margin:0 auto; padding:0 24px; display:flex; align-items:center; gap:28px; height:60px}
+  .logo{display:flex; align-items:center; gap:10px; font-weight:700; font-size:1.05rem; letter-spacing:-.01em}
+  .logo .cuadro{
+    width:28px; height:28px; border-radius:6px; background:var(--marca); color:#fff;
+    display:grid; place-items:center; font-size:.82rem; font-weight:700;
+  }
+  nav{display:flex; gap:22px; font-size:.92rem}
+  nav a{color:var(--suave)} nav a.activo{color:var(--tinta); font-weight:600}
+  .usuario{margin-left:auto; display:flex; align-items:center; gap:9px; font-size:.88rem; color:var(--suave)}
+  .avatar{width:28px; height:28px; border-radius:50%; background:var(--marca-clara); color:var(--marca);
+          display:grid; place-items:center; font-weight:700; font-size:.76rem}
+
+  main{max-width:1140px; margin:0 auto; padding:32px 24px 72px}
+  h1{font-size:1.6rem; margin:0 0 6px; letter-spacing:-.02em}
+  .sub{color:var(--suave); margin:0 0 28px}
+
+  .rejilla{display:grid; grid-template-columns:2fr 1fr; gap:22px; align-items:start}
+  @media (max-width:880px){ .rejilla{grid-template-columns:1fr} }
+
+  .tarjeta{background:var(--panel); border:1px solid var(--linea); border-radius:10px; overflow:hidden}
+  .tarjeta > h2{
+    font-size:.78rem; text-transform:uppercase; letter-spacing:.08em; color:var(--suave);
+    margin:0; padding:14px 18px; border-bottom:1px solid var(--linea); font-weight:600;
+  }
+  .tarjeta .cuerpo{padding:6px 18px 14px}
+
+  .doc{display:flex; align-items:center; gap:14px; padding:12px 0; border-bottom:1px solid var(--linea)}
+  .doc:last-child{border-bottom:0}
+  .doc .cod{
+    font:600 .74rem/1 ui-monospace,SFMono-Regular,Menlo,monospace; color:var(--marca);
+    background:var(--marca-clara); padding:5px 8px; border-radius:5px; white-space:nowrap;
+  }
+  .doc .txt{flex:1; min-width:0}
+  .doc .tit{font-weight:600; font-size:.95rem}
+  .doc .meta{color:var(--suave); font-size:.83rem}
+  .pill{font-size:.72rem; font-weight:600; padding:3px 9px; border-radius:20px; white-space:nowrap}
+  .pill.vig{background:#e8f4ee; color:var(--ok)}
+
+  ul.avisos{list-style:none; margin:0; padding:0}
+  ul.avisos li{padding:12px 0; border-bottom:1px solid var(--linea); font-size:.92rem}
+  ul.avisos li:last-child{border-bottom:0}
+  ul.avisos .cuando{color:var(--suave); font-size:.8rem; display:block; margin-top:3px}
+
+  .accesos{display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:14px 18px}
+  .accesos a{
+    border:1px solid var(--linea); border-radius:8px; padding:13px 14px; font-size:.89rem;
+    font-weight:600; color:var(--tinta); background:#fcfdfe;
+  }
+  .accesos a:hover{border-color:var(--marca); color:var(--marca); text-decoration:none}
+  .accesos a span{display:block; font-weight:400; color:var(--suave); font-size:.79rem; margin-top:2px}
+
+  .nota{
+    background:#fffaf0; border:1px solid #f0e0c0; border-radius:10px; padding:14px 18px;
+    font-size:.89rem; color:var(--aviso); margin-bottom:22px;
+  }
+  .nota b{color:#6b4508}
+
+  footer{border-top:1px solid var(--linea); margin-top:44px; padding-top:18px;
+         color:var(--suave); font-size:.82rem; display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap}
+</style>
 </head>
 <body>
-  <header><h1>Intranet &middot; Empresa Demo ISO 9001</h1></header>
 
-  <main>
-    <h2>Sistema de gestion de calidad</h2>
-    <p>
-      Esta pagina simula el sitio de un cliente. Aplica estilos globales agresivos
-      (<code>Georgia</code> forzada, botones rosados con borde punteado verde, radios
-      en cero) para demostrar algo concreto: el widget de abajo a la derecha no se
-      ve afectado por ninguno de ellos, porque vive dentro de un Shadow DOM.
-    </p>
+<header class="top">
+  <div class="barra">
+    <div class="logo"><span class="cuadro">S</span> Servicorp</div>
+    <nav>
+      <a href="#" class="activo">Inicio</a>
+      <a href="#">Documentos</a>
+      <a href="#">Personas</a>
+      <a href="#">Calidad</a>
+      <a href="#">Soporte TI</a>
+    </nav>
+    <div class="usuario"><span class="avatar">KE</span> Klauz España</div>
+  </div>
+</header>
 
-    <div class="card">
-      <h2 style="margin-top:0">Prueba estos escenarios</h2>
-      <ol>
-        <li><strong>Flujo feliz</strong> &mdash; pregunta por un procedimiento que si subiste.
-            Debe citar codigo y version.</li>
-        <li><strong>Sin informacion</strong> &mdash; pregunta algo que no esta en los documentos.
-            Debe decir que no tiene informacion y escalar, sin inventar.</li>
-        <li><strong>Fuera de alcance</strong> &mdash; &ldquo;Apruebame este cambio de
-            procedimiento&rdquo;. Debe rechazar y escalar a Calidad.</li>
-        <li><strong>Hallazgo</strong> &mdash; reporta una desviacion. Debe registrarla
-            y devolverte un ID.</li>
-      </ol>
+<main>
+  <h1>Buenos días, Klauz</h1>
+  <p class="sub">Sistema de Gestión de Calidad · ISO 9001:2015</p>
+
+  <div class="nota">
+    <b>Auditoría interna del 15 de septiembre.</b> Revisa que los procedimientos de tu área
+    estén en su versión vigente. Si tienes dudas sobre qué dice un documento, pregúntale a
+    NormIA — el asistente abajo a la derecha.
+  </div>
+
+  <div class="rejilla">
+    <div style="display:flex; flex-direction:column; gap:22px">
+      <section class="tarjeta">
+        <h2>Documentos actualizados recientemente</h2>
+        <div class="cuerpo">
+          <div class="doc">
+            <span class="cod">STI-PR-01</span>
+            <span class="txt"><span class="tit">Atención de Solicitudes Tecnológicas</span>
+              <span class="meta">Procedimientos · v4 · vigente desde 08/07/2025</span></span>
+            <span class="pill vig">Vigente</span>
+          </div>
+          <div class="doc">
+            <span class="cod">COM-PR-01</span>
+            <span class="txt"><span class="tit">Compras</span>
+              <span class="meta">Procedimientos · v3 · vigente desde 29/05/2025</span></span>
+            <span class="pill vig">Vigente</span>
+          </div>
+          <div class="doc">
+            <span class="cod">STI-PO-01</span>
+            <span class="txt"><span class="tit">Política de Seguridad de la Información</span>
+              <span class="meta">Políticas · v2 · vigente desde 09/04/2026</span></span>
+            <span class="pill vig">Vigente</span>
+          </div>
+          <div class="doc">
+            <span class="cod">CAL-PR-03</span>
+            <span class="txt"><span class="tit">No Conformidad y Acciones Correctivas</span>
+              <span class="meta">Procedimientos · v2 · vigente desde 08/04/2025</span></span>
+            <span class="pill vig">Vigente</span>
+          </div>
+          <div class="doc">
+            <span class="cod">CAL-MN-01</span>
+            <span class="txt"><span class="tit">Manual de la Calidad</span>
+              <span class="meta">Manuales · v3 · vigente desde 02/01/2026</span></span>
+            <span class="pill vig">Vigente</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="tarjeta">
+        <h2>Accesos directos</h2>
+        <div class="accesos">
+          <a href="#">Reportar una no conformidad<span>Registra una desviación detectada</span></a>
+          <a href="#">Solicitud a TI<span>Soporte, accesos y equipos</span></a>
+          <a href="#">Lista maestra de documentos<span>Qué está vigente y en qué versión</span></a>
+          <a href="#">Acciones correctivas<span>Seguimiento de CAPA abiertas</span></a>
+        </div>
+      </section>
     </div>
 
-    <button>Boton del sitio anfitrion (deliberadamente horrible)</button>
-  </main>
+    <section class="tarjeta">
+      <h2>Avisos</h2>
+      <div class="cuerpo">
+        <ul class="avisos">
+          <li>La Política de Seguridad de la Información pasa a v2. Revisa los requisitos de contraseñas.
+            <span class="cuando">Hace 2 días</span></li>
+          <li>Recordatorio: toda no conformidad se registra dentro de los 3 días hábiles siguientes a su detección.
+            <span class="cuando">Hace 5 días</span></li>
+          <li>Mantenimiento programado de servidores el sábado, de 22:00 a 02:00.
+            <span class="cuando">Hace 1 semana</span></li>
+        </ul>
+      </div>
+    </section>
+  </div>
 
-  <script src="widget.js"></script>
-  <normia-chat-widget api-url="" tenant-id="demo-publica">
-  </normia-chat-widget>
-  <script>
-    // ?tenant=otro para probar contra otro SGC sin tocar el archivo
-    const t = new URLSearchParams(location.search).get("tenant");
-    if (t) document.querySelector("normia-chat-widget").setAttribute("tenant-id", t);
-  </script>
+  <footer>
+    <span>Servicorp · Intranet corporativa</span>
+    <span>Entorno de demostración · datos y documentos ficticios</span>
+  </footer>
+</main>
+
+<script src="widget.js"></script>
+<normia-chat-widget api-url="" tenant-id="demo-publica"></normia-chat-widget>
+<script>
+  // ?tenant=otro para probar contra otro SGC sin tocar el archivo
+  const t = new URLSearchParams(location.search).get("tenant");
+  if (t) document.querySelector("normia-chat-widget").setAttribute("tenant-id", t);
+</script>
 </body>
 </html>
