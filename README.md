@@ -195,21 +195,42 @@ anfitrion.
 ### Requisitos
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) corriendo
-- Python 3.12+
-- [Ollama](https://ollama.com) con el modelo descargado
+- **Python 3.12 o superior** — comprueba con `python3 --version` ANTES de instalar
+- [Ollama](https://ollama.com)
+- ~20 GB libres: 18 del modelo de lenguaje y 2 de los embeddings
+
+> **El error mas comun.** El Python que trae macOS es el 3.9, y con el
+> `pip install` falla con un mensaje que no dice la causa real:
+> `Could not find a version that satisfies the requirement annotated-types==0.8.0`.
+> No es que falte el paquete: es que esa version no existe para Python 3.9.
+> Si te pasa, usa el camino con `uv`, que instala el 3.12 por su cuenta.
 
 ### Instalacion
 
+Dos caminos. **Con `uv` es el recomendado** porque resuelve la version de Python:
+
 ```bash
-git clone <url-del-repositorio>
-cd normia
+git clone https://github.com/klauzirrazabal-max/normia-chatbot-iso.git
+cd normia-chatbot-iso
 
-# Dependencias -- dos caminos equivalentes:
-pip install -r requirements.txt          # pip clasico
-uv sync                                  # uv (instala Python 3.12 si falta)
+# --- Camino A (recomendado): uv se encarga del Python 3.12 ---
+uv sync
 
-cp .env.example .env                     # los valores por defecto funcionan tal cual
+# --- Camino B: pip clasico, exige tener ya Python 3.12 ---
+python3.12 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+
+cp .env.example .env      # los valores por defecto funcionan tal cual
 ```
+
+Comprueba que la instalacion esta bien antes de seguir:
+
+```bash
+uv run pytest -q          # o: pytest -q   si usaste el camino B
+```
+
+Deben pasar los 270. Si pasan, el codigo esta bien y lo que falte a partir de
+aqui sera de entorno: Docker, Ollama o el modelo.
 
 ### Modelo y base de datos
 
@@ -221,6 +242,10 @@ ollama serve &
 
 cd docker && docker compose up -d && cd ..
 ```
+
+Los `.sql` de `docker/init/` crean el esquema **solos**, la primera vez que se
+crea el volumen. No hay que aplicar migraciones a mano. Si alguna vez necesitas
+partir de cero: `cd docker && docker compose down -v && docker compose up -d`.
 
 **El modelo son 18 GB y los embeddings otros 2 GB**, y no viajan en el
 repositorio. La primera ejecucion descarga `BAAI/bge-m3` sola; el modelo de
