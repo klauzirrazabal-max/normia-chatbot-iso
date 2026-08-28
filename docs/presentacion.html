@@ -317,12 +317,12 @@ code,.mono,.cod{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,mo
     <table class="tabla">
       <thead><tr><th>Capa</th><th>Elección</th><th>Por qué esa</th></tr></thead>
       <tbody>
+        <tr><td>Framework de IA</td><td>RAG propio · FastAPI · Python 3.12</td><td><b>Sin LangChain ni LlamaIndex.</b> Cada paso —troceado, umbral, guardrails— es código legible y testeable; un framework habría escondido justo la parte que aporta el valor. 29 módulos, 177 tests.</td></tr>
         <tr><td>Modelo</td><td><code>qwen3.8:27b-mlx</code> vía Ollama</td><td>Elegido por medición, no por fama: acertó cláusula, sección, herramienta y escalación en el banco de pruebas.</td></tr>
         <tr><td>Embeddings</td><td><code>BAAI/bge-m3</code> · 1024 dim.</td><td>Multilingüe y fuerte en español técnico.</td></tr>
         <tr><td>Base de datos</td><td>PostgreSQL 16 · pgvector · <code>unaccent</code></td><td>Índice <b>HNSW</b>, no ivfflat: ivfflat entrena centroides sobre los datos ya cargados, y el índice se crea con la tabla vacía.</td></tr>
-        <tr><td>API</td><td>FastAPI · Python 3.12</td><td>29 módulos con responsabilidades separadas y 177 tests.</td></tr>
-        <tr><td>Canal</td><td>Web Component · Shadow DOM</td><td>Una etiqueta y un <code>&lt;script&gt;</code>. Los estilos del sitio anfitrión no lo tocan.</td></tr>
-        <tr><td>Entorno</td><td><code>uv</code> · Docker Compose</td><td>Clonar, instalar, configurar <code>.env</code>, ejecutar.</td></tr>
+        <tr><td>Mensajería</td><td>Widget web · Web Component + Shadow DOM</td><td>Una etiqueta y un <code>&lt;script&gt;</code>; los estilos del anfitrión no lo tocan. WhatsApp queda para Fase 2.</td></tr>
+        <tr><td>Despliegue</td><td>Docker Compose · <code>uv</code></td><td>Local, sin nube: el corpus es documentación interna. Clonar, instalar, configurar <code>.env</code>, ejecutar.</td></tr>
       </tbody>
     </table>
   </div>
@@ -335,6 +335,7 @@ code,.mono,.cod{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,mo
   <div class="cuerpo">
     <p class="entradilla">Datos</p>
     <h2 class="titular">De 132 PDFs a 1043 cláusulas consultables</h2>
+    <p class="bajada" style="max-width:none"><b>Fuente:</b> el SGC real de una empresa de servicios, en PDFs controlados. &nbsp;<b>Tipo:</b> manuales, políticas, procedimientos, instructivos y formatos, en 11 áreas. &nbsp;<b>Volumen:</b> 132 documentos → 1043 cláusulas → 730 entradas de FAQ.</p>
     <div class="rejilla r2">
       <div class="columna">
         <span class="rotulo si">Limpieza</span>
@@ -342,8 +343,7 @@ code,.mono,.cod{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,mo
           <li><b>Troceado por cláusula</b>, no por tamaño fijo: la unidad de sentido de un documento controlado es la cláusula.</li>
           <li>Extracción de tablas preservando la relación celda↔columna. Sin esto, el bot daba el «tiempo de solución» cuando le preguntaban por el «tiempo de respuesta».</li>
           <li>Reparación de saltos del PDF: <code>CAL-FO- 09</code> → <code>CAL-FO-09</code>.</li>
-          <li>Descarte de índices y membretes repetidos.</li>
-          <li>Aviso cuando una cláusula <b>anuncia sin entregar</b>: el contenido real está en una imagen.</li>
+                    <li>Aviso cuando una cláusula <b>anuncia sin entregar</b>: el contenido real está en una imagen.</li>
         </ul>
       </div>
       <div class="columna">
@@ -356,7 +356,7 @@ code,.mono,.cod{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,mo
         </ul>
       </div>
     </div>
-    <p class="bajada"><b>El repositorio no incluye ni un solo documento del cliente.</b> Viaja con un SGC sintético de 6 documentos que imita la estructura real, para que cualquiera pueda ejecutarlo.</p>
+    <p class="bajada" style="max-width:none"><b>El repositorio no incluye ni un solo documento del cliente:</b> viaja con un SGC sintético de 6 documentos que imita la estructura real.</p>
   </div>
   <footer class="pie"><span>Fuente · tipo · volumen · limpieza · validación</span><span class="num">10 / 12</span></footer>
 </section>
