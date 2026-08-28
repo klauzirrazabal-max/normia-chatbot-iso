@@ -131,6 +131,9 @@ la unidad de sentido es la clausula, y es lo que permite citar "seccion 6.2" con
 trazabilidad. El sistema **detecta y avisa**; no modifica los documentos del
 cliente.
 
+La presentacion del proyecto (12 laminas) esta en [`docs/presentacion.html`](docs/presentacion.html):
+abrela en el navegador y navega con las flechas.
+
 Los tres diagramas estan tambien como PNG en [`docs/diagramas/`](docs/diagramas/),
 incluida una variante horizontal del flujo de consulta pensada para diapositivas.
 
