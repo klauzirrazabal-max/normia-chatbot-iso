@@ -173,8 +173,11 @@ TOOLS_SCHEMA: list[dict[str, Any]] = [
         "function": {
             "name": "describir_capacidades",
             "description": (
-                "Responde sobre EL ASISTENTE y sobre COMO ESTA ORGANIZADA la "
-                "documentacion. Usala para CUALQUIER pregunta que no sea sobre el "
+                "Responde a los SALUDOS y a todo lo que trate sobre EL ASISTENTE o "
+                "sobre COMO ESTA ORGANIZADA la documentacion. Usala tambien cuando el "
+                "usuario solo saluda o abre conversacion ('hola', 'buenos dias', "
+                "'que tal'): saludar no es una consulta al SGC y no se escala jamas. "
+                "Y para CUALQUIER pregunta que no sea sobre el "
                 "CONTENIDO de un documento concreto: que puedes hacer, quien eres, "
                 "como funcionas, de que tienes certeza, que documentacion cubres, "
                 "cuantos documentos hay, si estan versionados, que pasa con las "
@@ -484,9 +487,12 @@ def describir_capacidades(db: Session, tenant_id: str) -> dict[str, Any]:
             "Responder sobre temas que no esten en la documentacion vigente.",
         ],
         "instruccion": (
-            "Resume esto con tus palabras, en tono cercano y sin listar las tres "
-            "cosas que no puedes salvo que venga a cuento. Cierra invitando a "
-            "preguntar. NO cites ningun codigo de documento aqui."
+            "Responde con tus palabras, en tono cercano y humano. Ajusta la longitud: "
+            "si solo te SALUDARON, devuelve el saludo en una o dos frases, di en una "
+            "linea de que puedes hablar y pregunta en que ayudas -- no recites la "
+            "lista entera, abruma. Si te preguntaron QUE puedes hacer, entonces si "
+            "detalla. No enumeres lo que no puedes salvo que venga a cuento, y NO "
+            "cites ningun codigo de documento aqui."
         ),
     }
 

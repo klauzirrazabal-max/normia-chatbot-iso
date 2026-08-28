@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.core.agents.tools import (
     ESCALATING_TOOLS,
+    sin_acentos,
     TOOLS_SCHEMA,
     execute_tool,
     parse_arguments,
@@ -466,6 +467,67 @@ _PETICION_SECCION_RE = re.compile(
 )
 
 
+# Formulas sociales: un saludo no es una consulta al SGC.
+#
+# "Hola" acababa en "no tengo informacion suficiente... lo derivo al Responsable
+# de Calidad". Es lo primero que escribe cualquiera, asi que era la peor primera
+# impresion posible, y ademas ensuciaba la cola de Calidad.
+#
+# Se resuelve en el servidor y ANTES del RAG, no por prompt: pedirselo al modelo
+# fallaba la mitad de las veces -- escribia el saludo y el guardrail bloqueante lo
+# descartaba, porque no habia contexto ni herramienta en que apoyarse. Ademas asi
+# es instantaneo, sin los ~10 s de generacion.
+#
+# La coincidencia es ESTRICTA: el mensaje entero, sin signos, tiene que ser la
+# formula. "hola, cual es el plazo?" NO entra aqui y sigue su camino normal.
+_SALUDOS = frozenset({
+    "hola", "holaa", "ola", "buenas", "buenos dias", "buenas tardes", "buenas noches",
+    "que tal", "como estas", "hey", "saludos", "buen dia", "hola normia", "hola!",
+})
+_CORTESIA = frozenset({
+    "gracias", "muchas gracias", "mil gracias", "ok gracias", "vale gracias",
+    "perfecto gracias", "genial gracias", "ok", "vale", "perfecto", "entendido",
+})
+_DESPEDIDAS = frozenset({
+    "adios", "hasta luego", "chao", "chau", "nos vemos", "hasta pronto", "bye",
+})
+
+# Texto que LEE el usuario: va con acentos, a diferencia de los comentarios.
+RESPUESTA_SALUDO = (
+    "¡Hola! Soy NormIA: respondo sobre la documentación ISO vigente de la organización, "
+    "citando siempre el documento y la sección de donde sale la respuesta. "
+    "¿Qué necesitas consultar?"
+)
+RESPUESTA_CORTESIA = "¡A ti! Si te surge otra consulta sobre la documentación, aquí estoy."
+RESPUESTA_DESPEDIDA = (
+    "Hasta luego. Vuelve cuando necesites consultar algo del sistema de gestión de calidad."
+)
+
+MAX_CHARS_SOCIAL = 40
+
+
+def _mensaje_social(texto: str) -> str | None:
+    """
+    Respuesta a una formula social, o None si el mensaje no lo es.
+
+    Estricto a proposito: se compara el mensaje COMPLETO, normalizado y sin
+    signos. Un falso positivo aqui se saltaria el RAG en una consulta real, que
+    es mucho peor que responder despacio a un saludo.
+    """
+    limpio = (texto or "").strip().strip("!¡?¿.,;: \t\n")
+    if not limpio or len(limpio) > MAX_CHARS_SOCIAL:
+        return None
+    limpio = sin_acentos(limpio.lower())
+    limpio = re.sub(r"\s+", " ", limpio).strip()
+    if limpio in _SALUDOS:
+        return RESPUESTA_SALUDO
+    if limpio in _CORTESIA:
+        return RESPUESTA_CORTESIA
+    if limpio in _DESPEDIDAS:
+        return RESPUESTA_DESPEDIDA
+    return None
+
+
 def _direct_section_request(db: Session, tenant_id: str, text: str) -> RetrievalResult | None:
     """
     Carga una clausula concreta sin pasar por la busqueda vectorial.
@@ -805,6 +867,20 @@ def handle_message(db: Session, msg: IncomingMessage) -> BotResponse:
     conversation = get_or_create_conversation(db, msg)
     db.add(Message(conversation_id=conversation.id, role="user", content=msg.text))
     db.flush()
+
+    # Un saludo se responde aqui mismo: ni RAG, ni modelo, ni guardrails. Ver
+    # _mensaje_social. Instantaneo y sin ensuciar la cola de Calidad.
+    social = _mensaje_social(msg.text)
+    if social is not None:
+        logger.info("orchestrator.social", extra={"tenant_id": msg.tenant_id})
+        return _persist_and_return(
+            db,
+            conversation.id,
+            BotResponse(text=social, escalate=False, grounded=True),
+            RetrievalResult(accepted=[], rejected=[], max_distance=0.0),
+            [],
+            started,
+        )
 
     history = _load_history(db, conversation.id, HISTORY_TURNS)[:-1]  # sin el turno actual
 
