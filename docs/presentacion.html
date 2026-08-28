@@ -184,7 +184,7 @@ code,.mono,.cod{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,mo
     </figure>
    </div>
   </div>
-  <footer class="pie"><span>Sistema de Gestión de Calidad</span><span class="num">01 / 12</span></footer>
+  <footer class="pie"><span>Sistema de Gestión de Calidad</span><span class="num">01 / 13</span></footer>
 </section>
 
 <!-- 02 --------------------------------------------------------------- -->
@@ -201,7 +201,7 @@ code,.mono,.cod{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,mo
     </div>
     <p class="bajada">Hoy eso se resuelve preguntándole a una persona de Calidad. Cuando esa persona no está, se resuelve adivinando.</p>
   </div>
-  <footer class="pie"><span>Contexto</span><span class="num">02 / 12</span></footer>
+  <footer class="pie"><span>Contexto</span><span class="num">02 / 13</span></footer>
 </section>
 
 <!-- 03 --------------------------------------------------------------- -->
@@ -224,7 +224,7 @@ code,.mono,.cod{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,mo
     </table>
     <p class="bajada"><b>NormIA detecta y avisa; no corrige.</b> Modificar un documento controlado es competencia del responsable de Calidad.</p>
   </div>
-  <footer class="pie"><span>Hallazgos reportados</span><span class="num">03 / 12</span></footer>
+  <footer class="pie"><span>Hallazgos reportados</span><span class="num">03 / 13</span></footer>
 </section>
 
 <!-- 04 --------------------------------------------------------------- -->
@@ -240,7 +240,7 @@ code,.mono,.cod{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,mo
       <div class="tarjeta"><h3>Una restricción dura</h3><p>Un SGC contiene procedimientos internos, organigramas y políticas. Nada de eso puede viajar a una API de terceros. <b>Por eso el modelo corre en local.</b></p></div>
     </div>
   </div>
-  <footer class="pie"><span>Impacto · viabilidad · valor</span><span class="num">04 / 12</span></footer>
+  <footer class="pie"><span>Impacto · viabilidad · valor</span><span class="num">04 / 13</span></footer>
 </section>
 
 <!-- 05 --------------------------------------------------------------- -->
@@ -273,7 +273,7 @@ code,.mono,.cod{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,mo
     </div>
     <p class="bajada">La lista de la derecha no son limitaciones pendientes de resolver. Son el producto: un asistente sobre documentación controlada vale por lo que se niega a decir.</p>
   </div>
-  <footer class="pie"><span>Qué hace · qué no hace</span><span class="num">05 / 12</span></footer>
+  <footer class="pie"><span>Qué hace · qué no hace</span><span class="num">05 / 13</span></footer>
 </section>
 
 <!-- 06 --------------------------------------------------------------- -->
@@ -293,12 +293,33 @@ code,.mono,.cod{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,mo
     </table>
     <p class="bajada">Cualquiera de los cuatro puede <b>descartar una respuesta ya redactada</b>. Esa es la diferencia entre un buscador y un asistente sobre documentación auditable.</p>
   </div>
-  <footer class="pie"><span>Qué lo diferencia</span><span class="num">06 / 12</span></footer>
+  <footer class="pie"><span>Qué lo diferencia</span><span class="num">06 / 13</span></footer>
+</section>
+
+<!-- Guardrails, el resto ------------------------------------------------ -->
+<section class="lamina">
+  <header class="membrete"><span class="cod">NormIA · 07</span><span class="sec">Solución · diferencial</span></header>
+  <div class="cuerpo">
+    <p class="entradilla">Y las capas que no se ven</p>
+    <h2 class="titular">Los cuatro descartan. Otros ocho evitan llegar ahí</h2>
+    <table class="tabla">
+      <thead><tr><th style="width:11em">Dónde actúa</th><th>Qué impide</th></tr></thead>
+      <tbody>
+        <tr><td><b>Antes de buscar</b></td><td>La consulta SQL filtra por <b>documento vigente</b>. Un documento obsoleto no puede aparecer aunque sea el más parecido: es el control más barato y el que más importa en auditoría.</td></tr>
+        <tr><td><b>Al recuperar</b></td><td>Umbral propio y más estricto para las preguntas frecuentes. Y penalización a las cláusulas de trámite —Objetivo, Alcance, Responsabilidades— que existen en todos los documentos y ganarían siempre.</td></tr>
+        <tr><td><b>Sobre lo que escribe</b></td><td>Se detecta cuando el modelo <b>repite sus propias instrucciones</b> en vez de responder, y cuando escribe la llamada a una herramienta dentro del texto. Ambas cosas pasaron; ninguna llega al usuario.</td></tr>
+        <tr><td><b>Correr ≠ encontrar</b></td><td>Una herramienta que devuelve lista vacía <b>no cuenta como respaldo</b>. Sin esto, buscar un tema inexistente desactivaba el control de fundamentación y el bot prometía derivar a Calidad sin registrar nada.</td></tr>
+        <tr><td><b>Sobre los datos</b></td><td>El FAQ se valida con <b>reglas fijas</b>: se rechaza toda cifra o código que no esté literalmente en la cláusula. Y ampliar un hallazgo no crea uno nuevo, para no duplicar no conformidades.</td></tr>
+        <tr><td><b>Sobre el servicio</b></td><td>Los tiempos de espera <b>no se reintentan</b> —si colgó 45 s, volverá a colgar— y tras tres fallos seguidos se falla de inmediato durante un minuto en vez de que cada usuario pague la espera completa.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <footer class="pie"><span>Doce controles en total</span><span class="num">07 / 13</span></footer>
 </section>
 
 <!-- 07 --------------------------------------------------------------- -->
 <section class="lamina">
-  <header class="membrete"><span class="cod">NormIA · 07</span><span class="sec">Arquitectura</span></header>
+  <header class="membrete"><span class="cod">NormIA · 08</span><span class="sec">Arquitectura</span></header>
   <div class="cuerpo">
     <p class="entradilla">Componentes</p>
     <figure class="figura ancha">
@@ -306,12 +327,12 @@ code,.mono,.cod{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,mo
       <figcaption><b>Nada sale de la máquina.</b> El modelo de lenguaje corre en Ollama y los embeddings en local; PostgreSQL guarda documentos, cláusulas, conversaciones, hallazgos y la traza de auditoría.</figcaption>
     </figure>
   </div>
-  <footer class="pie"><span>Usuario → canal → bot → modelo → respuesta → almacenamiento</span><span class="num">07 / 12</span></footer>
+  <footer class="pie"><span>Usuario → canal → bot → modelo → respuesta → almacenamiento</span><span class="num">08 / 13</span></footer>
 </section>
 
 <!-- 08 --------------------------------------------------------------- -->
 <section class="lamina">
-  <header class="membrete"><span class="cod">NormIA · 08</span><span class="sec">Arquitectura · flujo</span></header>
+  <header class="membrete"><span class="cod">NormIA · 09</span><span class="sec">Arquitectura · flujo</span></header>
   <div class="cuerpo">
     <p class="entradilla">Flujo de una consulta</p>
     <figure class="figura ancha">
@@ -319,12 +340,12 @@ code,.mono,.cod{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,mo
       <figcaption>La pregunta se compara <b>a la vez</b> con las preguntas frecuentes y con las cláusulas vigentes. A partir de ahí, cuatro puntos de control: en cualquiera de ellos la respuesta se descarta y la consulta pasa a la cola de Calidad.</figcaption>
     </figure>
   </div>
-  <footer class="pie"><span>Rojo: escala · Verde: responde</span><span class="num">08 / 12</span></footer>
+  <footer class="pie"><span>Rojo: escala · Verde: responde</span><span class="num">09 / 13</span></footer>
 </section>
 
 <!-- 09 --------------------------------------------------------------- -->
 <section class="lamina">
-  <header class="membrete"><span class="cod">NormIA · 09</span><span class="sec">Herramientas</span></header>
+  <header class="membrete"><span class="cod">NormIA · 10</span><span class="sec">Herramientas</span></header>
   <div class="cuerpo">
     <p class="entradilla">Con qué está hecho</p>
     <h2 class="titular">Todo local, todo reproducible</h2>
@@ -340,12 +361,12 @@ code,.mono,.cod{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,mo
       </tbody>
     </table>
   </div>
-  <footer class="pie"><span>Herramientas y despliegue</span><span class="num">09 / 12</span></footer>
+  <footer class="pie"><span>Herramientas y despliegue</span><span class="num">10 / 13</span></footer>
 </section>
 
 <!-- 10 --------------------------------------------------------------- -->
 <section class="lamina">
-  <header class="membrete"><span class="cod">NormIA · 10</span><span class="sec">Datos</span></header>
+  <header class="membrete"><span class="cod">NormIA · 11</span><span class="sec">Datos</span></header>
   <div class="cuerpo">
     <p class="entradilla">Datos</p>
     <h2 class="titular">De 132 PDFs a 1043 cláusulas consultables</h2>
@@ -372,12 +393,12 @@ code,.mono,.cod{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,mo
     </div>
     <p class="bajada" style="max-width:none"><b>El repositorio no incluye ni un solo documento del cliente:</b> viaja con un SGC sintético de 6 documentos que imita la estructura real.</p>
   </div>
-  <footer class="pie"><span>Fuente · tipo · volumen · limpieza · validación</span><span class="num">10 / 12</span></footer>
+  <footer class="pie"><span>Fuente · tipo · volumen · limpieza · validación</span><span class="num">11 / 13</span></footer>
 </section>
 
 <!-- 11 --------------------------------------------------------------- -->
 <section class="lamina">
-  <header class="membrete"><span class="cod">NormIA · 11</span><span class="sec">En funcionamiento</span></header>
+  <header class="membrete"><span class="cod">NormIA · 12</span><span class="sec">En funcionamiento</span></header>
   <div class="cuerpo">
     <p class="entradilla">Demostración</p>
     <div class="rejilla r2 panel-par" style="flex:1;min-height:0">
@@ -391,12 +412,13 @@ code,.mono,.cod{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,mo
       </figure>
     </div>
   </div>
-  <footer class="pie"><span>Flujo feliz · fuera de alcance</span><span class="num">11 / 12</span></footer>
+  <footer class="pie"><span>Flujo feliz · fuera de alcance</span><span class="num">12 / 13</span></footer>
 </section>
+
 
 <!-- 12 --------------------------------------------------------------- -->
 <section class="lamina">
-  <header class="membrete"><span class="cod">NormIA · 12</span><span class="sec">Resultados</span></header>
+  <header class="membrete"><span class="cod">NormIA · 13</span><span class="sec">Resultados</span></header>
   <div class="cuerpo">
     <p class="entradilla">Resultados</p>
     <h2 class="titular">Medido, no estimado</h2>
@@ -410,7 +432,7 @@ code,.mono,.cod{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,mo
       <div class="tarjeta"><h3>Repositorio</h3><p style="font-family:'IBM Plex Mono',monospace;font-size:.9em;word-break:break-all">github.com/klauzirrazabal-max/<wbr>normia-chatbot-iso</p><p>Clonar → <code>uv sync</code> → <code>.env</code> → ejecutar.</p></div>
     </div>
   </div>
-  <footer class="pie"><span>Gracias</span><span class="num">12 / 12</span></footer>
+  <footer class="pie"><span>Gracias</span><span class="num">13 / 13</span></footer>
 </section>
 
 <nav class="nav">
