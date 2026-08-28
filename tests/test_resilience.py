@@ -43,19 +43,53 @@ class TestReintentos:
     una vez, colgara otra. Los reintentos son para fallos transitorios.
     """
 
-    def test_un_timeout_no_se_reintenta(self):
+    # La version anterior apuntaba a 10.255.255.1 y media el reloj: si tardaba
+    # menos de 3 s, se daba por bueno que no habia reintentado. Dependia de que la
+    # red se tragara los paquetes. En una red que responde "inalcanzable" al
+    # instante, esa direccion lanza ConnectError en 0,05 s -- no un timeout -- y
+    # ConnectError SI se reintenta a proposito, asi que el test fallaba acusando a
+    # un codigo correcto. Ahora se provoca la excepcion exacta y se CUENTAN las
+    # llamadas: sin red y sin relojes.
+
+    @staticmethod
+    def _contar_intentos(monkeypatch, excepcion, max_retries=3):
+        """Cuantas veces se llama al backend antes de rendirse."""
         import httpx
 
+        llamadas = {"n": 0}
+
+        def falla(*_args, **_kwargs):
+            llamadas["n"] += 1
+            raise excepcion
+
+        monkeypatch.setattr(httpx.Client, "post", falla)
+        monkeypatch.setattr(time, "sleep", lambda *_: None)  # sin esperar el backoff
+
         cliente = OpenAICompatibleClient(
-            base_url="http://10.255.255.1/v1", timeout=0.4, max_retries=3
+            base_url="http://ejemplo.invalido/v1", timeout=0.4, max_retries=max_retries
         )
-        inicio = time.perf_counter()
         with contextlib.suppress(LLMError, httpx.HTTPError):
             cliente.generate([{"role": "user", "content": "x"}])
-        transcurrido = time.perf_counter() - inicio
+        return llamadas["n"]
 
-        # Con 3 reintentos y backoff seria >7s; sin reintentar, ~un timeout.
-        assert transcurrido < 3, f"tardo {transcurrido:.1f}s: parece que reintento"
+    def test_un_timeout_no_se_reintenta(self, monkeypatch):
+        import httpx
+
+        intentos = self._contar_intentos(monkeypatch, httpx.ReadTimeout("colgado"))
+        assert intentos == 1, f"reintento {intentos - 1} vez/veces tras un timeout"
+
+    def test_una_conexion_rechazada_si_se_reintenta(self, monkeypatch):
+        """
+        La otra cara: un backend reiniciandose falla en milisegundos y volver a
+        intentarlo es gratis. Si esto se rompe, el sistema se vuelve fragil ante
+        cualquier reinicio.
+        """
+        import httpx
+
+        intentos = self._contar_intentos(
+            monkeypatch, httpx.ConnectError("rechazada"), max_retries=2
+        )
+        assert intentos == 3, f"solo lo intento {intentos} vez/veces"
 
 
 class TestCortacircuitos:
