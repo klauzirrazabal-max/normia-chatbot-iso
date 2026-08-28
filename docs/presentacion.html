@@ -10,7 +10,7 @@
   --sello:#1D5C3C; --sello-tenue:#E3EEE8; --sello-borde:#A9CDBA;
   --rechazo:#9E2B21; --rechazo-tenue:#F7E6E3; --rechazo-borde:#DFB1AA;
   --sombra:0 1px 2px rgba(20,28,22,.05), 0 10px 30px rgba(20,28,22,.06);
-  --marco:#FFFFFF;
+  --marco:#FFFFFF; --plancha:#FFFFFF;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
@@ -19,7 +19,7 @@
     --sello:#63C08D; --sello-tenue:#152A20; --sello-borde:#2C5943;
     --rechazo:#E58275; --rechazo-tenue:#2B1815; --rechazo-borde:#5C302A;
     --sombra:0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
-    --marco:#181D19;
+    --marco:#181D19; --plancha:#FFFFFF;
   }
 }
 :root[data-theme="dark"]{
@@ -28,7 +28,7 @@
   --sello:#63C08D; --sello-tenue:#152A20; --sello-borde:#2C5943;
   --rechazo:#E58275; --rechazo-tenue:#2B1815; --rechazo-borde:#5C302A;
   --sombra:0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
-  --marco:#181D19;
+  --marco:#181D19; --plancha:#FFFFFF;
 }
 
 *{box-sizing:border-box}
@@ -74,7 +74,7 @@ code,.mono,.cod{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,mo
 .portada{justify-content:center}
 .portada-cols{display:grid;grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr);gap:clamp(24px,4vw,56px);align-items:center}
 .portada-txt{display:flex;flex-direction:column;gap:clamp(14px,2.4vh,28px)}
-.portada-img{margin:0;border:1px solid var(--linea);border-radius:4px;overflow:hidden;box-shadow:var(--sombra);background:#fff;line-height:0}
+.portada-img{margin:0;border:1px solid var(--linea);border-radius:4px;overflow:hidden;box-shadow:var(--sombra);background:var(--plancha);line-height:0}
 .portada-img img{width:100%;height:auto;max-height:66vh;object-fit:cover;object-position:top left;display:block}
 @media (max-width:900px){.portada-cols{grid-template-columns:1fr}.portada-img{display:none}}
 .portada .marca{font-size:clamp(3.4rem,8.5vw,7rem);font-weight:700;letter-spacing:-.035em;line-height:.92}
@@ -134,14 +134,14 @@ code,.mono,.cod{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,mo
 
 /* --- figuras --- */
 .figura{background:var(--marco);border:1px solid var(--linea);border-radius:3px;padding:clamp(10px,1.4vw,18px);box-shadow:var(--sombra);display:flex;flex-direction:column;gap:9px;min-height:0}
-.figura img{width:100%;height:100%;object-fit:contain;display:block;border-radius:2px;min-height:0}
+/* Los diagramas son planchas claras: fondo propio para que en tema oscuro se lean
+   como una figura impresa y no como un hueco. */
+.figura img{width:100%;height:100%;object-fit:contain;display:block;border-radius:2px;min-height:0;background:var(--plancha);border:1px solid var(--linea)}
 .figura figcaption{font-size:.8rem;color:var(--grafito);line-height:1.4}
 .figura figcaption b{color:var(--tinta);font-weight:600}
 .figura.ancha{flex:0 1 auto}
 .figura.ancha img{max-height:49vh;height:auto}
-/* Los diagramas son laminas claras: se les da su propio fondo para que
-   en tema oscuro se lean como una figura impresa y no como un hueco. */
-.figura img{background:#fff;border:1px solid var(--linea)}
+
 .panel-par .figura img{max-height:46vh;width:auto;margin:0 auto}
 .panel-par .figura{align-items:stretch}
 
@@ -159,9 +159,39 @@ code,.mono,.cod{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,mo
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 .pista{position:fixed;left:clamp(16px,2.4vw,30px);bottom:clamp(16px,2.4vh,30px);font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--grafito);z-index:10}
 @media (max-width:700px){.pista{display:none}}
+
+/* Imprimir: sirve de respaldo si falla el proyector, y para entregar en PDF.
+   Se fuerzan los tokens claros porque el tema oscuro gasta tinta y se lee peor
+   en papel. */
+@page{size:A4 landscape;margin:0}
+@media print{
+  /* Los tres selectores, no solo :root: el bloque del tema oscuro usa
+     :root:not([data-theme="light"]), que tiene mas especificidad y ganaba.
+     Una media query no aporta especificidad, asi que hay que igualarla. */
+  :root,
+  :root:not([data-theme="light"]),
+  :root[data-theme="dark"]{
+    --papel:#FFFFFF; --superficie:#FFFFFF; --tinta:#101314; --grafito:#4a5350;
+    --linea:#c9d1cb; --linea-fuerte:#9aa69e; --sello:#174d31; --sello-tenue:#eef5f1;
+    --rechazo:#8c241b; --rechazo-tenue:#faeeec; --sombra:none; --marco:#FFFFFF;
+  }
+  .barra,.nav,.pista{display:none!important}
+  .lamina{display:flex!important;min-height:auto;height:100vh;
+          break-after:page;page-break-after:always;padding:14mm 16mm 12mm}
+  .lamina:last-of-type{break-after:auto;page-break-after:auto}
+  .tarjeta,.figura,.portada-img{box-shadow:none}
+  .figura img,.portada-img img{max-height:52vh}
+  a{text-decoration:none;color:inherit}
+}
+
+/* Solo para lectores de pantalla */
+.solo-lector{position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 </style>
 
-<div class="barra" id="barra"></div>
+<div class="barra" id="barra" role="presentation"></div>
+
+<main id="mazo" lang="es">
 
 <!-- 01 --------------------------------------------------------------- -->
 <section class="lamina viva">
@@ -434,12 +464,14 @@ code,.mono,.cod{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,mo
   </div>
   <footer class="pie"><span>Gracias</span><span class="num">13 / 13</span></footer>
 </section>
+</main>
 
 <nav class="nav">
   <button id="ant" aria-label="Lámina anterior">←</button>
   <button id="sig" aria-label="Lámina siguiente">→</button>
 </nav>
-<div class="pista">← → para navegar</div>
+<div class="pista" aria-hidden="true">← → para navegar</div>
+<p class="solo-lector" role="status" aria-live="polite" id="anuncio"></p>
 
 <script>
 (function(){
@@ -449,11 +481,21 @@ code,.mono,.cod{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,mo
   const barra = document.getElementById('barra');
   let i = 0;
 
+  const anuncio = document.getElementById('anuncio');
+
   function pintar(){
-    laminas.forEach((l, n) => l.classList.toggle('viva', n === i));
+    laminas.forEach((l, n) => {
+      const viva = n === i;
+      l.classList.toggle('viva', viva);
+      // Las no visibles ya salen del arbol de accesibilidad por display:none,
+      // pero aria-current le dice al lector cual es la actual dentro del mazo.
+      if (viva) l.setAttribute('aria-current', 'true');
+      else l.removeAttribute('aria-current');
+    });
     ant.disabled = i === 0;
     sig.disabled = i === laminas.length - 1;
     barra.style.width = ((i + 1) / laminas.length * 100) + '%';
+    if (anuncio) anuncio.textContent = `Lamina ${i + 1} de ${laminas.length}`;
     if (location.hash !== '#' + (i + 1)) history.replaceState(null, '', '#' + (i + 1));
     window.scrollTo(0, 0);
   }
@@ -466,6 +508,31 @@ code,.mono,.cod{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,mo
     else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); ir(i - 1); }
     else if (e.key === 'Home') { e.preventDefault(); ir(0); }
     else if (e.key === 'End') { e.preventDefault(); ir(laminas.length - 1); }
+  });
+
+  // Gesto tactil: presentar desde una tableta es habitual y ahi no hay flechas.
+  let x0 = null, y0 = null;
+  document.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1) return;
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY;
+  }, { passive: true });
+  document.addEventListener('touchend', e => {
+    if (x0 === null) return;
+    const dx = e.changedTouches[0].clientX - x0;
+    const dy = e.changedTouches[0].clientY - y0;
+    // Horizontal y con recorrido suficiente: si no, es un desplazamiento vertical.
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.6) ir(i + (dx < 0 ? 1 : -1));
+    x0 = y0 = null;
+  }, { passive: true });
+
+  // Al imprimir se muestran TODAS: el navegador pagina lo que esta visible.
+  let previa = null;
+  window.addEventListener('beforeprint', () => {
+    previa = i;
+    laminas.forEach(l => l.classList.add('viva'));
+  });
+  window.addEventListener('afterprint', () => {
+    if (previa !== null) { i = previa; pintar(); previa = null; }
   });
 
   const inicial = parseInt((location.hash || '').slice(1), 10);
