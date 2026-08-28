@@ -136,8 +136,7 @@ cliente.
 
 La presentacion del proyecto (13 laminas) esta en [`docs/presentacion.html`](docs/presentacion.html)
 -- abrela en el navegador y navega con las flechas o deslizando -- y en
-[`docs/NormIA.pptx`](docs/NormIA.pptx). El guion para exponerla, con las preguntas
-probables y sus respuestas, esta en [`docs/guion-exposicion.md`](docs/guion-exposicion.md).
+[`docs/NormIA.pptx`](docs/NormIA.pptx).
 
 Los tres diagramas estan tambien como PNG en [`docs/diagramas/`](docs/diagramas/),
 incluida una variante horizontal del flujo de consulta pensada para diapositivas.

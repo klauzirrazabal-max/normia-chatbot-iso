@@ -35,3 +35,7 @@ data/faq/
 !data/knowledge_base/demo-publica/**
 !data/knowledge_base/*/.gitkeep
 !data/knowledge_base/*/metadata.csv.ejemplo
+
+# Guion de exposicion: es una herramienta personal, no un entregable.
+# Su tono esta escrito para quien expone, no para quien evalua.
+docs/guion-exposicion.md
