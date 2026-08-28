@@ -83,8 +83,12 @@ TOOLS_SCHEMA: list[dict[str, Any]] = [
                     "tema": {
                         "type": "string",
                         "description": (
-                            "Palabras del tema, area o tipo de documento. "
-                            "Ej: 'TI', 'compras', 'politica', 'manual', 'auditoria'"
+                            "Copia las palabras del usuario TAL CUAL, incluido el TIPO si "
+                            "lo menciona. Si pregunta por 'politicas de TI', pasa "
+                            "'politicas de TI' -- no solo 'TI': el tipo es un filtro, y "
+                            "perderlo devuelve tambien procedimientos y manuales del area. "
+                            "Ej: 'politicas de TI', 'procedimientos de compras', "
+                            "'manuales de calidad', 'auditoria'"
                         ),
                     }
                 },

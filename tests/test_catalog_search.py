@@ -155,3 +155,21 @@ class TestLeerDocumento:
         assert "resumen" in descripcion
         assert "completo" in descripcion
         assert "documento" in esquema["function"]["parameters"]["properties"]
+
+
+# --- El TIPO es un filtro, y perderlo cambia la respuesta ---
+#
+# "que politicas de TI tenemos?" devolvia tres documentos, y el tercero era un
+# PROCEDIMIENTO. La herramienta acertaba: con 'politicas de TI' devuelve dos. El
+# modelo llamaba con 'TI' a secas, porque los ejemplos de la propia descripcion
+# eran palabras sueltas ('TI', 'politica') y le ensenaron a mandar solo una.
+
+
+def test_el_tipo_filtra_y_el_tema_solo_no():
+    from app.core.agents.tools import TOOLS_SCHEMA
+
+    spec = next(t for t in TOOLS_SCHEMA if t["function"]["name"] == "buscar_documentos")
+    desc = spec["function"]["parameters"]["properties"]["tema"]["description"]
+    # La descripcion debe ensenar la forma COMBINADA, no palabras sueltas.
+    assert "politicas de TI" in desc
+    assert "TAL CUAL" in desc

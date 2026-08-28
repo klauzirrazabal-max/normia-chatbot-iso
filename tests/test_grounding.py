@@ -168,3 +168,28 @@ def test_dato_verificable_sin_listas_cuenta():
 
     # get_capa_status devuelve un estado, no una lista: sigue siendo verificable.
     assert _tool_yielded_data({"capa_id": "CAPA-7", "estado": "abierta"}) is True
+
+
+# --- El aviso de "no verificado" solo cuando hay algo que verificar ---
+#
+# Salia en cada turno: al describir sus capacidades, al pedir datos para
+# registrar un hallazgo, al confirmar que lo registro. Un aviso que aparece
+# siempre deja de leerse, y entonces no avisa cuando importa.
+
+
+def test_una_respuesta_que_no_nombra_documentos_no_afirma_nada():
+    # Misma prueba que decide si se adjuntan citas: las dos deben coincidir.
+    fragmentos = [chunk(code="CAL-PR-03", section="6", content="Plazo de registro")]
+    assert response_cites_source("Cuentame que paso y con eso la registro.", fragmentos) is False
+
+
+def test_una_respuesta_que_cita_por_titulo_si_afirma():
+    fragmentos = [chunk(code="CAL-PR-03", section="6", content="texto")]
+    fragmentos = [
+        RetrievedChunk(
+            chunk_id=1, content="Plazo de registro", code="CAL-PR-03", version="v2",
+            section="6", distance=0.2, title="No Conformidad y Acciones Correctivas",
+        )
+    ]
+    respuesta = "El plazo es de 3 dias, segun No Conformidad y Acciones Correctivas."
+    assert response_cites_source(respuesta, fragmentos) is True

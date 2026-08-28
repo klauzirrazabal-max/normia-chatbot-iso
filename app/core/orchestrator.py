@@ -1024,6 +1024,22 @@ def handle_message(db: Session, msg: IncomingMessage) -> BotResponse:
                 or bool(catalog_citations)
                 or data_tools_ran
                 or (grounded_context and cites and not unretrieved_codes)
+                # Una respuesta que no nombra ningun documento -- ni por codigo ni
+                # por titulo -- no esta afirmando nada que verificar. "Cuentame que
+                # paso" no se apoya en el SGC ni pretende hacerlo.
+                #
+                # Es la MISMA prueba que decide si se adjuntan citas, y las dos
+                # decisiones tienen que coincidir: si no listamos fuentes porque la
+                # respuesta no habla de documentos, avisar de que no pudimos
+                # verificar sus fuentes es contradictorio.
+                #
+                # Coste asumido: una afirmacion inventada que TAMPOCO cite nada
+                # pasaria sin aviso. Se acepta porque un aviso que sale en cada
+                # turno deja de leerse, y porque las otras capas siguen en pie: el
+                # guardrail bloqueante descarta lo que no tiene respaldo alguno, y
+                # la verificacion de codigos sigue cazando documentos inventados.
+                # La traza real queda igualmente en messages.retrieval_debug.
+                or not response_cites_source(answer, retrieval.accepted)
             ),
         )
 
