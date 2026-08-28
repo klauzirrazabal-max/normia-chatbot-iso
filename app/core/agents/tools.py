@@ -139,6 +139,25 @@ TOOLS_SCHEMA: list[dict[str, Any]] = [
     {
         "type": "function",
         "function": {
+            "name": "describir_capacidades",
+            "description": (
+                "Describe QUE puede hacer este asistente y sobre que documentacion "
+                "responde. Usala cuando el usuario pregunte por el asistente en si "
+                "('que puedes hacer?', 'en que me ayudas?', 'quien eres?', 'como "
+                "funcionas?', 'ayuda'), y NO por el contenido de un documento. "
+                "Preguntar por las capacidades no es una consulta al SGC: no la "
+                "escales a Calidad."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": False,
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "escalate_to_quality",
             "description": (
                 "Escala la conversacion al Responsable de Calidad. Usala cuando la pregunta "
@@ -333,6 +352,54 @@ def _clasificar_terminos(tema: str) -> tuple[list[str], list[tuple[str, list[str
             libres.append(palabra)
 
     return tipos, temas, libres
+
+
+def describir_capacidades(db: Session, tenant_id: str) -> dict[str, Any]:
+    """
+    Que sabe hacer el asistente, con las cifras reales de este tenant.
+
+    Existe por un fallo concreto: a "que puedes hacer?" el bot respondia "no tengo
+    informacion suficiente" y derivaba la consulta a Calidad. El guardrail de
+    fundamentacion esta para impedir que se INVENTE contenido documental, y una
+    pregunta sobre el propio asistente no afirma nada de ningun documento.
+
+    Se resuelve como herramienta y no como excepcion en el orquestador porque asi
+    la respuesta se apoya en un resultado verificable del servidor -- las cifras
+    salen de la base -- y el guardrail deja de bloquear por la via normal, sin
+    abrirle un agujero.
+    """
+    from app.models.db_models import Document
+
+    filas = (
+        db.query(Document.area, Document.code)
+        .filter(Document.tenant_id == tenant_id, Document.status == "vigente")
+        .all()
+    )
+    areas = sorted({a for a, _ in filas if a})
+    return {
+        "asistente": "NormIA",
+        "documentos_vigentes": len(filas),
+        "areas": areas,
+        "puedo": [
+            "Responder que dice un procedimiento, politica o manual vigente, citando "
+            "codigo, version y seccion.",
+            "Decirte que documentos existen sobre un tema.",
+            "Resumir un documento y llevarte a la seccion que te interese.",
+            "Registrar un hallazgo o desviacion y devolverte su identificador.",
+            "Consultar el estado de una accion correctiva.",
+            "Derivar a Calidad lo que la documentacion no cubre.",
+        ],
+        "no_puedo": [
+            "Aprobar, autorizar ni modificar documentos controlados.",
+            "Responder desde versiones obsoletas.",
+            "Responder sobre temas que no esten en la documentacion vigente.",
+        ],
+        "instruccion": (
+            "Resume esto con tus palabras, en tono cercano y sin listar las tres "
+            "cosas que no puedes salvo que venga a cuento. Cierra invitando a "
+            "preguntar. NO cites ningun codigo de documento aqui."
+        ),
+    }
 
 
 def buscar_documentos(db: Session, tenant_id: str, tema: str) -> dict[str, Any]:
@@ -798,6 +865,9 @@ def execute_tool(
     Dispatcher explicito. El contexto de servidor (db, tenant_id, conversation_id,
     la pregunta original y el canal) lo inyecta el servidor, NUNCA el modelo.
     """
+    if name == "describir_capacidades":
+        return describir_capacidades(db, tenant_id)
+
     if name == "register_finding":
         description = str(arguments.get("description", "")).strip()
         if not description:

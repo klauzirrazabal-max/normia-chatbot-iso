@@ -90,6 +90,7 @@ def test_los_nombres_declarados():
         "escalate_to_quality",
         "buscar_documentos",
         "leer_documento",
+        "describir_capacidades",
     } == TOOL_NAMES
 
 
@@ -192,3 +193,50 @@ class TestBuscarDocumentos:
         descripcion = esquema["function"]["description"].lower()
         assert "catalogo" in descripcion
         assert "tema" in esquema["function"]["parameters"]["properties"]
+
+
+# --- Preguntar por el asistente no es una consulta al SGC ---
+#
+# Bug real: a "que puedes hacer?" el bot respondia "no tengo informacion
+# suficiente en los documentos vigentes" y derivaba la consulta a Calidad. El
+# guardrail de fundamentacion esta para impedir que se invente CONTENIDO
+# DOCUMENTAL, y esa pregunta no afirma nada de ningun documento. Peor: ensuciaba
+# la cola de Calidad, que es la lista de huecos del SGC.
+
+
+def test_describir_capacidades_esta_declarada_al_modelo():
+    from app.core.agents.tools import TOOLS_SCHEMA
+
+    nombres = {t["function"]["name"] for t in TOOLS_SCHEMA}
+    assert "describir_capacidades" in nombres
+
+
+def test_describir_capacidades_no_escala():
+    from app.core.agents.tools import ESCALATING_TOOLS
+
+    # Si estuviera aqui, correrla marcaria la conversacion como escalada.
+    assert "describir_capacidades" not in ESCALATING_TOOLS
+
+
+def test_describir_capacidades_cuenta_como_dato_verificable():
+    from app.core.orchestrator import _tool_yielded_data
+
+    # Lo que desactiva el guardrail bloqueante: si esto fuera False, la respuesta
+    # se descartaria y volveriamos al fallo original.
+    resultado = {
+        "asistente": "NormIA",
+        "documentos_vigentes": 6,
+        "areas": ["POLITICAS"],
+        "puedo": ["Responder que dice un procedimiento vigente."],
+        "no_puedo": ["Aprobar documentos controlados."],
+    }
+    assert _tool_yielded_data(resultado) is True
+
+
+def test_describir_capacidades_sin_documentos_sigue_siendo_dato():
+    from app.core.orchestrator import _tool_yielded_data
+
+    # Un tenant recien creado no tiene documentos, pero la respuesta sobre que
+    # puede hacer el asistente sigue siendo valida y no debe escalar.
+    vacio = {"asistente": "NormIA", "documentos_vigentes": 0, "areas": [], "puedo": ["..."]}
+    assert _tool_yielded_data(vacio) is True
