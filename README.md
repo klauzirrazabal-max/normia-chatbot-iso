@@ -138,6 +138,50 @@ Todo queda en PostgreSQL: conversaciones, mensajes, documentos, hallazgos y acci
 correctivas — mas una traza de auditoria por turno (`messages.retrieval_debug`) con que se
 recupero, a que distancia, que herramienta se llamo y si la respuesta quedo fundamentada.
 
+## En funcionamiento
+
+Capturas reales del sistema corriendo contra el SGC sintetico que viaja en el
+repositorio (`demo-publica`), con el modelo en local.
+
+### Respuesta fundamentada
+
+![Respuesta con cita](docs/capturas/02-respuesta-con-cita.png)
+
+La pagina anfitriona fuerza `Georgia`, botones rosados y bordes punteados; el
+widget no se entera, porque vive dentro de un Shadow DOM. La respuesta lleva el
+dato en negrita, y debajo la referencia con el titulo por delante -- el codigo y
+la version quedan como respaldo, no como protagonistas.
+
+### El guardrail cuando no hay respaldo
+
+![Guardrail sin respaldo](docs/capturas/03-guardrail-fuera-de-alcance.png)
+
+Preguntando por vacaciones, un tema que no esta en el SGC. No inventa, no
+responde a medias: lo dice, deriva la consulta a Calidad y marca la respuesta
+como no verificada.
+
+### Navegacion por secciones
+
+![Navegacion por chip](docs/capturas/05-navegacion-por-chip.png)
+
+Los chips no vuelven a pasar por la busqueda vectorial: piden la clausula por
+codigo y seccion, y el servidor la sirve directa. Pulsar "Contrasenas" trae
+exactamente la seccion 6.2, no lo que mas se le parezca.
+
+### Gestion documental
+
+![Panel de administracion](docs/capturas/04-panel-admin.png)
+
+La cola de consultas derivadas a Calidad es la lista de huecos del SGC: cada
+entrada es una pregunta real que la documentacion no supo responder.
+
+### Integracion en el sitio del cliente
+
+![Widget en el sitio](docs/capturas/01-widget-en-el-sitio.png)
+
+Una etiqueta y un `<script>`. Sin framework, sin build, sin tocar los estilos del
+anfitrion.
+
 ## Puesta en marcha
 
 ### Requisitos

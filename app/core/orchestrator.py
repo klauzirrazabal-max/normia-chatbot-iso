@@ -610,6 +610,25 @@ def _record_incident(
     return incident.reference
 
 
+def _tool_yielded_data(result: dict[str, Any]) -> bool:
+    """
+    True si la herramienta devolvio algo verificable en lo que apoyarse.
+
+    Correr no es lo mismo que encontrar. `buscar_documentos` sobre un tema que no
+    esta en el SGC devuelve `documentos: []`: es una respuesta legitima de la
+    herramienta, pero no respalda absolutamente nada. Contarla como dato
+    desactivaba el guardrail bloqueante, y entonces el modelo escribia "lo he
+    derivado al Responsable de Calidad" sin que se registrara la escalacion. El
+    usuario se quedaba esperando una revision que nadie iba a ver.
+    """
+    if result.get("error"):
+        return False
+    for clave in ("documentos", "hallazgos", "acciones"):
+        if clave in result and not result[clave]:
+            return False
+    return True
+
+
 def _dominant_document(chunks: list[RetrievedChunk]) -> str | None:
     """
     Codigo del documento que domina lo recuperado, si hay uno.
@@ -868,7 +887,10 @@ def handle_message(db: Session, msg: IncomingMessage) -> BotResponse:
     # de una CAPA). Cuando una de ellas corre, la respuesta se apoya en su
     # resultado, no en los documentos: es texto confiable aunque el RAG no
     # haya recuperado nada.
-    data_tools_ran = bool(set(executed_tools) - ESCALATING_TOOLS)
+    data_tools_ran = any(
+        nombre not in ESCALATING_TOOLS and _tool_yielded_data(resultado)
+        for nombre, resultado in tool_results
+    )
 
     # La VERSION es parte de la identidad de un documento controlado: "v1" puede
     # ser una version derogada. El modelo escribio "STI-PO-01 v1" cuando esta en

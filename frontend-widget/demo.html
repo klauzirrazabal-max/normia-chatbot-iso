@@ -49,7 +49,12 @@
   </main>
 
   <script src="widget.js"></script>
-  <normia-chat-widget api-url="http://localhost:8000" tenant-id="empresa-demo-iso">
+  <normia-chat-widget api-url="http://localhost:8000" tenant-id="demo-publica">
   </normia-chat-widget>
+  <script>
+    // ?tenant=otro para probar contra otro SGC sin tocar el archivo
+    const t = new URLSearchParams(location.search).get("tenant");
+    if (t) document.querySelector("normia-chat-widget").setAttribute("tenant-id", t);
+  </script>
 </body>
 </html>

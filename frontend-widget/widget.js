@@ -4,7 +4,7 @@
  * Un solo archivo, sin build step ni dependencias. Se usa asi:
  *
  *   <script src="widget.js"></script>
- *   <normia-chat-widget api-url="http://localhost:8000" tenant-id="empresa-demo-iso">
+ *   <normia-chat-widget api-url="http://localhost:8000" tenant-id="demo-publica">
  *   </normia-chat-widget>
  *
  * Todo el markup y el CSS viven dentro de un Shadow DOM: los estilos del sitio
@@ -222,7 +222,7 @@
       return (this.getAttribute("api-url") || "http://localhost:8000").replace(/\/$/, "");
     }
     get tenantId() {
-      return this.getAttribute("tenant-id") || "empresa-demo-iso";
+      return this.getAttribute("tenant-id") || "demo-publica";
     }
 
     connectedCallback() {

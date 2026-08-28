@@ -123,3 +123,48 @@ class TestEtiquetaDeCita:
 def test_mensaje_sin_contexto_ofrece_escalar():
     assert "Calidad" in NO_CONTEXT_MESSAGE
     assert "no tengo informacion suficiente" in NO_CONTEXT_MESSAGE.lower()
+
+
+# --- Correr una herramienta no es lo mismo que encontrar algo ---
+#
+# Bug real: preguntando por vacaciones (tema ausente del SGC) el modelo llamaba a
+# buscar_documentos, que devolvia `documentos: []`. Eso contaba como "corrio una
+# herramienta de datos" y desactivaba el guardrail bloqueante, asi que el bot
+# escribia "lo he derivado al Responsable de Calidad" y la escalacion nunca se
+# registraba. La promesa al usuario quedaba vacia.
+
+
+def test_busqueda_sin_resultados_no_cuenta_como_dato():
+    from app.core.orchestrator import _tool_yielded_data
+
+    vacio = {
+        "tema": "vacaciones",
+        "documentos": [],
+        "message": "No hay documentos vigentes que coincidan con 'vacaciones'.",
+    }
+    assert _tool_yielded_data(vacio) is False
+
+
+def test_busqueda_con_resultados_si_cuenta_como_dato():
+    from app.core.orchestrator import _tool_yielded_data
+
+    con_datos = {
+        "tema": "respaldo",
+        "total": 1,
+        "documentos": [{"codigo": "STI-PO-01", "version": "v2"}],
+    }
+    assert _tool_yielded_data(con_datos) is True
+
+
+def test_herramienta_con_error_no_cuenta_como_dato():
+    from app.core.orchestrator import _tool_yielded_data
+
+    fallo = {"documento": "XXX-YY-99", "error": "not_found", "message": "No encontre..."}
+    assert _tool_yielded_data(fallo) is False
+
+
+def test_dato_verificable_sin_listas_cuenta():
+    from app.core.orchestrator import _tool_yielded_data
+
+    # get_capa_status devuelve un estado, no una lista: sigue siendo verificable.
+    assert _tool_yielded_data({"capa_id": "CAPA-7", "estado": "abierta"}) is True
