@@ -139,6 +139,34 @@ TOOLS_SCHEMA: list[dict[str, Any]] = [
     {
         "type": "function",
         "function": {
+            "name": "ampliar_hallazgo",
+            "description": (
+                "Anade informacion a un hallazgo YA registrado. Usala SIEMPRE que el "
+                "usuario amplie o precise algo sobre un hallazgo que acabas de registrar "
+                "-- fecha, cliente, personal implicado, impacto. NUNCA vuelvas a llamar a "
+                "register_finding para el mismo incidente: crearia una no conformidad "
+                "duplicada."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "finding_id": {
+                        "type": "integer",
+                        "description": "El ID que devolvio register_finding.",
+                    },
+                    "detalles": {
+                        "type": "string",
+                        "description": "La informacion nueva, redactada de forma completa.",
+                    },
+                },
+                "required": ["finding_id", "detalles"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "describir_capacidades",
             "description": (
                 "Describe QUE puede hacer este asistente y sobre que documentacion "
@@ -352,6 +380,47 @@ def _clasificar_terminos(tema: str) -> tuple[list[str], list[tuple[str, list[str
             libres.append(palabra)
 
     return tipos, temas, libres
+
+
+def ampliar_hallazgo(
+    db: Session, tenant_id: str, finding_id: int, detalles: str
+) -> dict[str, Any]:
+    """
+    Anade informacion a un hallazgo existente.
+
+    Existe por un fallo concreto: el bot registraba la no conformidad y despues
+    pedia fecha, cliente y personal implicado. Cuando el usuario los daba, no
+    tenia donde ponerlos -- solo existia register_finding -- asi que creaba un
+    SEGUNDO hallazgo del mismo incidente. Dos no conformidades por un mismo hecho
+    inflan los indicadores y duplican el analisis de causa.
+
+    Se anade, no se reescribe: la descripcion original es lo que reporto el
+    usuario y no debe perderse al precisarla.
+    """
+    detalles = (detalles or "").strip()
+    if not detalles:
+        return {"error": "invalid_arguments", "message": "Falta 'detalles'."}
+
+    hallazgo = (
+        db.query(Finding).filter_by(id=finding_id, tenant_id=tenant_id).one_or_none()
+    )
+    if hallazgo is None:
+        return {
+            "error": "not_found",
+            "message": (
+                f"No existe el hallazgo {finding_id}. Usa el ID que devolvio "
+                "register_finding; no lo inventes."
+            ),
+        }
+
+    hallazgo.description = f"{hallazgo.description}\n\nAmpliacion: {detalles}"
+    db.commit()
+    logger.info("tool.finding_extended", extra={"finding_id": finding_id})
+    return {
+        "finding_id": hallazgo.id,
+        "estado": hallazgo.status,
+        "message": "Informacion anadida al hallazgo existente. No lo registres de nuevo.",
+    }
 
 
 def describir_capacidades(db: Session, tenant_id: str) -> dict[str, Any]:
@@ -865,6 +934,13 @@ def execute_tool(
     Dispatcher explicito. El contexto de servidor (db, tenant_id, conversation_id,
     la pregunta original y el canal) lo inyecta el servidor, NUNCA el modelo.
     """
+    if name == "ampliar_hallazgo":
+        try:
+            finding_id = int(arguments["finding_id"])
+        except (KeyError, TypeError, ValueError):
+            return {"error": "invalid_arguments", "message": "Falta 'finding_id'."}
+        return ampliar_hallazgo(db, tenant_id, finding_id, str(arguments.get("detalles", "")))
+
     if name == "describir_capacidades":
         return describir_capacidades(db, tenant_id)
 

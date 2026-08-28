@@ -91,6 +91,7 @@ def test_los_nombres_declarados():
         "buscar_documentos",
         "leer_documento",
         "describir_capacidades",
+        "ampliar_hallazgo",
     } == TOOL_NAMES
 
 
