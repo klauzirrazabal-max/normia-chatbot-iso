@@ -236,8 +236,22 @@ def register_finding(
     }
 
 
-def get_capa_status(db: Session, finding_id: int) -> dict[str, Any]:
-    finding = db.get(Finding, finding_id)
+def get_capa_status(db: Session, tenant_id: str, finding_id: int) -> dict[str, Any]:
+    """
+    Estado de un hallazgo y de sus acciones correctivas.
+
+    El filtro por tenant NO es opcional: sin el, cualquiera podia enumerar los
+    hallazgos de otro cliente probando identificadores, y averiguar cuantos hay y
+    en que estado estan. Con acciones correctivas cargadas se filtraria ademas su
+    descripcion, responsable y fecha limite.
+
+    Y la respuesta es la MISMA para "no existe" que para "existe pero es de otro":
+    distinguirlas convierte el endpoint en un oraculo que confirma la existencia
+    ajena aunque no muestre el contenido.
+    """
+    finding = (
+        db.query(Finding).filter_by(id=finding_id, tenant_id=tenant_id).one_or_none()
+    )
     if finding is None:
         return {
             "finding_id": finding_id,
@@ -984,7 +998,7 @@ def execute_tool(
                 "error": "invalid_arguments",
                 "message": "Falta 'finding_id' o no es un numero entero.",
             }
-        return get_capa_status(db, finding_id)
+        return get_capa_status(db, tenant_id, finding_id)
 
     if name == "leer_documento":
         seccion = arguments.get("seccion")

@@ -241,3 +241,82 @@ def test_describir_capacidades_sin_documentos_sigue_siendo_dato():
     # puede hacer el asistente sigue siendo valida y no debe escalar.
     vacio = {"asistente": "NormIA", "documentos_vigentes": 0, "areas": [], "puedo": ["..."]}
     assert _tool_yielded_data(vacio) is True
+
+
+# --- Aislamiento entre clientes ---
+#
+# get_capa_status hacia db.get(Finding, finding_id) SIN filtrar por tenant.
+# Comprobado en vivo antes del arreglo: desde el tenant de la demo publica se
+# podian enumerar los 9 hallazgos del cliente probando identificadores, y saber
+# cuantos habia y en que estado. Con acciones correctivas cargadas se habrian
+# filtrado ademas su descripcion, responsable y fecha limite.
+
+
+def test_toda_herramienta_que_toca_la_bd_esta_aislada_por_tenant():
+    """
+    Guarda contra la recaida: si alguien anade una herramienta que consulta la
+    base y se olvida del tenant, este test lo para antes de que llegue a produccion.
+    """
+    import inspect
+
+    import app.core.agents.tools as modulo
+    from app.core.agents.tools import TOOLS_SCHEMA
+
+    sin_aislar = []
+    for spec in TOOLS_SCHEMA:
+        nombre = spec["function"]["name"]
+        fn = getattr(modulo, nombre, None)
+        assert fn is not None, f"{nombre} esta declarada al modelo pero no implementada"
+        params = list(inspect.signature(fn).parameters)
+        if "db" in params and "tenant_id" not in params:
+            sin_aislar.append(nombre)
+    assert not sin_aislar, f"herramientas que tocan la BD sin tenant_id: {sin_aislar}"
+
+
+class _ConsultaFalsa:
+    def __init__(self, registro, resultado):
+        self._registro = registro
+        self._resultado = resultado
+
+    def filter_by(self, **kwargs):
+        self._registro.append(kwargs)
+        return self
+
+    def one_or_none(self):
+        return self._resultado
+
+    def all(self):
+        return []
+
+
+class _SesionFalsa:
+    """Registra con que se filtro, sin necesitar una base real."""
+
+    def __init__(self, resultado=None):
+        self.filtros: list[dict] = []
+        self._resultado = resultado
+
+    def query(self, *_):
+        return _ConsultaFalsa(self.filtros, self._resultado)
+
+
+def test_get_capa_status_filtra_por_tenant():
+    from app.core.agents.tools import get_capa_status
+
+    db = _SesionFalsa(resultado=None)
+    get_capa_status(db, "empresa-a", 7)
+    assert db.filtros, "no se filtro nada"
+    assert db.filtros[0] == {"id": 7, "tenant_id": "empresa-a"}
+
+
+def test_un_hallazgo_ajeno_responde_igual_que_uno_inexistente():
+    """
+    Distinguirlos convertiria la herramienta en un oraculo: confirmaria la
+    existencia de hallazgos ajenos aunque no mostrara su contenido.
+    """
+    from app.core.agents.tools import get_capa_status
+
+    ajeno = get_capa_status(_SesionFalsa(resultado=None), "empresa-a", 1)
+    inexistente = get_capa_status(_SesionFalsa(resultado=None), "empresa-a", 99999)
+    assert ajeno["error"] == inexistente["error"] == "not_found"
+    assert ajeno["message"].replace("1", "N") == inexistente["message"].replace("99999", "N")
