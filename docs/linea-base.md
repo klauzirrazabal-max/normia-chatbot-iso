@@ -178,3 +178,41 @@ consecuencia de como se representa una llamada durante el entrenamiento.
 2. La familia `cita` son 400 de 584 ejemplos. Reequilibrar a favor de
    `herramienta` es lo primero que hay que probar.
 3. Medir con mas de 12 casos antes de sacar ninguna conclusion de porcentajes.
+
+---
+
+## Las tres piezas por separado
+
+Las mismas 12 preguntas, con los mismos criterios, en tres configuraciones:
+
+| Metrica | Sin RAG | Con RAG | RAG + LoRA |
+|---|---|---|---|
+| Cita el documento correcto | 25% | 100% | 100% |
+| Sin citas inventadas | 92% | 100% | 100% |
+| Usa la herramienta correcta | 0% | 100% | 100% |
+| Escala cuando debe | 75% | 100% | 100% |
+| **Acierta en conjunto** | **8%** | **100%** | **100%** |
+
+**El modelo solo acierta 1 de 12. El RAG lo lleva a 12 de 12. El adaptador no
+mueve nada.**
+
+Dos avisos para no leer de mas:
+
+- El **0% de herramientas sin RAG es estructural**: en ese estado no se le pasan
+  herramientas, asi que no puede llamarlas. Esa fila mide el sistema completo,
+  no la capacidad del modelo. Las filas que si comparan al modelo consigo mismo
+  son cita, citas inventadas y escalacion.
+- Entre las dos ultimas columnas **no hay diferencia medible en este banco**.
+  Con n=12 y todo al 100%, el banco ya no discrimina: hace falta un conjunto de
+  preguntas mas dificil para ver si el adaptador aporta algo.
+
+### Lo que esto significa para el proyecto
+
+El trabajo pesado lo hace el **RAG con sus guardrails**, no el fine-tuning. Es
+lo contrario de lo que sugiere el discurso habitual, y conviene decirlo: en un
+asistente sobre documentacion controlada, lo que evita inventar es tener el
+documento delante y comprobar la cita, no haber ajustado los pesos.
+
+El fine-tuning sigue teniendo un sitio -- formato, tono, obediencia al prompt --
+pero no es la palanca principal, y en la corrida del banco completo incluso
+introdujo una regresion en la emision de llamadas.

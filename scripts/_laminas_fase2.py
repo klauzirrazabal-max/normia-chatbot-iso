@@ -347,7 +347,11 @@ def construir_laminas(*, tren, val, comparacion, familias, imagenes, svg, incrus
       <tr><th>Métrica</th>{"".join(f"<th>{e(t)}</th>" for _, t in ETQ)}</tr>
       {filas_te}
     </table>
-    {bloque_inv}'''
+    {bloque_inv}
+    <p class="bajada">Dos avisos para leerla bien. El <b>0 % de herramientas sin RAG es
+    estructural</b>: en ese estado no se le pasan herramientas, así que no puede
+    llamarlas. Y entre las dos últimas columnas <b>no hay diferencia medible</b>: en
+    este banco, el fine-tuning no aporta nada que el RAG no diera ya.</p>'''
     else:
         cuerpo12 = '''    <p class="entradilla">Qué aporta cada pieza</p>
     <h2 class="titular">Sin RAG · Con RAG · RAG + LoRA</h2>

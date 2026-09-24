@@ -754,9 +754,26 @@ cd docker && NORMIA_DB_PORT=5433 docker compose up -d && cd ..
 | `docs/entrenamiento.log` | El log de la corrida |
 | `docs/presentacion-fase2.html` | Las 13 laminas, armadas por `scripts/construir_presentacion.py` desde esos ficheros |
 
-Resumen honesto: el adaptador **mejora la cita y la fundamentacion (88% -> 100%)
-y empeora la emision de llamadas a herramienta (100% -> 75%)**. Los dos estados
-fallan un caso de doce, solo que distinto.
+### Las tres piezas por separado
+
+Las mismas 12 preguntas, mismos criterios, tres configuraciones
+(`scripts/comparar_tres_estados.py`):
+
+| Metrica | Sin RAG | Con RAG | RAG + LoRA |
+|---|---|---|---|
+| Cita el documento correcto | 25% | 100% | 100% |
+| Sin citas inventadas | 92% | 100% | 100% |
+| Escala cuando debe | 75% | 100% | 100% |
+| **Acierta en conjunto** | **8%** | **100%** | **100%** |
+
+**El modelo solo acierta 1 de 12. El RAG lo lleva a 12 de 12. El adaptador no
+mueve nada.** En un asistente sobre documentacion controlada, lo que evita
+inventar es tener el documento delante y comprobar la cita, no haber ajustado
+los pesos.
+
+Resumen honesto del fine-tuning: el adaptador **mejora la cita y la
+fundamentacion (88% -> 100%) y empeora la emision de llamadas a herramienta
+(100% -> 75%)**. Los dos estados fallan un caso de doce, solo que distinto.
 
 Y el aprendizaje de la fase, que vale mas que el numero: al entrenar, una llamada
 a herramienta se renderiza como **texto** en la plantilla de chat, y con

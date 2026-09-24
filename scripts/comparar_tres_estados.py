@@ -172,7 +172,20 @@ def main() -> int:
         fila = " | ".join(resumenes[k].get(metrica, "n/a") for k in claves)
         lineas.append(f"| {metrica} | {fila} |")
 
-    lineas += ["", "## Los códigos que se inventó sin RAG", ""]
+    lineas += [
+        "",
+        "## Como leer la fila de herramientas",
+        "",
+        "El **0 % sin RAG es estructural, no un fallo del modelo**: en ese estado no se",
+        "le pasan herramientas, asi que no puede llamarlas. Esa fila mide lo que aporta",
+        "el sistema completo, no la capacidad del modelo.",
+        "",
+        "Las filas que SI comparan al modelo consigo mismo son las de cita, citas",
+        "inventadas y escalacion.",
+        "",
+        "## Los códigos que se inventó sin RAG",
+        "",
+    ]
     inventados = sorted({c for f in estados["sin_rag"] for c in f["fantasmas"]})
     if inventados:
         lineas.append(
