@@ -64,10 +64,21 @@ logger = logging.getLogger("build_finetune_dataset")
 
 # El prompt de sistema con el que se arma cada ejemplo. Se resuelve en tiempo de
 # ejecucion desde la base, igual que hace `_system_prompt` en el orquestador: el
-# tenant tiene el suyo y es MUY distinto del DEFAULT -- 5.500 caracteres frente a
-# 400, y con reglas que contradicen lo que parece natural (atribuir por titulo y
-# no por codigo). Entrenar con el DEFAULT ensenaria a obedecer instrucciones que
-# el modelo no va a recibir.
+# tenant tiene el suyo y es MUY distinto del DEFAULT -- 5.557 caracteres frente a
+# 433, y con reglas que contradicen lo que parece natural (atribuir por titulo y
+# no por codigo).
+#
+# POR QUE HAY DOS MODOS (`--prompt`):
+#
+#   tenant  El prompt de produccion va dentro de cada ejemplo. Es lo correcto si
+#           lo que se quiere es que el modelo rinda mejor CON ese prompt delante.
+#
+#   minimo  Solo el DEFAULT de 433 caracteres. Se midio que con el modo `tenant`
+#           el adaptador NO internaliza las reglas: al quitar el prompt largo en
+#           inferencia, el afinado y el base caen exactamente igual (83% los dos).
+#           Tiene sentido -- el modelo aprendio "dado ESTE prompt, responde asi",
+#           no "comportate asi". Entrenando sin el prompt largo, las reglas no
+#           tienen donde vivir salvo en los pesos, que es de lo que se trata.
 _SYSTEM_PROMPT = DEFAULT_SYSTEM_PROMPT
 
 RAIZ = Path(__file__).resolve().parent.parent
@@ -983,6 +994,15 @@ def main() -> int:
         default=400,
         help="tope de la familia `cita`, la mayoritaria. 0 = sin tope",
     )
+    parser.add_argument(
+        "--prompt",
+        choices=["tenant", "minimo"],
+        default="tenant",
+        help=(
+            "que prompt de sistema llevan los ejemplos. `tenant` (por defecto) usa "
+            "los 5.557 caracteres de produccion; `minimo` usa el DEFAULT de 433."
+        ),
+    )
     parser.add_argument("--seed", type=int, default=3407)
     args = parser.parse_args()
 
@@ -1003,9 +1023,12 @@ def main() -> int:
         return 1
 
     global _SYSTEM_PROMPT
-    _SYSTEM_PROMPT, procedencia = prompt_del_tenant(args.tenant)
+    if args.prompt == "tenant":
+        _SYSTEM_PROMPT, procedencia = prompt_del_tenant(args.tenant)
+    else:
+        _SYSTEM_PROMPT, procedencia = DEFAULT_SYSTEM_PROMPT, "DEFAULT (--prompt minimo)"
     logger.info("prompt de sistema: %s (%d caracteres)", procedencia, len(_SYSTEM_PROMPT))
-    if _SYSTEM_PROMPT is DEFAULT_SYSTEM_PROMPT:
+    if args.prompt == "tenant" and _SYSTEM_PROMPT is DEFAULT_SYSTEM_PROMPT:
         logger.warning(
             "se usara el prompt POR DEFECTO: si el tenant tiene el suyo, el dataset "
             "no coincidira con lo que el modelo ve en produccion"
