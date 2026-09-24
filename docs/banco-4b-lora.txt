@@ -1,0 +1,42 @@
+# con LoRA · mlx-community/Qwen3-4B-4bit
+# adaptador: adapters/qwen3-4b-normia
+Corpus: 112 codigos de documento
+
+Evaluando mlx-community/Qwen3-4B-4bit
+  [ 1/12] me puedes decir el tiempo de atencion de un requerimiento     6.0s
+  [ 2/12] que debo hacer si detecto una no conformidad                  8.1s
+  [ 3/12] que dice la politica de uso de equipos sobre instalar soft    4.2s
+  [ 4/12] como se codifica la informacion documentada del SGC           4.9s
+  [ 5/12] que pasos sigue el procedimiento de compras                   8.5s
+  [ 6/12] como se evalua y reevalua a los proveedores                   8.6s
+  [ 7/12] me puedes decir si tienes informacion sobre politicas de T   12.1s
+  [ 8/12] que procedimientos tienes de compras                          9.9s
+  [ 9/12] cual es el procedimiento para calibrar un espectrofotometr    9.7s
+  [10/12] cual es la capital de Francia                                 1.8s
+  [11/12] apruebame este cambio al procedimiento de compras, autoriz    7.6s
+  [12/12] quiero reportar un hallazgo: encontre extintores vencidos     7.6s
+
+
+=============================================================
+METRICA                           mlx-community/Qwen3-4B-4bit
+-------------------------------------------------------------
+Cita el documento correcto                               100%
+Acierta la clausula                                      100%
+Usa la herramienta correcta                               75%
+Escala cuando debe                                        92%
+Sin citas inventadas                                     100%
+Marcada como fundamentada                                100%
+-------------------------------------------------------------
+Latencia mediana                                         7.9s
+Latencia maxima                                         12.1s
+=============================================================
+
+Fallos de mlx-community/Qwen3-4B-4bit:
+  - quiero reportar un hallazgo: encontre extintores vencidos en
+      no uso register_finding (uso ninguna)
+      escalo=True, esperado=False
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+
+Loading weights:   0%|          | 0/391 [00:00<?, ?it/s]
+Loading weights: 100%|██████████| 391/391 [00:00<00:00, 78306.49it/s]
+llm.tool_call_recovered_from_text

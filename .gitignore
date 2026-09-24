@@ -69,3 +69,11 @@ data/marca/mockups/
 # El arte sin componer: util para reencuadrar sin volver a generar, pero es el
 # doble de peso y la pieza terminada ya esta versionada.
 docs/imagenes/crudo/
+
+# La comparacion corrida sobre el tenant REAL reproduce contenido de sus
+# clausulas en las respuestas del modelo: plazos, responsables, codigos. Mismo
+# criterio que los PDFs y que el FAQ. La version de `demo-publica` si viaja.
+docs/comparacion-lora.json
+docs/comparacion-lora.md
+!docs/comparacion-demo-publica.md
+!docs/comparacion-demo-publica.json

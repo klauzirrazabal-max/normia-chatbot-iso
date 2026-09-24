@@ -695,6 +695,156 @@ normia/
 └── docker/                     # Postgres + pgvector
 ```
 
+## Fase 2: fine-tuning con QLoRA
+
+La Fase 1 monto el RAG con guardrails. La Fase 2 **afina el modelo** para arreglar
+lo que el RAG no puede arreglar: la linea base medida dice que NormIA usa la
+herramienta correcta solo el **50 %** de las veces -- ver `docs/linea-base.md`.
+
+No se afina para meter conocimiento. Eso ya lo hace el RAG, y mejor: un modelo
+afinado sobre documentos los recuerda mal y los cita peor. Se afina el
+COMPORTAMIENTO -- emitir la llamada a herramienta, atribuir con el formato que
+pide el prompt, negarse cuando no hay respaldo.
+
+### Correlo tal cual (sin datos del cliente)
+
+El repositorio **no lleva ningun documento de ABISERVI**. Lo que si lleva es el
+corpus sintetico `demo-publica` con su FAQ verificado y su dataset ya construido,
+para que cualquiera reproduzca la cadena completa:
+
+```bash
+# 1. Base de datos y modelos (una vez)
+cd docker && docker compose up -d && cd ..
+ollama serve &
+
+# 2. Cargar el corpus sintetico
+uv run python scripts/seed_demo_tenant.py --tenant demo-publica
+uv run python scripts/ingest_docs.py       --tenant demo-publica
+uv run python scripts/load_faq.py          --tenant demo-publica \
+    --archivo data/faq/faq_demo-publica.json
+
+# 3. Entrenar el adaptador LoRA (~20 min en un M-series)
+uv run python scripts/train_lora.py -c scripts/lora_demo-publica.yaml
+
+# 4. Comparar: las mismas preguntas sin entrenar y entrenado
+uv run python scripts/comparar_estados.py \
+    --tenant demo-publica \
+    --modelo mlx-community/Qwen3-4B-4bit \
+    --adaptador adapters/qwen3-4b-demo
+```
+
+El paso 4 escribe `docs/comparacion-lora.md` con las respuestas de los dos
+estados enfrentadas, que es la evidencia que se presenta.
+
+**Si el puerto 5432 esta ocupado** por otro Postgres, levanta el contenedor en
+otro puerto y ajusta la cadena de conexion:
+
+```bash
+cd docker && NORMIA_DB_PORT=5433 docker compose up -d && cd ..
+# y en .env:  DATABASE_URL=postgresql+psycopg://normia:normia_pass@localhost:5433/normia_db
+```
+
+### Lo que salio, y no es lo que se esperaba
+
+| Documento | Que contiene |
+|---|---|
+| `docs/linea-base.md` | La medicion previa, el addendum que corrige el diagnostico y el resultado final sin adornos |
+| `docs/comparacion-lora.md` | Las 12 preguntas con las dos respuestas enfrentadas, literales |
+| `docs/banco-4b-base.txt` · `docs/banco-4b-lora.txt` | La salida cruda del banco sobre cada estado |
+| `docs/entrenamiento.log` | El log de la corrida |
+| `docs/presentacion-fase2.html` | Las 13 laminas, armadas por `scripts/construir_presentacion.py` desde esos ficheros |
+
+Resumen honesto: el adaptador **mejora la cita y la fundamentacion (88% -> 100%)
+y empeora la emision de llamadas a herramienta (100% -> 75%)**. Los dos estados
+fallan un caso de doce, solo que distinto.
+
+Y el aprendizaje de la fase, que vale mas que el numero: al entrenar, una llamada
+a herramienta se renderiza como **texto** en la plantilla de chat, y con
+`mask_prompt` el modelo aprende a generar ese texto. Que se convierta en llamada
+estructurada depende del parser del servidor. El aviso
+`llm.tool_call_recovered_from_text`, que valia cero en la linea base, aparece con
+el adaptador. **Este adaptador no se despliega tal cual.**
+
+### El dataset
+
+Lo construye `scripts/build_finetune_dataset.py` a partir de lo que el proyecto
+**ya tiene verificado**, no de un corpus inventado para la ocasion:
+
+| Familia | Que ensena | De donde sale |
+|---|---|---|
+| `cita` | Atribuir por titulo y seccion, con respaldo | El FAQ verificado (`faq_<tenant>.json`) |
+| `herramienta` | **Emitir la llamada como `tool_call`**, no escribirla en el texto | Los 7 esquemas de `tools.py` + el catalogo real |
+| `escalacion` | Negarse y llamar a `escalate_to_quality` sin respaldo | Temas ausentes del SGC y peticiones de aprobacion |
+| `fantasma` | No citar un documento que no existe | Los rechazos del FAQ, con su motivo |
+| `social` | Saludar sin derivar a Calidad | Fallos reales ya corregidos en el orquestador |
+
+Tres decisiones que lo hacen util, y que se pagaron caras:
+
+**Cada ejemplo se arma con el `_build_messages` del propio orquestador.** No con
+una copia parecida. Si el prompt de entrenamiento no es el de produccion -- y el
+del tenant tiene 5.500 caracteres con reglas propias -- el modelo aprende a
+obedecer instrucciones que nunca va a recibir.
+
+**Las 12 preguntas del banco quedan fuera.** Se leen de `benchmark_models.py`
+parseando su AST. Si entraran, el banco dejaria de medir generalizacion y pasaria
+a confirmar lo memorizado.
+
+**La fuente es `faq_<tenant>.json`, no el `.jsonl`.** El `.jsonl` es el checkpoint
+crudo de la generacion, anterior a la validacion, y conserva 24 respuestas que
+citan documentos inexistentes. Entrenar con el ensenaria justo el fallo que este
+proyecto existe para evitar.
+
+### Por que Qwen3-4B y no el modelo de produccion
+
+En una Mac de 48 GB no entra el 27B, y el modelo del taller de clase
+(`Qwen3.5-4B`) tampoco sirve, aunque lo parezca. Medido:
+
+| Modelo | Arquitectura | Pico con secuencias de 512 |
+|---|---|---|
+| `Qwen3.5-4B` | Hibrida: 24 de 32 capas `linear_attention`, estado en float32, vocabulario de 248.320 | **33 GB** |
+| `Qwen3-4B` | Densa, atencion completa, vocabulario de 151.936 | **5.4 GB** |
+
+Con el hibrido, bajar `num_layers` de 16 a 4 no cambiaba nada: la memoria no se
+iba en las capas LoRA sino en la recurrencia y en la cabeza de salida. Con el
+denso y `grad_checkpoint` activo, el entrenamiento completo cabe en **8.3 GB**.
+
+Dos ajustes mas que no son opcionales, y estan razonados en
+`scripts/lora_qwen3-4b.yaml`:
+
+- **`max_seq_length: 4608`**, no 2048. Medido con el tokenizador: la mediana real
+  es de 3.180 tokens porque los esquemas de las 7 herramientas se renderizan
+  enteros en cada ejemplo. Truncar con `mask_prompt` activo corta la respuesta del
+  asistente, se enmascara todo, no queda ni un token que aprender y la perdida
+  sale `NaN`.
+- **`scripts/train_lora.py`** en vez de invocar `mlx_lm lora` directamente: sube el
+  techo de memoria de Metal del *working set* recomendado (40.2 GB) a 43.5 GB, sin
+  `sudo`.
+
+### Servir el adaptador
+
+`mlx_lm.server` habla el protocolo compatible con OpenAI, el mismo que el cliente
+de NormIA, asi que se cambia el backend sin tocar codigo:
+
+```bash
+uv run python -m mlx_lm server \
+    --model mlx-community/Qwen3-4B-4bit \
+    --adapter-path adapters/qwen3-4b-demo --port 8090
+```
+
+```bash
+# .env
+LLM_BASE_URL=http://127.0.0.1:8090/v1
+LLM_MODEL=mlx-community/Qwen3-4B-4bit
+LLM_MERGE_SYSTEM_MESSAGES=true
+```
+
+Esa ultima variable importa. El orquestador emite **tres** mensajes de sistema
+-- prompt del tenant, bloque de FAQ y bloque de contexto -- y Ollama los acepta,
+pero la plantilla de chat de Qwen que se usa al entrenar exige uno solo al
+principio. El dataset se construyo con los tres fundidos, asi que la inferencia
+tiene que fundirlos tambien o el adaptador no transfiere. Esta apagada por
+defecto: con Ollama no hace falta.
+
 ## Roadmap (Fase 2)
 
 - Canal WhatsApp via Twilio (el adapter enchufa en `IncomingMessage`, sin refactor)

@@ -1,0 +1,39 @@
+memoria: fisica 51.5 GB · recomendada 40.2 GB · techo fijado 43.5 GB
+Loading configuration file scripts/lora_qwen3-4b.yaml
+Loading pretrained model
+Loading datasets
+Training
+Trainable parameters: 0.365% (14.680M/4022.468M)
+Starting training..., iters: 400
+Iter 1: Val loss 2.259, Val took 75.995s
+Iter 20: Train loss 0.977, Learning Rate 1.000e-04, It/sec 0.177, Tokens/sec 11.239, Trained Tokens 1272, Peak mem 8.834 GB
+Iter 40: Train loss 0.453, Learning Rate 1.000e-04, It/sec 0.126, Tokens/sec 6.893, Trained Tokens 2367, Peak mem 8.834 GB
+Iter 60: Train loss 0.359, Learning Rate 1.000e-04, It/sec 0.177, Tokens/sec 9.806, Trained Tokens 3475, Peak mem 8.834 GB
+Iter 80: Train loss 0.352, Learning Rate 1.000e-04, It/sec 0.170, Tokens/sec 9.459, Trained Tokens 4585, Peak mem 9.091 GB
+Iter 100: Val loss 0.386, Val took 96.948s
+Iter 100: Train loss 0.283, Learning Rate 1.000e-04, It/sec 0.156, Tokens/sec 8.319, Trained Tokens 5650, Peak mem 9.091 GB
+Iter 100: Saved adapter weights to adapters/qwen3-4b-normia/adapters.safetensors and adapters/qwen3-4b-normia/0000100_adapters.safetensors.
+Iter 120: Train loss 0.213, Learning Rate 1.000e-04, It/sec 0.139, Tokens/sec 8.405, Trained Tokens 6863, Peak mem 11.294 GB
+Iter 140: Train loss 0.370, Learning Rate 1.000e-04, It/sec 0.102, Tokens/sec 5.650, Trained Tokens 7966, Peak mem 11.294 GB
+Iter 160: Train loss 0.348, Learning Rate 1.000e-04, It/sec 0.136, Tokens/sec 7.678, Trained Tokens 9091, Peak mem 11.294 GB
+Iter 180: Train loss 0.350, Learning Rate 1.000e-04, It/sec 0.148, Tokens/sec 8.115, Trained Tokens 10191, Peak mem 11.294 GB
+Iter 200: Val loss 0.367, Val took 98.387s
+Iter 200: Train loss 0.418, Learning Rate 1.000e-04, It/sec 0.151, Tokens/sec 7.741, Trained Tokens 11215, Peak mem 11.294 GB
+Iter 200: Saved adapter weights to adapters/qwen3-4b-normia/adapters.safetensors and adapters/qwen3-4b-normia/0000200_adapters.safetensors.
+Iter 220: Train loss 0.442, Learning Rate 1.000e-04, It/sec 0.151, Tokens/sec 7.227, Trained Tokens 12172, Peak mem 11.294 GB
+Iter 240: Train loss 0.377, Learning Rate 1.000e-04, It/sec 0.135, Tokens/sec 7.905, Trained Tokens 13344, Peak mem 11.294 GB
+Iter 260: Train loss 0.309, Learning Rate 1.000e-04, It/sec 0.105, Tokens/sec 5.551, Trained Tokens 14398, Peak mem 11.294 GB
+Iter 280: Train loss 0.344, Learning Rate 1.000e-04, It/sec 0.129, Tokens/sec 6.504, Trained Tokens 15405, Peak mem 11.294 GB
+Iter 300: Val loss 0.227, Val took 85.523s
+Iter 300: Train loss 0.318, Learning Rate 1.000e-04, It/sec 0.167, Tokens/sec 8.894, Trained Tokens 16469, Peak mem 11.294 GB
+Iter 300: Saved adapter weights to adapters/qwen3-4b-normia/adapters.safetensors and adapters/qwen3-4b-normia/0000300_adapters.safetensors.
+Iter 320: Train loss 0.239, Learning Rate 1.000e-04, It/sec 0.166, Tokens/sec 8.978, Trained Tokens 17554, Peak mem 11.294 GB
+Iter 340: Train loss 0.429, Learning Rate 1.000e-04, It/sec 0.167, Tokens/sec 9.306, Trained Tokens 18667, Peak mem 11.294 GB
+Iter 360: Train loss 0.299, Learning Rate 1.000e-04, It/sec 0.166, Tokens/sec 8.548, Trained Tokens 19696, Peak mem 11.294 GB
+Iter 380: Train loss 0.219, Learning Rate 1.000e-04, It/sec 0.164, Tokens/sec 8.454, Trained Tokens 20727, Peak mem 11.294 GB
+Iter 400: Val loss 0.221, Val took 83.206s
+Iter 400: Train loss 0.420, Learning Rate 1.000e-04, It/sec 0.170, Tokens/sec 9.309, Trained Tokens 21820, Peak mem 11.294 GB
+Iter 400: Saved adapter weights to adapters/qwen3-4b-normia/adapters.safetensors and adapters/qwen3-4b-normia/0000400_adapters.safetensors.
+Saved final weights to adapters/qwen3-4b-normia/adapters.safetensors.
+Testing
+Test loss 0.284, Test ppl 1.329.
