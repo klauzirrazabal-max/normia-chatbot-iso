@@ -1,0 +1,206 @@
+{
+  "total": 22,
+  "descartadas": 3,
+  "duplicadas": 0,
+  "clausulas_procesadas": 19,
+  "entradas": [
+    {
+      "pregunta": "¿Por qué no se aplica la trazabilidad de las mediciones en nuestro sistema de gestión de la calidad?",
+      "respuesta": "No se aplica el requisito 7.1.5.2 porque la organización no utiliza equipos de seguimiento y medición que deban ser calibrados.",
+      "codigo": "CAL-MN-01",
+      "version": "v3",
+      "titulo_documento": "Manual de la Calidad",
+      "area": "MANUALES",
+      "seccion": "6"
+    },
+    {
+      "pregunta": "¿Qué tareas realiza el proceso de Gestión Gerencial?",
+      "respuesta": "Establece y verifica la adecuación de la Política de la Calidad, asegura que se establecen los objetivos y analiza los resultados de los indicadores.",
+      "codigo": "CAL-MN-01",
+      "version": "v3",
+      "titulo_documento": "Manual de la Calidad",
+      "area": "MANUALES",
+      "seccion": "14.2"
+    },
+    {
+      "pregunta": "¿Qué gestiona el proceso de Gestión de la Calidad?",
+      "respuesta": "Controla la información documentada, gestiona las no conformidades, las auditorías internas y las acciones correctivas.",
+      "codigo": "CAL-MN-01",
+      "version": "v3",
+      "titulo_documento": "Manual de la Calidad",
+      "area": "MANUALES",
+      "seccion": "14.2"
+    },
+    {
+      "pregunta": "¿Qué metodología se utiliza para tratar los riesgos y oportunidades del SGC?",
+      "respuesta": "Se ha definido una metodología específica para identificar, analizar y dar tratamiento a los riesgos y oportunidades del SGC.",
+      "codigo": "CAL-MN-01",
+      "version": "v3",
+      "titulo_documento": "Manual de la Calidad",
+      "area": "MANUALES",
+      "seccion": "15"
+    },
+    {
+      "pregunta": "¿Cuánto tiempo tengo para registrar una no conformidad después de detectarla?",
+      "respuesta": "Toda no conformidad detectada debe registrarse dentro de los 3 días hábiles siguientes a su detección.",
+      "codigo": "CAL-PR-03",
+      "version": "v2",
+      "titulo_documento": "No Conformidad y Acciones Correctivas",
+      "area": "PROCEDIMIENTOS",
+      "seccion": "6"
+    },
+    {
+      "pregunta": "¿Quién es el encargado de analizar las causas de una no conformidad?",
+      "respuesta": "El Responsable de Proceso es quien realiza el análisis necesario para determinar la causa raíz.",
+      "codigo": "CAL-PR-03",
+      "version": "v2",
+      "titulo_documento": "No Conformidad y Acciones Correctivas",
+      "area": "PROCEDIMIENTOS",
+      "seccion": "7.3"
+    },
+    {
+      "pregunta": "¿Quién es el encargado de definir las acciones correctivas y su fecha de implementación?",
+      "respuesta": "El Responsable de Proceso es quien define las acciones correctivas y su fecha de implementación.",
+      "codigo": "CAL-PR-03",
+      "version": "v2",
+      "titulo_documento": "No Conformidad y Acciones Correctivas",
+      "area": "PROCEDIMIENTOS",
+      "seccion": "7.4"
+    },
+    {
+      "pregunta": "¿Cuándo se verifica si la acción correctiva fue eficaz?",
+      "respuesta": "La verificación de la eficacia se realiza a los 30 días calendario de implementada la acción correctiva.",
+      "codigo": "CAL-PR-03",
+      "version": "v2",
+      "titulo_documento": "No Conformidad y Acciones Correctivas",
+      "area": "PROCEDIMIENTOS",
+      "seccion": "7.6"
+    },
+    {
+      "pregunta": "¿Quién se encarga de revisar los pedidos de compra?",
+      "respuesta": "El Coordinador de Compras es quien verifica los requerimientos diarios.",
+      "codigo": "COM-PR-01",
+      "version": "v3",
+      "titulo_documento": "Compras",
+      "area": "PROCEDIMIENTOS",
+      "seccion": "7.1"
+    },
+    {
+      "pregunta": "¿Cómo llegan los pedidos al área de compras?",
+      "respuesta": "Los requerimientos se reciben por correo electrónico o a través del formulario interno.",
+      "codigo": "COM-PR-01",
+      "version": "v3",
+      "titulo_documento": "Compras",
+      "area": "PROCEDIMIENTOS",
+      "seccion": "7.1"
+    },
+    {
+      "pregunta": "Con que frecuencia se hace el respaldo de la informacion critica?",
+      "respuesta": "El respaldo de la informacion critica se realiza de forma diaria.",
+      "codigo": "STI-PO-01",
+      "version": "v2",
+      "titulo_documento": "Politica de Seguridad de la Informacion",
+      "area": "POLITICAS",
+      "seccion": "6.1"
+    },
+    {
+      "pregunta": "Durante cuanto tiempo se conservan los respaldos de la informacion critica?",
+      "respuesta": "Se conservan por un periodo de 90 dias.",
+      "codigo": "STI-PO-01",
+      "version": "v2",
+      "titulo_documento": "Politica de Seguridad de la Informacion",
+      "area": "POLITICAS",
+      "seccion": "6.1"
+    },
+    {
+      "pregunta": "¿Qué pasa si detecto que alguien no cumple con la política de seguridad de la información?",
+      "respuesta": "El personal de TI debe dar parte a la Gerencia General, quien es la encargada de tomar las medidas administrativas que correspondan.",
+      "codigo": "STI-PO-01",
+      "version": "v2",
+      "titulo_documento": "Politica de Seguridad de la Informacion",
+      "area": "POLITICAS",
+      "seccion": "7.4.4"
+    },
+    {
+      "pregunta": "¿Quién decide qué medidas tomar cuando hay un incumplimiento de la política?",
+      "respuesta": "La Gerencia General toma las medidas administrativas correspondientes tras recibir el parte del personal de TI.",
+      "codigo": "STI-PO-01",
+      "version": "v2",
+      "titulo_documento": "Politica de Seguridad de la Informacion",
+      "area": "POLITICAS",
+      "seccion": "7.4.4"
+    },
+    {
+      "pregunta": "¿Cuáles son las obligaciones principales que debo cumplir como usuario de los equipos asignados?",
+      "respuesta": "Debes cumplir con la política, custodiar adecuadamente el equipo, no instalar software no autorizado ni permitir su uso por terceros, y reportar oportunamente cualquier incidente.",
+      "codigo": "STI-PO-02",
+      "version": "v1",
+      "titulo_documento": "Politica de Uso de Equipos y Dispositivos",
+      "area": "POLITICAS",
+      "seccion": "4.6.1"
+    },
+    {
+      "pregunta": "¿Puedo instalar programas que no estén autorizados en mi equipo de trabajo?",
+      "respuesta": "No, está prohibido instalar software no autorizado en los equipos asignados.",
+      "codigo": "STI-PO-02",
+      "version": "v1",
+      "titulo_documento": "Politica de Uso de Equipos y Dispositivos",
+      "area": "POLITICAS",
+      "seccion": "4.6.1"
+    },
+    {
+      "pregunta": "¿Puedo instalar cualquier programa que quiera en mi equipo de trabajo?",
+      "respuesta": "No, está prohibida la descarga o instalación de software no autorizado por el área de TI en equipos corporativos o personales utilizados para fines laborales.",
+      "codigo": "STI-PO-02",
+      "version": "v1",
+      "titulo_documento": "Politica de Uso de Equipos y Dispositivos",
+      "area": "POLITICAS",
+      "seccion": "7.6.1"
+    },
+    {
+      "pregunta": "¿Qué pasa si uso mi teléfono personal para trabajar y quiero instalar una app?",
+      "respuesta": "También está prohibida la instalación de software no autorizado por el área de TI en dispositivos personales utilizados para fines laborales.",
+      "codigo": "STI-PO-02",
+      "version": "v1",
+      "titulo_documento": "Politica de Uso de Equipos y Dispositivos",
+      "area": "POLITICAS",
+      "seccion": "7.6.1"
+    },
+    {
+      "pregunta": "¿Cómo y cuándo puedo presentar una solicitud de atención tecnológica?",
+      "respuesta": "La solicitud se realiza a través del Formulario de Solicitudes Tecnológicas y debe presentarse dentro del horario laboral.",
+      "codigo": "STI-PR-01",
+      "version": "v4",
+      "titulo_documento": "Atencion de Solicitudes Tecnologicas",
+      "area": "PROCEDIMIENTOS",
+      "seccion": "7.1"
+    },
+    {
+      "pregunta": "¿Quién me avisa sobre el estado de mi solicitud tecnológica y qué información me da?",
+      "respuesta": "El Jefe de TI es quien informa al solicitante sobre el estado de la solicitud, así como las acciones que se van a tomar o las que aún están pendientes.",
+      "codigo": "STI-PR-01",
+      "version": "v4",
+      "titulo_documento": "Atencion de Solicitudes Tecnologicas",
+      "area": "PROCEDIMIENTOS",
+      "seccion": "7.6"
+    },
+    {
+      "pregunta": "¿Cuánto tardan en responder y resolver una incidencia que solo me afecta a mí?",
+      "respuesta": "Para una incidencia que afecta a un solo usuario, el tiempo máximo de respuesta es de 01 hora y el tiempo máximo de solución es de 05 horas.",
+      "codigo": "STI-PR-01",
+      "version": "v4",
+      "titulo_documento": "Atencion de Solicitudes Tecnologicas",
+      "area": "PROCEDIMIENTOS",
+      "seccion": "7.6"
+    },
+    {
+      "pregunta": "¿Con qué frecuencia se debe hacer el mantenimiento preventivo a los equipos de cómputo?",
+      "respuesta": "El mantenimiento preventivo de los equipos de cómputo se realiza, como mínimo, una vez al año.",
+      "codigo": "STI-PR-01",
+      "version": "v4",
+      "titulo_documento": "Atencion de Solicitudes Tecnologicas",
+      "area": "PROCEDIMIENTOS",
+      "seccion": "7.8"
+    }
+  ]
+}
