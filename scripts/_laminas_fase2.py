@@ -12,10 +12,11 @@ Todos los numeros salen de mediciones que estan en el repositorio
 from __future__ import annotations
 
 import html
+import json
 import re
 from pathlib import Path
 
-TOTAL = 13
+TOTAL = 14
 
 # Linea base medida el 2026-09-24 sobre el SGC real. Fuente: docs/linea-base.md
 BASE = {
@@ -23,6 +24,30 @@ BASE = {
     "escala": "83%", "fantasmas": "100%", "fundamentada": "88%",
     "mediana": "14.8 s", "maxima": "48.0 s",
 }
+
+
+def tres_estados(tenant: str = "empresa-demo-iso") -> dict | None:
+    """
+    El resumen de la comparacion de tres estados, si se corrio.
+
+    Solo se leen los PORCENTAJES y los codigos INVENTADOS. El detalle con las
+    respuestas literales se queda fuera: corrido contra un tenant real reproduce
+    el contenido de sus clausulas. Un codigo inventado, en cambio, no existe en
+    ningun SGC por definicion, asi que es publicable.
+    """
+    # Se prefiere el tenant real si esta, y si no el sintetico: el fichero del
+    # real no se versiona, asi que al clonar el repositorio solo habra el otro.
+    for candidato in (f"docs/tres-estados-{tenant}.json", "docs/tres-estados-demo-publica.json"):
+        ruta = Path(candidato)
+        if ruta.exists():
+            break
+    else:
+        return None
+    d = json.loads(ruta.read_text(encoding="utf-8"))
+    inventados = sorted({
+        c for fila in d.get("detalle", {}).get("sin_rag", []) for c in fila["fantasmas"]
+    })
+    return {"resumen": d["resumen"], "inventados": inventados}
 
 
 def metricas_del_banco(ruta) -> dict[str, str]:
@@ -298,7 +323,39 @@ def construir_laminas(*, tren, val, comparacion, familias, imagenes, svg, incrus
     porcentaje 25 puntos. Con n=12 esto no sostiene una conclusión fuerte.</p>''',
     "docs/banco-4b-*.txt", TOTAL))
 
-    # --- 12 imagenes ---------------------------------------------------------
+    # --- 12 tres estados: que aporta cada pieza ----------------------------
+    te = tres_estados()
+    if te:
+        ETQ = [("sin_rag", "Sin RAG"), ("rag", "Con RAG"), ("rag_lora", "RAG + LoRA")]
+        metricas = list(te["resumen"].get("rag", {}))
+        filas_te = "".join(
+            "<tr><td>" + e(m) + "</td>"
+            + "".join(f'<td class="n">{e(te["resumen"][k].get(m, "—"))}</td>' for k, _ in ETQ)
+            + "</tr>"
+            for m in metricas
+        )
+        inv = te["inventados"]
+        bloque_inv = (
+            f'''<p class="bajada">Los códigos que se inventó sin RAG. <b>Ninguno existe</b> en el
+    SGC: <code>{e(", ".join(inv[:9]))}</code>{"…" if len(inv) > 9 else ""}</p>'''
+            if inv else
+            '<p class="bajada">Sin RAG no llegó a citar ningún código inexistente.</p>'
+        )
+        cuerpo12 = f'''    <p class="entradilla">Qué aporta cada pieza</p>
+    <h2 class="titular">El salto lo da el RAG, no el fine-tuning</h2>
+    <table class="tabla">
+      <tr><th>Métrica</th>{"".join(f"<th>{e(t)}</th>" for _, t in ETQ)}</tr>
+      {filas_te}
+    </table>
+    {bloque_inv}'''
+    else:
+        cuerpo12 = '''    <p class="entradilla">Qué aporta cada pieza</p>
+    <h2 class="titular">Sin RAG · Con RAG · RAG + LoRA</h2>
+    <p class="bajada">Pendiente: corre <code>scripts/comparar_tres_estados.py</code>.</p>'''
+    L.append(lamina(12, "Resultados · las tres piezas", cuerpo12,
+                    "Las mismas 12 preguntas, tres configuraciones", TOTAL))
+
+    # --- 13 imagenes ---------------------------------------------------------
     figs = []
     for ruta in imagenes[:3]:
         uri = incrustar(ruta)
@@ -310,7 +367,7 @@ def construir_laminas(*, tren, val, comparacion, familias, imagenes, svg, incrus
     galeria = f'<div class="rejilla r3">{"".join(figs)}</div>' if figs else (
         '<p class="bajada">Pendiente: corre <code>scripts/generar_imagenes.py</code>.</p>'
     )
-    L.append(lamina(12, "Generación de imágenes", f'''    <p class="entradilla">La segunda modalidad</p>
+    L.append(lamina(13, "Generación de imágenes", f'''    <p class="entradilla">La segunda modalidad</p>
     <h2 class="titular">Material que la propia norma exige</h2>
     <p class="bajada">ISO 9001 pide formar y comunicar: <b>§7.2 Competencia, §7.3 Toma de
     conciencia, §7.4 Comunicación</b>. Un SGC que nadie conoce no se cumple.</p>
@@ -320,8 +377,8 @@ def construir_laminas(*, tren, val, comparacion, familias, imagenes, svg, incrus
     y una marca mal dibujada en material de calidad es peor que no tener material.</p>''',
     "SDXL local · docs/imagenes", TOTAL))
 
-    # --- 13 limites ----------------------------------------------------------
-    L.append(lamina(13, "Cierre", '''    <p class="entradilla">Honestidad</p>
+    # --- 14 limites ----------------------------------------------------------
+    L.append(lamina(14, "Cierre", '''    <p class="entradilla">Honestidad</p>
     <h2 class="titular">Lo que no se ha demostrado</h2>
     <ul class="puntos neg">
       <li>El adaptador se entrenó sobre <b>Qwen3-4B</b>, no sobre el 27B de producción:

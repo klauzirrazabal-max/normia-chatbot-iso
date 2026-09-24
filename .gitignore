@@ -75,5 +75,11 @@ docs/imagenes/crudo/
 # criterio que los PDFs y que el FAQ. La version de `demo-publica` si viaja.
 docs/comparacion-lora.json
 docs/comparacion-lora.md
-!docs/comparacion-demo-publica.md
-!docs/comparacion-demo-publica.json
+
+# Lo mismo para la comparacion de tres estados. Su DETALLE lleva las respuestas
+# literales; los porcentajes y los codigos inventados que la presentacion usa no
+# son datos de cliente -- un codigo inventado no existe en ningun SGC.
+docs/tres-estados-*.json
+docs/tres-estados-*.md
+!docs/tres-estados-demo-publica.json
+!docs/tres-estados-demo-publica.md
