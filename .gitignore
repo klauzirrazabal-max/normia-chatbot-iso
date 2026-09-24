@@ -83,3 +83,9 @@ docs/tres-estados-*.json
 docs/tres-estados-*.md
 !docs/tres-estados-demo-publica.json
 !docs/tres-estados-demo-publica.md
+
+# La ablacion del prompt, como las demas: el detalle lleva respuestas literales.
+docs/valor-lora-*.json
+docs/valor-lora-*.md
+!docs/valor-lora-demo-publica.json
+!docs/valor-lora-demo-publica.md

@@ -122,7 +122,24 @@ def main() -> int:
     parser.add_argument("--tenant", required=True)
     parser.add_argument("--etiqueta", required=True)
     parser.add_argument("--estado", default="rag", choices=["sin_rag", "rag", "rag_lora"])
+    parser.add_argument(
+        "--prompt-minimo",
+        action="store_true",
+        help="sustituye el prompt del tenant (5557 car.) por el DEFAULT (433)",
+    )
     args = parser.parse_args()
+
+    # EL EXPERIMENTO QUE JUSTIFICA UN FINE-TUNING. El prompt del tenant son
+    # ~1400 tokens en CADA peticion, y es quien manda sobre el comportamiento:
+    # mientras este ahi, el adaptador compite contra el y apenas se nota.
+    #
+    # Afinar sirve para meter esas instrucciones en los PESOS y poder quitarlas
+    # del prompt. Si con el prompt corto el modelo afinado aguanta y el base se
+    # desmorona, el fine-tuning se paga solo en latencia y en tokens. Si los dos
+    # se desmoronan, no aprendio las reglas y hay que decirlo.
+    if args.prompt_minimo:
+        from app.core import orchestrator as _orq
+        _orq._system_prompt = lambda db, tenant_id: _orq.DEFAULT_SYSTEM_PROMPT
 
     reales = codigos_del_sgc(args.tenant)
     salida = []

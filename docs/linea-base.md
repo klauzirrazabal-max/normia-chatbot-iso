@@ -216,3 +216,52 @@ documento delante y comprobar la cita, no haber ajustado los pesos.
 El fine-tuning sigue teniendo un sitio -- formato, tono, obediencia al prompt --
 pero no es la palanca principal, y en la corrida del banco completo incluso
 introdujo una regresion en la emision de llamadas.
+
+---
+
+## ¿Para que sirve entonces el fine-tuning? La ablacion del prompt
+
+El banco mide CORRECCION, y la correccion la arregla el RAG. El fine-tuning
+ataca la OBEDIENCIA a las instrucciones, y eso solo se ve cuando las
+instrucciones dejan de estar en el prompt.
+
+El prompt de sistema del tenant son 5.557 caracteres (~1.400 tokens) en CADA
+peticion. Si el modelo afinado obedeciera sin que se las repitan, se podrian
+quitar: menos latencia y mas contexto libre. Eso es lo que justifica un
+fine-tuning aqui. Se midio lo mismo cuatro veces:
+
+| Metrica | Base · 5557 | LoRA · 5557 | Base · 433 | LoRA · 433 |
+|---|---|---|---|---|
+| Acierta en conjunto | 92% | 100% | 83% | 83% |
+| Escala cuando debe | 92% | 100% | 83% | 83% |
+| Atribuye sin escribir el codigo | 42% | 33% | 25% | 25% |
+| Longitud mediana | 360 | 327 | 538 | 616 |
+
+**La ultima columna es identica a la tercera.** Al quitar el prompt largo, el
+base y el afinado caen exactamente igual. El adaptador **no internalizo las
+reglas**.
+
+### Por que, y como se arreglaria
+
+No es mala suerte, es como se construyo el dataset: **los 5.557 caracteres del
+prompt estaban dentro de CADA ejemplo de entrenamiento**. El modelo aprendio
+"dado ESTE prompt, responde asi" -- nunca aprendio a comportarse sin el. Con
+`mask_prompt` ademas la senal son ~50 tokens de respuesta sobre ~3.200 de
+contexto.
+
+El arreglo es directo: **entrenar con el prompt quitado o reducido en los
+ejemplos**, para que las reglas tengan que vivir en los pesos. Es un cambio en
+`build_finetune_dataset.py` y otra corrida.
+
+### Los cuatro casos donde un fine-tuning si se paga
+
+1. **Meter las instrucciones en los pesos** para quitarlas del prompt. Es el
+   experimento de arriba, y con este dataset no se consigue.
+2. **Bajar de tamano**: el 4B iguala al 27B en este banco. Afinar el 4B para
+   cerrar lo que le falte ahorra 14 GB de RAM y la mitad de la latencia.
+3. **Un formato que el prompt no consigue**: cuando se pide diez veces y el
+   modelo lo incumple 3 de cada 10, el prompt ya demostro que no basta.
+4. **Jerga que el modelo no conoce**. No es el caso aqui: el RAG le pone el
+   documento delante.
+
+Y uno donde **resta**: la emision de llamadas a herramienta. Medido.

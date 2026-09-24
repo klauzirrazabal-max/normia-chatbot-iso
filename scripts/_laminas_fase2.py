@@ -16,7 +16,7 @@ import json
 import re
 from pathlib import Path
 
-TOTAL = 14
+TOTAL = 15
 
 # Linea base medida el 2026-09-24 sobre el SGC real. Fuente: docs/linea-base.md
 BASE = {
@@ -48,6 +48,15 @@ def tres_estados(tenant: str = "empresa-demo-iso") -> dict | None:
         c for fila in d.get("detalle", {}).get("sin_rag", []) for c in fila["fantasmas"]
     })
     return {"resumen": d["resumen"], "inventados": inventados}
+
+
+def valor_lora(tenant: str = "empresa-demo-iso") -> dict | None:
+    """El experimento de ablacion del prompt: ¿las reglas viven en los pesos?"""
+    for candidato in (f"docs/valor-lora-{tenant}.json", "docs/valor-lora-demo-publica.json"):
+        ruta = Path(candidato)
+        if ruta.exists():
+            return json.loads(ruta.read_text(encoding="utf-8"))["resumen"]
+    return None
 
 
 def metricas_del_banco(ruta) -> dict[str, str]:
@@ -359,7 +368,43 @@ def construir_laminas(*, tren, val, comparacion, familias, imagenes, svg, incrus
     L.append(lamina(12, "Resultados · las tres piezas", cuerpo12,
                     "Las mismas 12 preguntas, tres configuraciones", TOTAL))
 
-    # --- 13 imagenes ---------------------------------------------------------
+    # --- 13 para que sirve entonces afinar ---------------------------------
+    vl = valor_lora()
+    if vl:
+        COLS = [
+            ("base_completo", "Base · 5557"), ("lora_completo", "LoRA · 5557"),
+            ("base_minimo", "Base · 433"), ("lora_minimo", "LoRA · 433"),
+        ]
+        ms = ["Acierta en conjunto", "Escala cuando debe",
+              "Atribuye sin escribir el codigo", "Longitud mediana"]
+        filas_vl = "".join(
+            "<tr><td>" + e(m) + "</td>"
+            + "".join(f'<td class="n">{e(vl[k].get(m, "—"))}</td>' for k, _ in COLS)
+            + "</tr>"
+            for m in ms if any(m in vl[k] for k, _ in COLS)
+        )
+        cuerpo13 = f'''    <p class="entradilla">¿Entonces para qué afinar?</p>
+    <h2 class="titular">El experimento que lo justificaría, y no salió</h2>
+    <p class="bajada">Afinar sirve para meter las instrucciones en los <b>pesos</b> y poder
+    quitarlas del prompt: son 5.557 caracteres en cada petición. Se mide lo mismo
+    con el prompt completo y con uno mínimo de 433.</p>
+    <table class="tabla">
+      <tr><th>Métrica</th>{"".join(f"<th>{e(t)}</th>" for _, t in COLS)}</tr>
+      {filas_vl}
+    </table>
+    <p class="bajada"><b>La última columna es idéntica a la tercera.</b> Al quitar el prompt
+    largo, base y afinado caen igual: el adaptador <b>no internalizó las reglas</b>.
+    Y no es mala suerte — los 5.557 caracteres estaban dentro de cada ejemplo de
+    entrenamiento, así que el modelo aprendió «dado este prompt, responde así»,
+    nunca a comportarse sin él. Se arregla entrenando con el prompt reducido.</p>'''
+    else:
+        cuerpo13 = '''    <p class="entradilla">¿Entonces para qué afinar?</p>
+    <h2 class="titular">El experimento que lo justificaría</h2>
+    <p class="bajada">Pendiente: corre <code>scripts/medir_valor_lora.py</code>.</p>'''
+    L.append(lamina(13, "Resultados · el porqué", cuerpo13,
+                    "Ablación del prompt de sistema", TOTAL))
+
+    # --- 14 imagenes ---------------------------------------------------------
     figs = []
     for ruta in imagenes[:3]:
         uri = incrustar(ruta)
@@ -371,7 +416,7 @@ def construir_laminas(*, tren, val, comparacion, familias, imagenes, svg, incrus
     galeria = f'<div class="rejilla r3">{"".join(figs)}</div>' if figs else (
         '<p class="bajada">Pendiente: corre <code>scripts/generar_imagenes.py</code>.</p>'
     )
-    L.append(lamina(13, "Generación de imágenes", f'''    <p class="entradilla">La segunda modalidad</p>
+    L.append(lamina(14, "Generación de imágenes", f'''    <p class="entradilla">La segunda modalidad</p>
     <h2 class="titular">Material que la propia norma exige</h2>
     <p class="bajada">ISO 9001 pide formar y comunicar: <b>§7.2 Competencia, §7.3 Toma de
     conciencia, §7.4 Comunicación</b>. Un SGC que nadie conoce no se cumple.</p>
@@ -381,8 +426,8 @@ def construir_laminas(*, tren, val, comparacion, familias, imagenes, svg, incrus
     y una marca mal dibujada en material de calidad es peor que no tener material.</p>''',
     "SDXL local · docs/imagenes", TOTAL))
 
-    # --- 14 limites ----------------------------------------------------------
-    L.append(lamina(14, "Cierre", '''    <p class="entradilla">Honestidad</p>
+    # --- 15 limites ----------------------------------------------------------
+    L.append(lamina(15, "Cierre", '''    <p class="entradilla">Honestidad</p>
     <h2 class="titular">Lo que no se ha demostrado</h2>
     <ul class="puntos neg">
       <li>El adaptador se entrenó sobre <b>Qwen3-4B</b>, no sobre el 27B de producción:
