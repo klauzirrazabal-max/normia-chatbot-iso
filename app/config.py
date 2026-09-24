@@ -43,6 +43,12 @@ class Settings(BaseSettings):
     # Ollama (/api/chat con think=false), no el endpoint compatible con OpenAI,
     # que ignora la instruccion. Medido: ~10x mas rapido. Solo aplica a Ollama.
     llm_disable_thinking: bool = False
+    # Funde los mensajes de sistema en uno antes de enviarlos. El orquestador
+    # emite tres -- prompt del tenant, bloque de FAQ y bloque de contexto -- y
+    # Ollama los acepta, pero la plantilla de chat de Qwen que aplica
+    # `mlx_lm.server` los rechaza con "System message must be at the beginning".
+    # Apagado por defecto: con Ollama no hace falta y no se toca lo que funciona.
+    llm_merge_system_messages: bool = False
 
     # Embeddings (locales)
     embedding_model: str = "BAAI/bge-m3"

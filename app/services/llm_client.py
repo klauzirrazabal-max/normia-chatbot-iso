@@ -139,6 +139,40 @@ def _to_native_messages(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return adaptados
 
 
+def merge_system_messages(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """
+    Funde los mensajes de sistema CONSECUTIVOS del principio en uno solo.
+
+    El orquestador emite tres: el prompt del tenant, el bloque de preguntas
+    frecuentes y el bloque de contexto documental. El endpoint compatible con
+    OpenAI de Ollama los acepta tal cual, pero la plantilla de chat de Qwen que
+    aplica `mlx_lm.server` exige uno unico al principio y responde
+    "System message must be at the beginning".
+
+    Solo cambia el envoltorio: el contenido y su orden se conservan, separados
+    por una linea en blanco. Los mensajes de sistema que aparezcan DESPUES del
+    primer turno de usuario se dejan donde estan -- fundirlos hacia arriba si
+    alteraria la conversacion.
+    """
+    fundidos: list[dict[str, Any]] = []
+    bloque: list[str] = []
+
+    for mensaje in messages:
+        if not fundidos and mensaje.get("role") == "system":
+            contenido = mensaje.get("content")
+            if contenido:
+                bloque.append(contenido)
+            continue
+        if bloque:
+            fundidos.append({"role": "system", "content": "\n\n".join(bloque)})
+            bloque = []
+        fundidos.append(mensaje)
+
+    if bloque:
+        fundidos.append({"role": "system", "content": "\n\n".join(bloque)})
+    return fundidos
+
+
 class OpenAICompatibleClient:
     """Cliente sincrono. FastAPI lo ejecuta en threadpool (endpoints `def`, no `async def`)."""
 
@@ -152,6 +186,7 @@ class OpenAICompatibleClient:
         temperature: float | None = None,
         reasoning_effort: str | None = None,
         disable_thinking: bool | None = None,
+        merge_system_messages: bool | None = None,
     ) -> None:
         self.base_url = (base_url or settings.llm_base_url).rstrip("/")
         self.model = model or settings.llm_model
@@ -170,6 +205,11 @@ class OpenAICompatibleClient:
             disable_thinking
             if disable_thinking is not None
             else settings.llm_disable_thinking
+        )
+        self.merge_system_messages = (
+            merge_system_messages
+            if merge_system_messages is not None
+            else settings.llm_merge_system_messages
         )
         self.circuit = CircuitBreaker(
             settings.llm_circuit_failures, settings.llm_circuit_cooldown_seconds
@@ -203,6 +243,9 @@ class OpenAICompatibleClient:
         `tool_calls` viene en formato OpenAI: cada elemento tiene
         id / type / function{name, arguments(JSON string)}.
         """
+        if self.merge_system_messages:
+            messages = merge_system_messages(messages)
+
         if self.disable_thinking and self.is_ollama:
             return self._generate_ollama_native(messages, tools)
 

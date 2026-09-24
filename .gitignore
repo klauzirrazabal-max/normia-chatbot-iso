@@ -26,7 +26,27 @@ data/knowledge_base/*/metadata.csv
 
 # El FAQ generado reproduce el contenido de las clausulas: plazos, responsables,
 # flujos de trabajo. Mismo criterio que los PDFs.
-data/faq/
+data/faq/*
+
+# El dataset de fine-tuning lleva el texto INTEGRO de las clausulas dentro de
+# cada prompt -- es la copia mas completa del SGC que produce el proyecto.
+# Se regenera con scripts/build_finetune_dataset.py; no se versiona.
+data/finetune/*
+
+# EXCEPCION, y es la que hace reproducible el proyecto: el FAQ y el dataset del
+# corpus SINTETICO si viajan. Sin ellos nadie mas puede entrenar -- el unico
+# dataset completo sale de los 133 PDFs reales, que no salen de la maquina.
+# Verificado antes de versionarlos: no contienen ningun dato del cliente.
+!data/faq/faq_demo-publica.json
+!data/faq/faq_demo-publica.md
+!data/faq/faq_demo-publica_rechazos.md
+!data/finetune/demo-publica/
+
+# Adaptadores LoRA y modelos fusionados: se entrenan sobre ese mismo contenido.
+adapters/
+models/
+*.safetensors
+*.gguf
 
 # Lo que SI se versiona: el corpus sintetico de demo, para que el proyecto se
 # pueda clonar y ejecutar de punta a punta sin datos de ningun cliente.
@@ -39,3 +59,13 @@ data/faq/
 # Guion de exposicion: es una herramienta personal, no un entregable.
 # Su tono esta escrito para quien expone, no para quien evalua.
 docs/guion-exposicion.md
+
+# Los mockups del ejercicio de clase son activos de marca de un TERCERO (Gloria):
+# su logotipo y fotos de producto de licencia desconocida. Sirven para entrenar en
+# local, no para redistribuirse. El logo de ABISERVI si viaja: es la marca del
+# cliente de este proyecto y hace falta para construir su dataset de imagen.
+data/marca/mockups/
+
+# El arte sin componer: util para reencuadrar sin volver a generar, pero es el
+# doble de peso y la pieza terminada ya esta versionada.
+docs/imagenes/crudo/

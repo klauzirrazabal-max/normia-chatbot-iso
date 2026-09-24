@@ -123,3 +123,61 @@ class TestDeteccionDeOllama:
         """El modo rapido no debe activarse contra un proveedor en la nube."""
         cliente = OpenAICompatibleClient(base_url="https://api.groq.com/openai/v1")
         assert cliente.is_ollama is False
+
+
+# --- Fusion de mensajes de sistema -------------------------------------------
+#
+# El orquestador emite TRES mensajes de sistema y Ollama los acepta. La plantilla
+# de chat de Qwen que aplica `mlx_lm.server` no: exige uno solo al principio.
+# Estas pruebas fijan que fundirlos no altere el contenido ni el orden.
+
+
+def test_funde_los_sistemas_del_principio_en_uno():
+    from app.services.llm_client import merge_system_messages
+
+    fundidos = merge_system_messages(
+        [
+            {"role": "system", "content": "prompt del tenant"},
+            {"role": "system", "content": "bloque de FAQ"},
+            {"role": "system", "content": "bloque de contexto"},
+            {"role": "user", "content": "que dice el procedimiento"},
+        ]
+    )
+
+    assert [m["role"] for m in fundidos] == ["system", "user"]
+    assert fundidos[0]["content"] == (
+        "prompt del tenant\n\nbloque de FAQ\n\nbloque de contexto"
+    )
+    assert fundidos[1]["content"] == "que dice el procedimiento"
+
+
+def test_la_fusion_no_toca_una_conversacion_ya_valida():
+    from app.services.llm_client import merge_system_messages
+
+    messages = [
+        {"role": "system", "content": "uno solo"},
+        {"role": "user", "content": "hola"},
+        {"role": "assistant", "content": "buenas"},
+    ]
+    assert merge_system_messages(messages) == messages
+
+
+def test_un_sistema_posterior_al_usuario_se_queda_donde_esta():
+    # Subirlo al principio cambiaria la conversacion, no solo su envoltorio.
+    from app.services.llm_client import merge_system_messages
+
+    messages = [
+        {"role": "system", "content": "cabecera"},
+        {"role": "user", "content": "hola"},
+        {"role": "system", "content": "aviso posterior"},
+        {"role": "user", "content": "sigo"},
+    ]
+    assert merge_system_messages(messages) == messages
+
+
+def test_la_fusion_esta_apagada_por_defecto():
+    # Con Ollama no hace falta, y encenderla por defecto cambiaria en silencio lo
+    # que recibe el backend que hoy funciona.
+    from app.services.llm_client import OpenAICompatibleClient
+
+    assert OpenAICompatibleClient().merge_system_messages is False
