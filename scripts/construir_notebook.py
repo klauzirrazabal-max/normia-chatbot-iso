@@ -214,7 +214,8 @@ lo mismo en los tres.
     code("""
 from unsloth import FastLanguageModel
 
-MODELO = "unsloth/Qwen3-4B-Instruct"   # el mismo que se afina despues
+MODELO = "unsloth/Qwen3-4B"        # el post-entrenado (instruct)
+BASE_CRUDO = "unsloth/Qwen3-4B-Base"   # los pesos antes de post-entrenar
 MAX_SEQ = 4096
 
 modelo_base, tok = FastLanguageModel.from_pretrained(
@@ -417,6 +418,21 @@ Tampoco se le pide texto: lo escribe en garabatos. El titular se compone como
 texto real.
 """),
     code("""
+# LIBERAR EL MODELO DE LENGUAJE ANTES DE CARGAR EL DE DIFUSION. En una T4 son
+# 16 GB y no caben los dos: Qwen3-4B en 4 bits ocupa ~3.5 GB y SDXL en fp16 unos
+# 7 GB, mas los intermedios de la generacion. Sin esto, la celda revienta con
+# CUDA out of memory justo despues de 20 minutos de entrenamiento.
+#
+# El adaptador ya esta guardado en disco (celda anterior), asi que se recarga
+# despues sin perder nada.
+import gc
+
+for nombre in ("entrenador", "modelo"):
+    if nombre in globals():
+        del globals()[nombre]
+gc.collect(); torch.cuda.empty_cache()
+print(f"memoria GPU libre: {torch.cuda.mem_get_info()[0] / 1e9:.1f} GB")
+
 from diffusers import AutoencoderKL, StableDiffusionXLPipeline
 
 # EL VAE VA APARTE, y no es opcional: el original de SDXL desborda en float16 y
@@ -536,16 +552,17 @@ material visual que no tenga respaldo documental**. Un cartel sin cita es
 propaganda; con ella es material del sistema de gestion.
 """),
     code("""
-FastLanguageModel.for_inference(modelo)
-
+# NOTA: el modelo de lenguaje se libero arriba para que cupiera el de difusion.
+# Esta celda es ilustrativa del enlace entre los dos pipelines; el plan real lo
+# produce el modelo afinado en el apartado 5, ya recargado.
 peticion = "hazme un cartel para recordar el uso de EPP en el almacen"
 instruccion = (
     "Eres NormIA. Para una peticion de material visual devuelve SOLO un JSON con "
     "titular (español, breve), escena (ingles, una escena: quien aparece, que hace "
     "y donde, sin pedir texto) y clausula (documento del SGC que lo respalda)."
 )
-plan = responder(modelo, instruccion, peticion, max_new_tokens=180)
-print(plan)
+print("Peticion:", peticion)
+print("Instruccion al modelo:", instruccion[:120], "...")
 """),
 
     md("""
@@ -562,9 +579,18 @@ sesion 2:
 | **Con fine-tuning** | El anterior + el adaptador LoRA de este notebook |
 """),
     code("""
-del entrenador; gc.collect(); torch.cuda.empty_cache()
+# Ahora al reves: fuera el de difusion, que hacen falta DOS modelos de lenguaje
+# a la vez para la comparacion -- el crudo y el afinado.
+del pipe, vae
+gc.collect(); torch.cuda.empty_cache()
 
-BASE_CRUDO = "unsloth/Qwen3-4B-Base"
+# El afinado se recarga desde el adaptador guardado.
+modelo, tok = FastLanguageModel.from_pretrained(
+    model_name=MODELO, max_seq_length=MAX_SEQ, load_in_4bit=True, full_finetuning=False,
+)
+modelo.load_adapter("normia_lora")
+FastLanguageModel.for_inference(modelo)
+
 crudo, tok_crudo = FastLanguageModel.from_pretrained(
     model_name=BASE_CRUDO, max_seq_length=MAX_SEQ, load_in_4bit=True, full_finetuning=False,
 )
