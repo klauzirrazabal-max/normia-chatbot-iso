@@ -73,12 +73,12 @@ def lamina(n: int, seccion: str, cuerpo: str, pie: str, clase: str = "") -> str:
 
 
 def construir() -> str:
-    logo = uri(LOGO)
-    marca = (
-        f'<img src="{logo}" alt="ABISERVI" style="width:min(300px,52%);height:auto;'
-        'display:block;margin-bottom:clamp(14px,2.4vh,26px)">'
-        if logo else ""
-    )
+    # EL LOGO NO VA EN PORTADA. Su isotipo -- un hexagono con nodos unidos por
+    # lineas -- se lee como un icono de "inteligencia artificial", y en la
+    # primera lamina transmite justo lo contrario de lo que este trabajo
+    # defiende: que la tecnica esta al servicio de un sistema de gestion, no al
+    # reves. Aparece donde de verdad importa, dentro de las piezas generadas,
+    # que es ademas donde demuestra que la marca se compone y no se dibuja.
     piezas = [p for p in sorted((DOCS / "imagenes").glob("*.png"))][:3]
     galeria = "".join(
         f'<figure class="figura"><img src="{uri(p)}" alt="{e(p.stem)}"></figure>'
@@ -91,11 +91,11 @@ def construir() -> str:
     L.append(f'''<section class="lamina viva">
   <header class="membrete"><span class="cod">ABISERVI · 01</span><span class="sec">Portada</span></header>
   <div class="cuerpo portada">
-    {marca}
-    <p class="entradilla">Proyecto final · Diploma en Diseño e Implementación de Chatbots</p>
-    <h1 class="titular">Un modelo propio para el sistema de gestión</h1>
-    <p class="bajada">Fine-tuning de un modelo de lenguaje sobre la documentación de ABISERVI,
-    y generación de material visual con difusión. Todo en infraestructura propia.</p>
+    <p class="entradilla">ABISERVI · Sistema de Gestión de la Calidad</p>
+    <h1 class="titular">Un modelo propio para la documentación de la casa</h1>
+    <p class="bajada">Afinar un modelo de lenguaje sobre los procedimientos de ABISERVI y
+    producir el material de concienciación que la norma exige. Sin que un solo documento
+    salga de la organización.</p>
     <dl class="ficha">
       <div><dt>Autor</dt><dd>Klauz A. España Irrazabal</dd></div>
       <div><dt>Técnica</dt><dd>QLoRA · 4 bits</dd></div>
@@ -163,35 +163,38 @@ def construir() -> str:
 
     # 05 resultados cuantitativos -------------------------------------------
     L.append(lamina(5, "Resultados · cuantitativos", f'''    <p class="entradilla">Los tres estados</p>
-    <h2 class="titular">Sin entrenar · entrenado · afinado</h2>
+    <h2 class="titular">Cumple en la forma. No puede cumplir en el fondo</h2>
     {tabla_tres_modelos()}
-    <p class="bajada">La cifra que resume la fase: el modelo afinado responde en
-    <b>150 caracteres</b> lo que el modelo base tarda <b>895</b> en no responder. Menos
-    tokens por respuesta es menos latencia y menos coste por consulta.</p>''',
+    <p class="bajada">Las mismas 12 preguntas a los tres estados del modelo, <b>sin recuperación
+    documental</b>, para ver qué aporta el modelo por sí mismo.</p>
+    <p class="bajada">El afinado responde en <b>150 caracteres</b> lo que el base tarda <b>895</b>
+    en no responder: aprendió el estilo de la casa. Pero <b>atribuye peor</b> —38 % frente a
+    50 %—, y ese dato es el más valioso de la fase.</p>''',
     "Mismas preguntas, tres estados"))
 
     # 06 resultados cualitativos --------------------------------------------
-    L.append(lamina(6, "Resultados · cualitativos", '''    <p class="entradilla">La misma pregunta</p>
-    <h2 class="titular">«¿Cuánto tarda la atención de un requerimiento a TI?»</h2>
+    L.append(lamina(6, "Resultados · cualitativos", '''    <p class="entradilla">Por qué atribuye peor</p>
+    <h2 class="titular">Aprendió a citar. No aprendió qué citar</h2>
     <div class="panel-par">
       <div class="columna">
-        <span class="rotulo no">Sin afinar</span>
-        <p>«El tiempo de atención puede variar dependiendo de varios factores, como la
-        complejidad del problema, la disponibilidad de recursos… <b>1. Prioridad del
-        Requerimiento</b>…»</p>
-        <p class="bajada">Divaga. Inventa conocimiento general. No cita nada.</p>
+        <span class="rotulo si">Lo que sí aprendió</span>
+        <p>«La atención se realiza de forma inmediata. Lo define el procedimiento
+        <b>Atención de Solicitudes Tecnológicas</b>, sección 7.6.»</p>
+        <p class="bajada">Dato primero, atribución por título y sección. El formato exacto que
+        pide la organización, <b>sin las instrucciones delante</b>.</p>
       </div>
       <div class="columna">
-        <span class="rotulo si">Con fine-tuning</span>
-        <p>«La atención se realiza de forma inmediata. Lo define el procedimiento
-        <b>Atención de Solicitudes Tecnológicas, sección 7.6</b>.»</p>
-        <p class="bajada">Dato primero, atribución por título y sección. El formato de la casa,
-        <b>sin tener las instrucciones delante</b>.</p>
+        <span class="rotulo no">Lo que no puede aprender</span>
+        <p><b>«¿Qué hago si detecto una no conformidad?»</b> → «Lo define el procedimiento
+        <b>Atención de Solicitudes Tecnológicas</b>…»</p>
+        <p class="bajada">Documento equivocado, dicho con total seguridad. Sin documentos
+        delante, rellena con el título más frecuente que vio al entrenar.</p>
       </div>
     </div>
-    <p class="bajada">Esa es la aportación concreta del fine-tuning: el estilo deja de vivir en
-    un prompt de miles de tokens y pasa a vivir en los pesos.</p>''',
-    "El cambio que se lee"))
+    <p class="bajada">Un modelo afinado sobre documentación <b>recuerda mal y cita peor</b>. Por
+    eso el conocimiento lo aporta la recuperación y el fine-tuning solo la forma: son dos
+    problemas distintos, y confundirlos es el error más caro de este campo.</p>''',
+    "La lección de la fase"))
 
     # 07 imagenes ------------------------------------------------------------
     L.append(lamina(7, "Generación de imágenes", f'''    <p class="entradilla">La segunda modalidad</p>
@@ -230,7 +233,8 @@ def construir() -> str:
       <tr><th>Concepto</th><th>Antes</th><th>Con el modelo propio</th></tr>
       <tr><td>Consulta a un procedimiento</td><td class="n">interrumpe a Calidad</td>
           <td class="n">autoservicio</td></tr>
-      <tr><td>Longitud de respuesta</td><td class="n">895 car.</td><td class="n">150 car.</td></tr>
+      <tr><td>Longitud de respuesta</td><td class="n">895 car.</td>
+          <td class="n">150 car. · <b>−83 %</b></td></tr>
       <tr><td>Instrucciones por llamada</td><td class="n">~1.400 tokens</td>
           <td class="n">prescindibles</td></tr>
       <tr><td>Material de concienciación</td><td class="n">encargo externo</td>
@@ -252,8 +256,8 @@ def construir() -> str:
       <div class="columna">
         <span class="rotulo si">Demostrado</span>
         <ul class="puntos">
-          <li>El fine-tuning internaliza el <b>formato</b>: concisión y atribución, sin el
-          prompt delante.</li>
+          <li>El fine-tuning internaliza el <b>formato</b>: respuestas un <b>83 % más
+          cortas</b> y con el estilo de la casa, sin el prompt delante.</li>
           <li>La generación de imágenes funciona <b>en infraestructura propia</b>, con la marca
           real y respaldo documental.</li>
           <li>Todo es <b>reproducible</b>: un notebook y un comando.</li>
@@ -262,8 +266,8 @@ def construir() -> str:
       <div class="columna">
         <span class="rotulo no">No demostrado</span>
         <ul class="puntos neg">
-          <li>El fine-tuning <b>no mete conocimiento de forma fiable</b>. Lo que el modelo
-          parezca saber hay que verificarlo contra el documento.</li>
+          <li>El fine-tuning <b>empeora la atribución</b> —38 % frente a 50 %— porque el
+          modelo nombra el documento equivocado con seguridad. Medido, no supuesto.</li>
           <li>El conjunto de evaluación es <b>pequeño</b>: sirve para ver un patrón, no para
           afirmar un porcentaje con intervalo de confianza.</li>
           <li>El ROI son <b>estimaciones</b>, no medidas de producción.</li>

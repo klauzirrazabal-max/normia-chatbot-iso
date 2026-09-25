@@ -5,7 +5,8 @@ Asi se ve lo que aporta el modelo por si mismo.
 
 | Metrica | Sin entrenamiento | Con entrenamiento | Con fine-tuning |
 |---|---|---|---|
-| Cita el documento correcto | 0% | 25% | 12% |
+| Atribuye una fuente | 67% | 67% | 50% |
+| Y es la correcta | 50% | 50% | 38% |
 | Sin citas inventadas | 100% | 100% | 100% |
 | Longitud mediana | 895 | 1014 | 150 |
 

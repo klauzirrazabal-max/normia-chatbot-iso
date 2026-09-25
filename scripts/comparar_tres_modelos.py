@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -46,6 +47,40 @@ ETIQUETAS = [
     ("instruct", "Con entrenamiento"),
     ("lora", "Con fine-tuning"),
 ]
+
+
+def _sin_acentos(texto: str) -> str:
+    import unicodedata
+
+    d = unicodedata.normalize("NFD", texto or "")
+    return "".join(c for c in d if not unicodedata.combining(c)).lower()
+
+
+# Las mismas palabras que descarta `response_cites_source`: salen en tantos
+# titulos de un SGC que no distinguen nada.
+_COMUNES = {
+    "de", "del", "la", "el", "los", "las", "y", "en", "para", "por", "a",
+    "procedimiento", "manual", "instructivo", "formato", "politica", "plan",
+    "gestion", "calidad", "sistema", "documento", "documentos", "general",
+}
+
+
+def _distintivas(titulo: str) -> set[str]:
+    return {
+        p for p in re.findall(r"\w+", _sin_acentos(titulo))
+        if len(p) > 3 and p not in _COMUNES
+    }
+
+
+def titulos_del_sgc(tenant: str) -> dict[str, str]:
+    """codigo -> titulo, de los documentos vigentes."""
+    with SessionLocal() as db:
+        return {
+            c.split(" (")[0].upper(): t
+            for c, t in db.query(Document.code, Document.title)
+            .filter_by(tenant_id=tenant, status="vigente")
+            .all()
+        }
 
 
 def codigos_del_sgc(tenant: str) -> set[str]:
@@ -80,18 +115,50 @@ def responder(modelo, tok, pregunta: str, sistema: str, crudo: bool, max_tokens:
     return generate(modelo, tok, prompt=entrada, max_tokens=max_tokens, verbose=False).strip()
 
 
-def medir(caso, respuesta: str, reales: set[str]) -> dict:
+def medir(caso, respuesta: str, reales: set[str], titulos: dict[str, str]) -> dict:
+    """
+    Tres cosas distintas, y mezclarlas era el error de la primera version.
+
+    Contaba solo CODIGOS. Pero al modelo se le entreno para atribuir por TITULO
+    -- es lo que exige el prompt del cliente -- asi que una respuesta correcta
+    como "lo define el procedimiento de Atencion de Solicitudes Tecnologicas"
+    salia con cero. La metrica penalizaba exactamente lo que se habia entrenado.
+
+    Ahora se separan:
+
+      atribuye           ¿nombra alguna fuente, por codigo o por titulo?
+      atribuye_correcta  ¿es la fuente que de verdad responde la pregunta?
+      sin_fantasmas      ¿evita citar codigos que no existen?
+
+    La segunda es la que importa y la que destapa el problema real: sin RAG el
+    modelo afinado atribuye con seguridad al documento EQUIVOCADO, porque tiene
+    el formato aprendido y ningun documento delante.
+    """
     citados = extract_cited_codes(respuesta)
     fantasmas = citados - reales
+    normal = _sin_acentos(respuesta)
+
+    # Titulos nombrados: se exigen dos palabras distintivas, el mismo criterio
+    # que `response_cites_source` aplica en produccion.
+    nombrados = {
+        codigo for codigo, titulo in titulos.items()
+        if len(_distintivas(titulo) & set(re.findall(r"\w+", normal))) >= 2
+    }
+    esperados = {c.upper() for c in caso.codigos_esperados}
+
+    atribuye = bool(citados or nombrados)
+    atribuye_correcta = (
+        bool(esperados & (citados | nombrados))
+        if caso.debe_citar and esperados else None
+    )
     return {
         "pregunta": caso.pregunta,
         "texto": respuesta,
         "codigos": sorted(citados),
+        "titulos_nombrados": sorted(nombrados),
         "fantasmas": sorted(fantasmas),
-        "cita_correcta": (
-            bool(caso.codigos_esperados & citados)
-            if caso.debe_citar and caso.codigos_esperados else None
-        ),
+        "atribuye": atribuye,
+        "atribuye_correcta": atribuye_correcta,
         "sin_fantasmas": not fantasmas,
         "caracteres": len(respuesta),
     }
@@ -104,7 +171,8 @@ def resumen(filas: list[dict]) -> dict[str, str]:
 
     import statistics
     return {
-        "Cita el documento correcto": pct([f["cita_correcta"] for f in filas]),
+        "Atribuye una fuente": pct([f["atribuye"] for f in filas]),
+        "Y es la correcta": pct([f["atribuye_correcta"] for f in filas]),
         "Sin citas inventadas": pct([f["sin_fantasmas"] for f in filas]),
         "Longitud mediana": f"{statistics.median(f['caracteres'] for f in filas):.0f}",
     }
@@ -122,6 +190,7 @@ def main() -> int:
     from mlx_lm import load
 
     reales = codigos_del_sgc(args.tenant)
+    titulos = titulos_del_sgc(args.tenant)
     sistema = prompt_sistema(args.tenant)
     estados: dict[str, list[dict]] = {}
 
@@ -138,7 +207,7 @@ def main() -> int:
             print(f"  [{i:2}/{len(CASOS)}] {caso.pregunta[:50]:50}", flush=True)
             filas.append(medir(caso, responder(
                 modelo, tok, caso.pregunta, sistema, crudo, args.max_tokens
-            ), reales))
+            ), reales, titulos))
         estados[clave] = filas
         del modelo, tok
 

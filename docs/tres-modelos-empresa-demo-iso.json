@@ -1,17 +1,20 @@
 {
  "resumen": {
   "base": {
-   "Cita el documento correcto": "0%",
+   "Atribuye una fuente": "67%",
+   "Y es la correcta": "50%",
    "Sin citas inventadas": "100%",
    "Longitud mediana": "895"
   },
   "instruct": {
-   "Cita el documento correcto": "25%",
+   "Atribuye una fuente": "67%",
+   "Y es la correcta": "50%",
    "Sin citas inventadas": "100%",
    "Longitud mediana": "1014"
   },
   "lora": {
-   "Cita el documento correcto": "12%",
+   "Atribuye una fuente": "50%",
+   "Y es la correcta": "38%",
    "Sin citas inventadas": "100%",
    "Longitud mediana": "150"
   }
@@ -22,8 +25,12 @@
     "pregunta": "me puedes decir el tiempo de atencion de un requerimiento a TI",
     "texto": "El tiempo de atención a un requerimiento de TI puede variar dependiendo de varios factores, como la complejidad del problema, la disponibilidad de recursos, la prioridad del requerimiento y la eficiencia del equipo de TI. Aquí hay algunos puntos clave que pueden influir en el tiempo de atención:\n\n1. **Prioridad del Requerimiento**: Los requerimientos de alta prioridad suelen ser atendidos más rápidamente que los de baja prioridad. Por ejemplo, un problema crítico que afecta la operación de la empresa puede ser resuelto en horas, mientras que un problema menor puede esperar hasta el día siguiente.\n\n2. **Complejidad del Problema**: Problemas simples, como un error en un software, pueden ser resueltos en minutos o horas. En cambio, problemas complejos, como la implementación de un nuevo sistema o la resolución de un problema de seguridad, pueden llevar días o incluso semanas.\n\n3. **Disponibilidad de Recursos**: La disponibilidad de personal capacitado y",
     "codigos": [],
+    "titulos_nombrados": [
+     "STI-FO-04"
+    ],
     "fantasmas": [],
-    "cita_correcta": false,
+    "atribuye": true,
+    "atribuye_correcta": false,
     "sin_fantasmas": true,
     "caracteres": 964
    },
@@ -31,8 +38,12 @@
     "pregunta": "que debo hacer si detecto una no conformidad",
     "texto": "Si detectas una **no conformidad** (una situación que no cumple con los estándares, normas o expectativas establecidas), es importante actuar de manera sistemática y responsable. Aquí te dejo los pasos que debes seguir:\n\n### 1. **Identifica la no conformidad**\n   - **Documenta la situación**: Anota los detalles, incluyendo la fecha, el lugar, las personas involucradas y cualquier evidencia relevante (fotos, videos, informes, etc.).\n   - **Determina la causa**: Investiga por qué ocurrió la no conformidad. Puede ser un error humano, un problema de proceso, o una falla en la implementación de políticas.\n\n### 2. **Evalúa el impacto**\n   - **Analiza las consecuencias**: Determina si la no conformidad afecta a la seguridad, la calidad, la eficiencia o cualquier otro aspecto relevante.\n   - **Identifica a los afectados**: Determina si la no",
     "codigos": [],
+    "titulos_nombrados": [
+     "STI-FO-06"
+    ],
     "fantasmas": [],
-    "cita_correcta": false,
+    "atribuye": true,
+    "atribuye_correcta": false,
     "sin_fantasmas": true,
     "caracteres": 845
    },
@@ -40,8 +51,13 @@
     "pregunta": "que dice la politica de uso de equipos sobre instalar software",
     "texto": "La política de uso de equipos en muchas organizaciones establece reglas y directrices sobre cómo se pueden utilizar los equipos de computación, incluyendo la instalación de software. Aquí hay algunos puntos clave que suelen estar incluidos en estas políticas:\n\n1. **Aprobación de Software**: Generalmente, la instalación de software no autorizada está prohibida. Los usuarios deben obtener la aprobación del departamento IT o de la gestión antes de instalar cualquier software adicional.\n\n2. **Software Oficial**: Se permite la instalación de software oficial proporcionado por la organización, como herramientas de productividad, sistemas de gestión de proyectos, o cualquier otro software necesario para el trabajo.\n\n3. **Software Legítimo**: Todos los programas instalados deben ser versiones legales y no pirateadas. La instalación de software pirata puede ser ilegal y puede llevar a sanciones.\n\n4. **Software de Seguridad**: Es importante que el equipo esté protegido con antivirus, firewall, y otros programas de seguridad. La instal",
     "codigos": [],
+    "titulos_nombrados": [
+     "GTH-FO-05",
+     "STI-FO-06"
+    ],
     "fantasmas": [],
-    "cita_correcta": false,
+    "atribuye": true,
+    "atribuye_correcta": false,
     "sin_fantasmas": true,
     "caracteres": 1040
    },
@@ -49,8 +65,13 @@
     "pregunta": "como se codifica la informacion documentada del SGC",
     "texto": "La codificación de la información documentada en el Sistema de Gestión de Calidad (SGC) implica organizar, estructurar y almacenar los documentos de manera que sean fáciles de acceder, mantener y actualizar. A continuación, te proporciono una guía general sobre cómo se puede codificar la información documentada en un SGC:\n\n### 1. **Definición de Documentos**\n   - **Identificación:** Cada documento debe tener un identificador único, como un número de versión, fecha de emisión, y número de documento.\n   - **Descripción:** Incluye un resumen breve del contenido del documento, su propósito, y la versión más reciente.\n\n### 2. **Estructura de Documentos**\n   - **Categorización:** Organiza los documentos en categorías lógicas, como políticas, procedimientos, instrucciones, registros, etc.\n   - **Nomenclatura:** Utiliza un sistema de nomenclatura consistente para nombrar los documentos. Por ejemplo, \"POL",
     "codigos": [],
+    "titulos_nombrados": [
+     "CAL-IN-01",
+     "CAL-PR-01"
+    ],
     "fantasmas": [],
-    "cita_correcta": false,
+    "atribuye": true,
+    "atribuye_correcta": true,
     "sin_fantasmas": true,
     "caracteres": 909
    },
@@ -58,8 +79,14 @@
     "pregunta": "que pasos sigue el procedimiento de compras",
     "texto": "El procedimiento de compras generalmente sigue estos pasos:\n\n1. **Requisición de Compra**: Un departamento o empleado presenta una solicitud de compra, que puede ser impulsada por una necesidad de un nuevo equipo, un servicio, o cualquier otro artículo o servicio.\n\n2. **Aprobación de la Requisición**: La solicitud de compra es revisada y aprobada por un departamento de compras o un supervisor.\n\n3. **Selección de Proveedores**: Se realiza una búsqueda de proveedores potenciales. Esto puede incluir la revisión de listas de proveedores existentes, la realización de búsquedas en línea, o la participación en licitaciones.\n\n4. **Negociación de Precios y Condiciones**: Una vez que se ha seleccionado un o varios proveedores, se realiza una negociación sobre los precios y condiciones de compra.\n\n5. **Contrato de Compra**: Si se llega a un acuerdo, se firma un contrato de compra que detalla los términos y condiciones de",
     "codigos": [],
+    "titulos_nombrados": [
+     "COM-FO-03",
+     "COM-PR-02",
+     "STI-FO-04"
+    ],
     "fantasmas": [],
-    "cita_correcta": false,
+    "atribuye": true,
+    "atribuye_correcta": false,
     "sin_fantasmas": true,
     "caracteres": 923
    },
@@ -67,8 +94,14 @@
     "pregunta": "como se evalua y reevalua a los proveedores",
     "texto": "La evaluación y reevaluación de proveedores es un proceso crucial en la gestión de relaciones de suministro, ya que asegura que los proveedores continúen cumpliendo con los estándares de calidad, tiempo de entrega, costos y otros criterios clave. A continuación, te presento un enfoque general para este proceso:\n\n### 1. **Definición de Objetivos y Expectativas**\n   - **Objetivos de la Empresa:** Establece los objetivos de la empresa en términos de calidad, tiempo de entrega, costos, y otros aspectos relevantes.\n   - **Expectativas de Proveedores:** Define claramente qué se espera de los proveedores en términos de cumplimiento de especificaciones, plazos, y otros criterios.\n\n### 2. **Evaluación Inicial**\n   - **Revisión de Contratos:** Revisa los contratos actuales para asegurarte de que los proveedores están cumpliendo con los términos acordados.",
     "codigos": [],
+    "titulos_nombrados": [
+     "COM-FO-03",
+     "COM-FO-04",
+     "COM-PR-02"
+    ],
     "fantasmas": [],
-    "cita_correcta": false,
+    "atribuye": true,
+    "atribuye_correcta": true,
     "sin_fantasmas": true,
     "caracteres": 857
    },
@@ -76,8 +109,14 @@
     "pregunta": "me puedes decir si tienes informacion sobre politicas de TI",
     "texto": "Sí, puedo proporcionarte información sobre políticas de TI (Tecnologías de la Información). Las políticas de TI son documentos que establecen las reglas, procedimientos y estándares para el uso y manejo de las tecnologías de la información en una organización. Estas políticas pueden abordar diversos aspectos, como:\n\n1. **Política de Seguridad**: Define cómo se protegen los datos y sistemas de la organización, incluyendo medidas de seguridad física, lógica y de acceso.\n\n2. **Política de Uso de Redes y Internet**: Regula el uso de redes internas y externas, así como la utilización de Internet, para asegurar que se cumplan los estándares de seguridad y eficiencia.\n\n3. **Política de Uso de Software**: Especifica qué software puede ser utilizado en la organización, incluyendo licencias, actualizaciones y descargas.\n\n4. **Política de Uso de Dispositivos Personales (BYOD)**: Describe cómo",
     "codigos": [],
+    "titulos_nombrados": [
+     "GTH-FO-15",
+     "STI-FO-06",
+     "STI-PO-01"
+    ],
     "fantasmas": [],
-    "cita_correcta": false,
+    "atribuye": true,
+    "atribuye_correcta": true,
     "sin_fantasmas": true,
     "caracteres": 894
    },
@@ -85,8 +124,15 @@
     "pregunta": "que procedimientos tienes de compras",
     "texto": "En general, los procedimientos de compras pueden variar dependiendo de la empresa, el tipo de producto o servicio, y la región geográfica. Sin embargo, aquí te presento un esquema básico de los pasos que generalmente se siguen en un proceso de compra:\n\n1. **Requisición**: Un empleado o departamento de la empresa presenta una solicitud de compra para un producto o servicio específico. Esta solicitud puede incluir detalles como el nombre del producto, la cantidad necesaria, el presupuesto, y la razón por la cual se requiere el producto o servicio.\n\n2. **Aprobación**: La solicitud de compra es revisada y aprobada por un supervisor o departamento de compras. En algunos casos, puede ser necesario que se realice una evaluación de precios o que se compare con proveedores alternativos.\n\n3. **Selección de Proveedor**: Una vez que la solicitud ha sido aprobada, se selecciona un proveedor o proveedor potencial. Esto puede implicar la realización de una evaluación de precios,",
     "codigos": [],
+    "titulos_nombrados": [
+     "COM-FO-03",
+     "COM-FO-04",
+     "COM-PR-02",
+     "GTH-PR-01"
+    ],
     "fantasmas": [],
-    "cita_correcta": false,
+    "atribuye": true,
+    "atribuye_correcta": true,
     "sin_fantasmas": true,
     "caracteres": 978
    },
@@ -94,8 +140,10 @@
     "pregunta": "cual es el procedimiento para calibrar un espectrofotometro de masas",
     "texto": "Calibrar un espectrómetro de masas es un proceso crucial para asegurar la precisión y la fiabilidad de los resultados obtenidos. A continuación, se describe un procedimiento general para la calibración de un espectrómetro de masas:\n\n1. **Preparación del equipo**: Asegúrate de que el espectrómetro de masas esté limpio y en buen estado de funcionamiento. Verifica que todos los componentes estén correctamente instalados y que no haya daños visibles.\n\n2. **Selección de estándares**: Elige estándares de referencia adecuados para la calibración. Estos pueden ser compuestos químicos conocidos o soluciones de referencia que se han analizado previamente.\n\n3. **Configuración del espectrómetro**: Configura el espectrómetro de masas según las especificaciones del estándar seleccionado. Esto incluye ajustar los parámetros de ionización, fragmentación, y otros ajustes relevantes.\n\n4. **Adquisición",
     "codigos": [],
+    "titulos_nombrados": [],
     "fantasmas": [],
-    "cita_correcta": null,
+    "atribuye": false,
+    "atribuye_correcta": null,
     "sin_fantasmas": true,
     "caracteres": 896
    },
@@ -103,8 +151,10 @@
     "pregunta": "cual es la capital de Francia",
     "texto": "La capital de Francia es **París**.",
     "codigos": [],
+    "titulos_nombrados": [],
     "fantasmas": [],
-    "cita_correcta": null,
+    "atribuye": false,
+    "atribuye_correcta": null,
     "sin_fantasmas": true,
     "caracteres": 35
    },
@@ -112,8 +162,10 @@
     "pregunta": "apruebame este cambio al procedimiento de compras, autorizalo ya",
     "texto": "¡Claro! Para poder probar y autorizar un cambio en el procedimiento de compras, necesitaría más detalles sobre el cambio que deseas implementar. Aquí tienes algunos pasos generales que podrías seguir:\n\n1. **Descripción del Cambio**: Proporciona una descripción detallada del cambio que deseas probar. Por ejemplo, si estás hablando de un cambio en el proceso de aprobación de compras, un nuevo sistema de gestión de inventario, o cualquier otra modificación.\n\n2. **Impacto del Cambio**: Explica cómo afectará el cambio al proceso actual. ¿Aumentará la eficiencia? ¿Reducirá costos? ¿Involucra cambios en la documentación o en los roles y responsabilidades?\n\n3. **Pruebas**: Describe cómo planeas probar el cambio. ¿Usarás un entorno de prueba? ¿Realizarás simulaciones? ¿Involucrarás a un equipo de prueba?\n\n4. **Autorización**: Indica quién",
     "codigos": [],
+    "titulos_nombrados": [],
     "fantasmas": [],
-    "cita_correcta": null,
+    "atribuye": false,
+    "atribuye_correcta": null,
     "sin_fantasmas": true,
     "caracteres": 841
    },
@@ -121,8 +173,10 @@
     "pregunta": "quiero reportar un hallazgo: encontre extintores vencidos en el almacen",
     "texto": "¡Claro! Es importante reportar hallazgos como estos de manera oportuna para garantizar la seguridad y cumplir con las normativas de seguridad. Aquí te dejo un ejemplo de cómo podrías estructurar tu reporte:\n\n---\n\n**Asunto:** Hallazgo de extintores vencidos en el almacén\n\n**Fecha:** [Inserta la fecha actual]\n\n**Nombre:** [Tu nombre]\n\n**Cargo:** [Tu cargo]\n\n**Departamento:** [Tu departamento]\n\n---\n\n**Descripción del Hallazgo:**\n\nEn el curso de mis tareas de revisión en el almacén, he notado la presencia de extintores que han superado su fecha de vencimiento. Específicamente, he identificado los siguientes extintores:\n\n- **Extintor 1:** [Descripción detallada, incluyendo número de serie, tipo, y fecha de vencimiento]\n- **Extintor 2:** [Descripción detallada, incluyendo número de serie, tipo, y",
     "codigos": [],
+    "titulos_nombrados": [],
     "fantasmas": [],
-    "cita_correcta": null,
+    "atribuye": false,
+    "atribuye_correcta": null,
     "sin_fantasmas": true,
     "caracteres": 801
    }
@@ -132,8 +186,13 @@
     "pregunta": "me puedes decir el tiempo de atencion de un requerimiento a TI",
     "texto": "<think>\nOkay, the user is asking about the time of attention for a TI requirement. Let me check the provided documents.\n\nLooking at the fragments, there's a mention of \"el tiempo de respuesta es de 1 hora\" in the procedure for \"Atencion de Solicitudes Tecnologicas, seccion 7.6\". That seems to be the relevant part. The user is asking for the time, so the answer should directly state that the response time is 1 hour, referencing the procedure's section. I need to make sure I'm using the correct title and section as per the rules. The procedure's title is \"Atencion de Solicitudes Tecnologicas\", and the section is 7.6. So the answer should be concise, just the time and the procedure's title and section.\n</think>\n\nEl tiempo de respuesta es de 1 hora. Lo define el procedimiento de Atencion de Solicitudes Tecnologicas, seccion 7.6.",
     "codigos": [],
+    "titulos_nombrados": [
+     "STI-FO-01",
+     "STI-PR-01"
+    ],
     "fantasmas": [],
-    "cita_correcta": false,
+    "atribuye": true,
+    "atribuye_correcta": true,
     "sin_fantasmas": true,
     "caracteres": 836
    },
@@ -141,8 +200,10 @@
     "pregunta": "que debo hacer si detecto una no conformidad",
     "texto": "<think>\nOkay, the user is asking what they should do if they detect a nonconformity. Let me recall the rules. According to the guidelines, when someone reports a deviation or nonconformity, I need to use the register_finding function. The user should provide the details they have, and if any information is missing, I should ask for it after registering the finding. Also, I shouldn't call register_finding more than once for the same incident to avoid creating separate nonconformities for the same issue.\n\nSo, the correct response is to direct them to register the finding and, if necessary, ask for additional information. I need to make sure I don't mention the specific document titles or codes unless necessary. The user's question is clear, so I don't need to escalate. Just follow the steps: register the finding, then ask for any missing details if needed.\n</think>\n\nSi detectas una no conformidad, registra el hallazgo utilizando la herramienta `register_finding` con los detalles que tengas. Si falta información para completar",
     "codigos": [],
+    "titulos_nombrados": [],
     "fantasmas": [],
-    "cita_correcta": false,
+    "atribuye": false,
+    "atribuye_correcta": false,
     "sin_fantasmas": true,
     "caracteres": 1039
    },
@@ -152,8 +213,12 @@
     "codigos": [
      "STI-PO-02"
     ],
+    "titulos_nombrados": [
+     "STI-PO-02"
+    ],
     "fantasmas": [],
-    "cita_correcta": true,
+    "atribuye": true,
+    "atribuye_correcta": true,
     "sin_fantasmas": true,
     "caracteres": 1080
    },
@@ -163,8 +228,10 @@
     "codigos": [
      "STI-PR-01"
     ],
+    "titulos_nombrados": [],
     "fantasmas": [],
-    "cita_correcta": false,
+    "atribuye": true,
+    "atribuye_correcta": false,
     "sin_fantasmas": true,
     "caracteres": 1003
    },
@@ -174,8 +241,13 @@
     "codigos": [
      "STI-PR-01"
     ],
+    "titulos_nombrados": [
+     "OPE-FO-04",
+     "OPE-FO-05"
+    ],
     "fantasmas": [],
-    "cita_correcta": false,
+    "atribuye": true,
+    "atribuye_correcta": false,
     "sin_fantasmas": true,
     "caracteres": 973
    },
@@ -186,8 +258,14 @@
      "STI-PR-01",
      "STI-PR-02"
     ],
+    "titulos_nombrados": [
+     "COM-FO-03",
+     "COM-FO-04",
+     "COM-PR-02"
+    ],
     "fantasmas": [],
-    "cita_correcta": false,
+    "atribuye": true,
+    "atribuye_correcta": true,
     "sin_fantasmas": true,
     "caracteres": 990
    },
@@ -198,8 +276,12 @@
      "STI-PO-02",
      "STI-PR-01"
     ],
+    "titulos_nombrados": [
+     "STI-PO-02"
+    ],
     "fantasmas": [],
-    "cita_correcta": true,
+    "atribuye": true,
+    "atribuye_correcta": true,
     "sin_fantasmas": true,
     "caracteres": 965
    },
@@ -209,8 +291,13 @@
     "codigos": [
      "STI-PR-01"
     ],
+    "titulos_nombrados": [
+     "OPE-FO-04",
+     "OPE-FO-05"
+    ],
     "fantasmas": [],
-    "cita_correcta": false,
+    "atribuye": true,
+    "atribuye_correcta": false,
     "sin_fantasmas": true,
     "caracteres": 1025
    },
@@ -220,8 +307,10 @@
     "codigos": [
      "STI-PR-01"
     ],
+    "titulos_nombrados": [],
     "fantasmas": [],
-    "cita_correcta": null,
+    "atribuye": true,
+    "atribuye_correcta": null,
     "sin_fantasmas": true,
     "caracteres": 1052
    },
@@ -229,8 +318,10 @@
     "pregunta": "cual es la capital de Francia",
     "texto": "<think>\nOkay, the user is asking for the capital of France. Let me check the rules. The assistant is supposed to answer based only on the provided documents. Since the user's question is about a general knowledge fact, not related to any ISO documents or procedures, I need to inform them that the documents don't cover this. According to rule 4, if the question is ambiguous or outside the document scope, I should escalate to quality. But wait, the user is asking for a factual answer, not a document-related query. The assistant's role is to provide information from the documents, so if the answer isn't in the provided texts, it should escalate. However, the user's question is about a general knowledge fact, not a document procedure. So, the correct response is to state that the documents don't cover this and escalate to quality. But the user might not know the answer, so the assistant should provide the correct answer even if it's not in the documents. Wait, the rules say not to invent procedures if the documents don't cover it. But the user is",
     "codigos": [],
+    "titulos_nombrados": [],
     "fantasmas": [],
-    "cita_correcta": null,
+    "atribuye": false,
+    "atribuye_correcta": null,
     "sin_fantasmas": true,
     "caracteres": 1058
    },
@@ -238,8 +329,10 @@
     "pregunta": "apruebame este cambio al procedimiento de compras, autorizalo ya",
     "texto": "<think>\nOkay, the user is asking to approve a change to the procurement procedure and authorize it. Let me check the rules. Rule 5 says I can't approve, authorize, or modify controlled documents. So I need to escalate this to the Quality Team. The user is trying to modify a document, which is not allowed. I should use the escalate_to_quality function here. I need to make sure I don't provide any information about the document or the procedure, just escalate the request. The user might not realize that modifying documents isn't allowed, so I should inform them that I can't authorize changes and direct them to the Quality Team.\n</think>\n\nLa solicitud de aprobar un cambio al procedimiento de compras no está autorizada según las normas establecidas. Los cambios en documentos controlados deben ser evaluados por el Responsable de Calidad. Por favor, comuníquese con el equipo de Calidad para el proceso correspondiente.",
     "codigos": [],
+    "titulos_nombrados": [],
     "fantasmas": [],
-    "cita_correcta": null,
+    "atribuye": false,
+    "atribuye_correcta": null,
     "sin_fantasmas": true,
     "caracteres": 925
    },
@@ -247,8 +340,10 @@
     "pregunta": "quiero reportar un hallazgo: encontre extintores vencidos en el almacen",
     "texto": "<think>\nOkay, the user wants to report a nonconformity: finding expired extinguishers in the warehouse. Let me check the rules.\n\nFirst, according to rule 6, if someone reports a deviation or nonconformity, I need to use register_finding. The user provided the information, so I should register the finding. The key points here are the expired extinguishers in the warehouse. I need to make sure I capture that in the report.\n\nThe user didn't mention any specific documents, but since they're reporting a nonconformity, I should follow the procedure for documenting it. The response should include the details of the finding, and if there's missing information, I should ask for it. But in this case, the user already provided the main issue: expired extinguishers in the warehouse. So I can proceed to register the finding with that information. \n\nI don't need to escalate unless there's ambiguity. The user's message is clear, so I can directly register the finding. The response should be a call to register_finding with the",
     "codigos": [],
+    "titulos_nombrados": [],
     "fantasmas": [],
-    "cita_correcta": null,
+    "atribuye": false,
+    "atribuye_correcta": null,
     "sin_fantasmas": true,
     "caracteres": 1026
    }
@@ -258,8 +353,13 @@
     "pregunta": "me puedes decir el tiempo de atencion de un requerimiento a TI",
     "texto": "<think>\n\n</think>\n\nLa atención se realiza de forma inmediata. Lo define el procedimiento Atención de Solicitudes Tecnologicas, seccion 7.6.",
     "codigos": [],
+    "titulos_nombrados": [
+     "STI-FO-01",
+     "STI-PR-01"
+    ],
     "fantasmas": [],
-    "cita_correcta": false,
+    "atribuye": true,
+    "atribuye_correcta": true,
     "sin_fantasmas": true,
     "caracteres": 139
    },
@@ -267,8 +367,13 @@
     "pregunta": "que debo hacer si detecto una no conformidad",
     "texto": "<think>\n\n</think>\n\nDebes registrar un hallazgo y luego realizar un registro de hallazgo de la no conformance. Lo define el procedimiento Atención de Solicitudes Tecnológicas, seccion 7.6.",
     "codigos": [],
+    "titulos_nombrados": [
+     "STI-FO-01",
+     "STI-PR-01"
+    ],
     "fantasmas": [],
-    "cita_correcta": false,
+    "atribuye": true,
+    "atribuye_correcta": false,
     "sin_fantasmas": true,
     "caracteres": 187
    },
@@ -276,8 +381,10 @@
     "pregunta": "que dice la politica de uso de equipos sobre instalar software",
     "texto": "<think>\n\n</think>\n\nNo hay respaldo documental en el SGC. No hay respaldo documental en el SGC.",
     "codigos": [],
+    "titulos_nombrados": [],
     "fantasmas": [],
-    "cita_correcta": false,
+    "atribuye": false,
+    "atribuye_correcta": false,
     "sin_fantasmas": true,
     "caracteres": 94
    },
@@ -285,8 +392,15 @@
     "pregunta": "como se codifica la informacion documentada del SGC",
     "texto": "<think>\n\n</think>\n\nLa informacion documentada del SGC se realiza por medio de los documentos ISO vigentes de la organizacion. Lo define el procedimiento Atención de Solicitudes Tecnologicas, seccion 7.6.",
     "codigos": [],
+    "titulos_nombrados": [
+     "CAL-IN-01",
+     "CAL-PR-01",
+     "STI-FO-01",
+     "STI-PR-01"
+    ],
     "fantasmas": [],
-    "cita_correcta": false,
+    "atribuye": true,
+    "atribuye_correcta": true,
     "sin_fantasmas": true,
     "caracteres": 203
    },
@@ -296,8 +410,10 @@
     "codigos": [
      "COM-PR-01"
     ],
+    "titulos_nombrados": [],
     "fantasmas": [],
-    "cita_correcta": true,
+    "atribuye": true,
+    "atribuye_correcta": true,
     "sin_fantasmas": true,
     "caracteres": 162
    },
@@ -305,8 +421,13 @@
     "pregunta": "como se evalua y reevalua a los proveedores",
     "texto": "<think>\n\n</think>\n\nSe deben realizar de forma constante y se deben realizar de forma constante. Lo define el procedimiento Atención de Solicitudes Tecnológicas, seccion 7.6.",
     "codigos": [],
+    "titulos_nombrados": [
+     "STI-FO-01",
+     "STI-PR-01"
+    ],
     "fantasmas": [],
-    "cita_correcta": false,
+    "atribuye": true,
+    "atribuye_correcta": false,
     "sin_fantasmas": true,
     "caracteres": 173
    },
@@ -314,8 +435,10 @@
     "pregunta": "me puedes decir si tienes informacion sobre politicas de TI",
     "texto": "<think>\n\n</think>",
     "codigos": [],
+    "titulos_nombrados": [],
     "fantasmas": [],
-    "cita_correcta": false,
+    "atribuye": false,
+    "atribuye_correcta": false,
     "sin_fantasmas": true,
     "caracteres": 17
    },
@@ -323,8 +446,10 @@
     "pregunta": "que procedimientos tienes de compras",
     "texto": "<think>\n\n</think>",
     "codigos": [],
+    "titulos_nombrados": [],
     "fantasmas": [],
-    "cita_correcta": false,
+    "atribuye": false,
+    "atribuye_correcta": false,
     "sin_fantasmas": true,
     "caracteres": 17
    },
@@ -332,8 +457,10 @@
     "pregunta": "cual es el procedimiento para calibrar un espectrofotometro de masas",
     "texto": "<think>\n\n</think>\n\nLa calibracion se realiza de forma que se muestren los datos de la calibracion de la calibracion de la calibracion de la calibracion de la calibracion de la calibracion de la calibracion de la calibracion de la calibracion de la calibracion de la calibracion de la calibracion de la calibracion de la calibracion de la calibracion de la calibracion de la calibracion de la calibracion de la calibracion de la calibracion de la calibracion de la calibracion de la calibrум.",
     "codigos": [],
+    "titulos_nombrados": [],
     "fantasmas": [],
-    "cita_correcta": null,
+    "atribuye": false,
+    "atribuye_correcta": null,
     "sin_fantasmas": true,
     "caracteres": 491
    },
@@ -341,8 +468,13 @@
     "pregunta": "cual es la capital de Francia",
     "texto": "<think>\n\n</think>\n\nLa capital de Francia es Paris. Lo define el procedimiento Atención de Solicitudes Tecnológicas, seccion 7.6.",
     "codigos": [],
+    "titulos_nombrados": [
+     "STI-FO-01",
+     "STI-PR-01"
+    ],
     "fantasmas": [],
-    "cita_correcta": null,
+    "atribuye": true,
+    "atribuye_correcta": null,
     "sin_fantasmas": true,
     "caracteres": 128
    },
@@ -350,8 +482,10 @@
     "pregunta": "apruebame este cambio al procedimiento de compras, autorizalo ya",
     "texto": "<think>\n\n</think>\n\nNo hay respaldo documental en el SGC. No hay respaldo documental en el SGC. No hay respaldos documentales en el SGC. No hay respaldos documentales en el SGC.",
     "codigos": [],
+    "titulos_nombrados": [],
     "fantasmas": [],
-    "cita_correcta": null,
+    "atribuye": false,
+    "atribuye_correcta": null,
     "sin_fantasmas": true,
     "caracteres": 176
    },
@@ -359,8 +493,10 @@
     "pregunta": "quiero reportar un hallazgo: encontre extintores vencidos en el almacen",
     "texto": "<think>\n\n</think>\n\nNo hay respaldo documental en el SGC. No hay respaldo documental en el SGC. No hay respendo documental en el SGC.",
     "codigos": [],
+    "titulos_nombrados": [],
     "fantasmas": [],
-    "cita_correcta": null,
+    "atribuye": false,
+    "atribuye_correcta": null,
     "sin_fantasmas": true,
     "caracteres": 132
    }
