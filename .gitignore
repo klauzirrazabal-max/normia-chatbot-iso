@@ -89,3 +89,8 @@ docs/valor-lora-*.json
 docs/valor-lora-*.md
 !docs/valor-lora-demo-publica.json
 !docs/valor-lora-demo-publica.md
+
+# El dataset empaquetado para el notebook lleva el texto de las clausulas
+# reales, igual que el de data/finetune. Se regenera con
+# scripts/exportar_dataset_notebook.py.
+notebooks/normia_dataset.jsonl

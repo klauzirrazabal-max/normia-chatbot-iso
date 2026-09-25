@@ -20,6 +20,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "nbformat>=5.11.1",
     "pytest>=8.3.3",
     "ruff>=0.7.0",
 ]
@@ -69,3 +70,7 @@ extend-immutable-calls = [
 # cumplir el ancho de linea lo volveria ilegible y propenso a errores de espaciado.
 "scripts/_laminas_fase2.py" = ["E501"]
 "scripts/construir_presentacion.py" = ["E402", "E501"]
+# El notebook lleva celdas de codigo dentro de literales: trocearlas para
+# cumplir el ancho de linea romperia la indentacion del codigo generado.
+"scripts/construir_notebook.py" = ["E501"]
+"scripts/construir_ejecutiva.py" = ["E402", "E501"]
