@@ -706,11 +706,53 @@ afinado sobre documentos los recuerda mal y los cita peor. Se afina el
 COMPORTAMIENTO -- emitir la llamada a herramienta, atribuir con el formato que
 pide el prompt, negarse cuando no hay respaldo.
 
-### Correlo tal cual (sin datos del cliente)
+### Pruebalo: un comando
 
-El repositorio **no lleva ningun documento de ABISERVI**. Lo que si lleva es el
-corpus sintetico `demo-publica` con su FAQ verificado y su dataset ya construido,
-para que cualquiera reproduzca la cadena completa:
+```bash
+uv sync --group finetune
+uv run python scripts/probar_finetuning.py
+```
+
+Eso es todo. Levanta Postgres, prepara el corpus sintetico, construye el
+dataset, entrena el adaptador QLoRA y ensena la tabla comparativa. Unos 40
+minutos en un Mac con chip M; con `--rapido`, unos 15.
+
+**No hace falta ningun documento del cliente**: no hay ninguno en este
+repositorio. Se entrena sobre `demo-publica`, seis documentos inventados que
+imitan la estructura de un SGC real y que si viajan aqui.
+
+Es reanudable. Si algo falla, se vuelve a lanzar y salta lo que ya esta hecho;
+`--desde 4` repite solo el entrenamiento.
+
+| Requisito | |
+|---|---|
+| Docker Desktop | corriendo, para Postgres + pgvector |
+| Python 3.12 | `uv` lo instala si no lo tienes |
+| ~12 GB libres | modelo (2.5 GB), embeddings (2 GB) y dependencias |
+| Ollama | **no hace falta** para esta prueba: el adaptador se sirve con `mlx_lm.server` |
+
+Al terminar:
+
+| | |
+|---|---|
+| `adapters/qwen3-4b-demo/` | el adaptador entrenado |
+| `docs/tres-estados-demo-publica.md` | la tabla comparativa |
+| `docs/tres-estados-demo-publica.json` | las respuestas literales de cada estado |
+
+### Donde esta cada pieza
+
+| Fichero | Que hace |
+|---|---|
+| `scripts/probar_finetuning.py` | **el punto de entrada**: encadena todo lo de abajo |
+| `scripts/build_finetune_dataset.py` | arma el dataset desde el FAQ verificado y los esquemas de herramientas |
+| `scripts/lora_demo-publica.yaml` | la configuracion de entrenamiento, con el porque de cada valor |
+| `scripts/train_lora.py` | lanza `mlx_lm lora` subiendo el techo de memoria de Metal |
+| `scripts/comparar_tres_estados.py` | mide sin RAG / con RAG / RAG + LoRA |
+| `scripts/comparar_tres_modelos.py` | mide sin entrenamiento / con entrenamiento / con fine-tuning |
+| `scripts/medir_valor_lora.py` | la ablacion del prompt: ¿las reglas viven en los pesos? |
+| `scripts/benchmark_models.py` | el banco de 12 preguntas, arbitro de todas las cifras |
+
+### Paso a paso, si prefieres verlo por dentro
 
 ```bash
 # 1. Base de datos y modelos (una vez)

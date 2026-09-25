@@ -24,6 +24,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import uuid
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent.parent
@@ -144,6 +145,13 @@ def main() -> int:
     reales = codigos_del_sgc(args.tenant)
     salida = []
 
+    # UN IDENTIFICADOR NUEVO EN CADA CORRIDA, y no es cosmetico. El orquestador
+    # busca la conversacion por (tenant, canal, external_user_id) y le carga su
+    # historial. Con un id fijo, la segunda corrida heredaba los turnos de la
+    # primera y dejaba de medir lo mismo: se observo al comparar dos corridas
+    # deterministas del MISMO modelo, que daban 83% y 67%.
+    corrida = uuid.uuid4().hex[:8]
+
     for i, caso in enumerate(CASOS, start=1):
         print(f"  [{i:2}/{len(CASOS)}] {caso.pregunta[:52]:52}", file=sys.stderr, flush=True)
 
@@ -156,7 +164,7 @@ def main() -> int:
             msg = IncomingMessage(
                 tenant_id=args.tenant,
                 channel="web",
-                external_user_id=f"cmp-{args.etiqueta}-{i}",
+                external_user_id=f"cmp-{args.etiqueta}-{corrida}-{i}",
                 text=caso.pregunta,
             )
             try:

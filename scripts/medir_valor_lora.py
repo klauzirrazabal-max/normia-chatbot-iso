@@ -85,6 +85,11 @@ def lote(puerto: int, modelo: str, tenant: str, etiqueta: str, minimo: bool) -> 
             "LLM_MODEL": modelo,
             "LLM_TIMEOUT_SECONDS": TIMEOUT_LLM,
             "LLM_MERGE_SYSTEM_MESSAGES": "true",
+            # TEMPERATURA 0, y no es un detalle. Con la 0.2 de produccion, dos
+            # corridas de la MISMA configuracion dieron 92% y 67%: 25 puntos de
+            # diferencia con n=12, mas que cualquier efecto que se quiera medir.
+            # A 0 el muestreo es determinista y las celdas son comparables.
+            "LLM_TEMPERATURE": os.environ.get("LLM_TEMPERATURE", "0"),
         },
     )
     if proc.returncode != 0:
@@ -141,6 +146,7 @@ def main() -> int:
     parser.add_argument("--adaptador", required=True)
     parser.add_argument("--tenant", default="empresa-demo-iso")
     parser.add_argument("--puerto", type=int, default=8092)
+    parser.add_argument("--sufijo", default="", help="distingue ficheros de salida")
     args = parser.parse_args()
 
     celdas = {}
@@ -166,7 +172,7 @@ def main() -> int:
         ("lora_minimo", "LoRA · prompt 433"),
     ]
 
-    destino = RAIZ / "docs" / f"valor-lora-{args.tenant}"
+    destino = RAIZ / "docs" / f"valor-lora-{args.tenant}{args.sufijo}"
     destino.with_suffix(".json").write_text(
         json.dumps(
             {"modelo": args.modelo, "adaptador": args.adaptador,
