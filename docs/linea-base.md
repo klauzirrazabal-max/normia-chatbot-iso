@@ -290,3 +290,68 @@ Consecuencia practica: con Ollama no se puede forzar una llamada, asi que la
 fiabilidad tiene que venir de un guardrail de aguas abajo -- si el turno pedia
 producir material y no hay solicitud, la respuesta se sustituye. Con vLLM o
 cualquier backend que honre `tool_choice`, el problema se resuelve de raiz.
+
+---
+
+## Medicion definitiva, con identificadores unicos y temperatura 0
+
+Las tablas anteriores estaban contaminadas: el orquestador busca la conversacion
+por `(tenant, canal, external_user_id)` y le carga su HISTORIAL, y las corridas
+reutilizaban etiquetas fijas. La segunda heredaba los turnos de la primera.
+
+Arreglado -- un id por corrida y temperatura 0 -- las columnas del modelo base
+salen **identicas en dos corridas independientes**, que es lo que hace la
+medicion reproducible:
+
+| | Corrida A | Corrida B |
+|---|---|---|
+| Base · prompt 5557 | 92% | 92% |
+| Base · prompt 433 | 83% | 83% |
+
+Antes daban 92% y 67%. Esa diferencia no era ruido de muestreo: era un error de
+metodo.
+
+### El resultado
+
+| Metrica | Base · 5557 | LoRA · 5557 | Base · 433 | LoRA · 433 |
+|---|---|---|---|---|
+| Acierta en conjunto | 92% | 92% | 83% | 75% |
+| Escala cuando debe | 100% | 100% | 92% | 83% |
+
+Y con el adaptador entrenado SIN el prompt largo:
+
+| Metrica | Base · 5557 | LoRA · 5557 | Base · 433 | LoRA · 433 |
+|---|---|---|---|---|
+| Acierta en conjunto | 92% | 92% | 83% | 83% |
+| Escala cuando debe | 100% | 100% | 92% | 92% |
+
+**Ninguno de los dos adaptadores mejora al base dentro del sistema completo.**
+Se retira la conclusion anterior ("se despega: 92% contra 67%"): salia de la
+medicion contaminada.
+
+## Pero el adaptador SI cambia el modelo, y mucho
+
+La misma pregunta, sin RAG, a los tres estados del modelo:
+
+| Estado | Respuesta | Largo |
+|---|---|---|
+| Sin entrenamiento | Divaga sobre factores genericos, inventa conocimiento | 895 car. |
+| Con entrenamiento | Filtra su razonamiento interno en ingles (`<think> Okay, the user...`) | 1014 car. |
+| **Con fine-tuning** | "La atencion se realiza de forma inmediata. Lo define el procedimiento Atencion de Solicitudes Tecnologicas, seccion 7.6." | **150 car.** |
+
+El afinado responde en 150 caracteres lo que el base tarda 895 en no responder,
+y atribuye por titulo y seccion -- el formato exacto que pide el prompt del
+tenant, sin tener el prompt delante.
+
+### La sintesis
+
+Las dos cosas encajan, y juntas responden a "¿para que sirve el fine-tuning?":
+
+- **Dentro del sistema completo no aporta.** El prompt de 5.557 caracteres y los
+  fragmentos del RAG ya fuerzan el comportamiento; el adaptador es invisible ahi.
+- **Fuera de el, transforma la respuesta.** Concision, formato de atribucion, sin
+  fugas de razonamiento.
+
+Es decir: **el fine-tuning sirve para cuando no puedes permitirte el andamiaje**
+-- un canal sin RAG, un modelo mas pequeno, un prompt que no cabe. En NormIA,
+que si puede permitirselo, el RAG hace el trabajo.

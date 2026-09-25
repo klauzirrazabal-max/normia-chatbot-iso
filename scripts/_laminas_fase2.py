@@ -16,7 +16,7 @@ import json
 import re
 from pathlib import Path
 
-TOTAL = 15
+TOTAL = 16
 
 # Linea base medida el 2026-09-24 sobre el SGC real. Fuente: docs/linea-base.md
 BASE = {
@@ -50,9 +50,26 @@ def tres_estados(tenant: str = "empresa-demo-iso") -> dict | None:
     return {"resumen": d["resumen"], "inventados": inventados}
 
 
+def tres_modelos(tenant: str = "empresa-demo-iso") -> dict | None:
+    """Los tres estados DEL MODELO: sin entrenamiento, con entrenamiento, afinado."""
+    for c in (f"docs/tres-modelos-{tenant}.json", "docs/tres-modelos-demo-publica.json"):
+        ruta = Path(c)
+        if ruta.exists():
+            return json.loads(ruta.read_text(encoding="utf-8"))
+    return None
+
+
 def valor_lora(tenant: str = "empresa-demo-iso") -> dict | None:
     """El experimento de ablacion del prompt: ¿las reglas viven en los pesos?"""
-    for candidato in (f"docs/valor-lora-{tenant}.json", "docs/valor-lora-demo-publica.json"):
+    # El sufijo `-t0-` marca las corridas DETERMINISTAS, con temperatura 0 y un
+    # identificador de conversacion por corrida. Las anteriores estaban
+    # contaminadas -- reutilizaban el id y heredaban el historial -- y daban 92%
+    # y 67% para el MISMO modelo. Se prefieren siempre las deterministas.
+    for candidato in (
+        f"docs/valor-lora-{tenant}-t0-original.json",
+        "docs/valor-lora-demo-publica-t0-original.json",
+        f"docs/valor-lora-{tenant}.json",
+    ):
         ruta = Path(candidato)
         if ruta.exists():
             return json.loads(ruta.read_text(encoding="utf-8"))["resumen"]
@@ -368,43 +385,74 @@ def construir_laminas(*, tren, val, comparacion, familias, imagenes, svg, incrus
     L.append(lamina(12, "Resultados · las tres piezas", cuerpo12,
                     "Las mismas 12 preguntas, tres configuraciones", TOTAL))
 
-    # --- 13 para que sirve entonces afinar ---------------------------------
+    # --- 13 los tres estados del MODELO (el eje del enunciado) -------------
+    tm = tres_modelos()
+    if tm:
+        COLS3 = [("base", "Sin entrenamiento"), ("instruct", "Con entrenamiento"),
+                 ("lora", "Con fine-tuning")]
+        filas3 = "".join(
+            "<tr><td>" + e(m) + "</td>"
+            + "".join(f'<td class="n">{e(tm["resumen"][k].get(m, "—"))}</td>' for k, _ in COLS3)
+            + "</tr>"
+            for m in tm["resumen"]["instruct"]
+        )
+        # La misma pregunta a los tres, que es lo que se lee de un vistazo.
+        ej = {k: tm["detalle"][k][0]["texto"] for k, _ in COLS3}
+        cuerpo13 = f'''    <p class="entradilla">El eje del enunciado</p>
+    <h2 class="titular">Sin entrenar · entrenado · afinado</h2>
+    <p class="bajada">Las mismas 12 preguntas <b>sin RAG</b> en los tres casos, como en el taller.
+    Así se ve lo que aporta el modelo por sí mismo.</p>
+    <table class="tabla">
+      <tr><th>Métrica</th>{"".join(f"<th>{e(t)}</th>" for _, t in COLS3)}</tr>
+      {filas3}
+    </table>
+    <p class="bajada">«¿Cuánto tarda la atención de un requerimiento a TI?» — <b>sin entrenar</b>
+    divaga sobre factores genéricos; <b>entrenado</b> filtra su razonamiento interno
+    en inglés («<code>&lt;think&gt; Okay, the user is asking…</code>»);
+    <b>afinado</b> responde: «{e(ej["lora"][-150:].strip())}»</p>'''
+    else:
+        cuerpo13 = '''    <p class="entradilla">El eje del enunciado</p>
+    <h2 class="titular">Sin entrenar · entrenado · afinado</h2>
+    <p class="bajada">Pendiente: corre <code>scripts/comparar_tres_modelos.py</code>.</p>'''
+    L.append(lamina(13, "Resultados · los tres estados", cuerpo13,
+                    "docs/tres-modelos-*.md", TOTAL))
+
+    # --- 14 la sintesis: para que sirve entonces ---------------------------
     vl = valor_lora()
     if vl:
         COLS = [
             ("base_completo", "Base · 5557"), ("lora_completo", "LoRA · 5557"),
             ("base_minimo", "Base · 433"), ("lora_minimo", "LoRA · 433"),
         ]
-        ms = ["Acierta en conjunto", "Escala cuando debe",
-              "Atribuye sin escribir el codigo", "Longitud mediana"]
+        ms = ["Acierta en conjunto", "Escala cuando debe"]
         filas_vl = "".join(
             "<tr><td>" + e(m) + "</td>"
             + "".join(f'<td class="n">{e(vl[k].get(m, "—"))}</td>' for k, _ in COLS)
             + "</tr>"
             for m in ms if any(m in vl[k] for k, _ in COLS)
         )
-        cuerpo13 = f'''    <p class="entradilla">¿Entonces para qué afinar?</p>
-    <h2 class="titular">El experimento que lo justificaría, y no salió</h2>
-    <p class="bajada">Afinar sirve para meter las instrucciones en los <b>pesos</b> y poder
-    quitarlas del prompt: son 5.557 caracteres en cada petición. Se mide lo mismo
-    con el prompt completo y con uno mínimo de 433.</p>
+        cuerpo14 = f'''    <p class="entradilla">La síntesis</p>
+    <h2 class="titular">Sirve para cuando no puedes permitirte el andamiaje</h2>
+    <p class="bajada">Dentro del sistema completo el adaptador <b>no aporta</b>: el prompt de
+    5.557 caracteres y los fragmentos del RAG ya fuerzan el comportamiento.</p>
     <table class="tabla">
       <tr><th>Métrica</th>{"".join(f"<th>{e(t)}</th>" for _, t in COLS)}</tr>
       {filas_vl}
     </table>
-    <p class="bajada"><b>La última columna es idéntica a la tercera.</b> Al quitar el prompt
-    largo, base y afinado caen igual: el adaptador <b>no internalizó las reglas</b>.
-    Y no es mala suerte — los 5.557 caracteres estaban dentro de cada ejemplo de
-    entrenamiento, así que el modelo aprendió «dado este prompt, responde así»,
-    nunca a comportarse sin él. Se arregla entrenando con el prompt reducido.</p>'''
+    <p class="bajada">Pero <b>fuera de él sí transforma la respuesta</b>: 150 caracteres frente a
+    1014, atribuyendo por título y sección, sin fugas de razonamiento — y eso
+    <b>sin tener el prompt delante</b>. Ahí están las reglas, en los pesos.</p>
+    <p class="bajada">De modo que la respuesta a «¿para qué afinar?» es concreta: <b>para un canal
+    sin RAG, un modelo más pequeño o un prompt que no cabe</b>. NormIA puede
+    permitirse el andamiaje, así que aquí el RAG hace el trabajo.</p>'''
     else:
-        cuerpo13 = '''    <p class="entradilla">¿Entonces para qué afinar?</p>
-    <h2 class="titular">El experimento que lo justificaría</h2>
+        cuerpo14 = '''    <p class="entradilla">La síntesis</p>
+    <h2 class="titular">¿Entonces para qué afinar?</h2>
     <p class="bajada">Pendiente: corre <code>scripts/medir_valor_lora.py</code>.</p>'''
-    L.append(lamina(13, "Resultados · el porqué", cuerpo13,
+    L.append(lamina(14, "Resultados · la síntesis", cuerpo14,
                     "Ablación del prompt de sistema", TOTAL))
 
-    # --- 14 imagenes ---------------------------------------------------------
+    # --- 15 imagenes ---------------------------------------------------------
     figs = []
     for ruta in imagenes[:3]:
         uri = incrustar(ruta)
@@ -416,7 +464,7 @@ def construir_laminas(*, tren, val, comparacion, familias, imagenes, svg, incrus
     galeria = f'<div class="rejilla r3">{"".join(figs)}</div>' if figs else (
         '<p class="bajada">Pendiente: corre <code>scripts/generar_imagenes.py</code>.</p>'
     )
-    L.append(lamina(14, "Generación de imágenes", f'''    <p class="entradilla">La segunda modalidad</p>
+    L.append(lamina(15, "Generación de imágenes", f'''    <p class="entradilla">La segunda modalidad</p>
     <h2 class="titular">Material que la propia norma exige</h2>
     <p class="bajada">ISO 9001 pide formar y comunicar: <b>§7.2 Competencia, §7.3 Toma de
     conciencia, §7.4 Comunicación</b>. Un SGC que nadie conoce no se cumple.</p>
@@ -426,14 +474,19 @@ def construir_laminas(*, tren, val, comparacion, familias, imagenes, svg, incrus
     y una marca mal dibujada en material de calidad es peor que no tener material.</p>''',
     "SDXL local · docs/imagenes", TOTAL))
 
-    # --- 15 limites ----------------------------------------------------------
-    L.append(lamina(15, "Cierre", '''    <p class="entradilla">Honestidad</p>
+    # --- 16 limites ----------------------------------------------------------
+    L.append(lamina(16, "Cierre", '''    <p class="entradilla">Honestidad</p>
     <h2 class="titular">Lo que no se ha demostrado</h2>
     <ul class="puntos neg">
       <li>El adaptador se entrenó sobre <b>Qwen3-4B</b>, no sobre el 27B de producción:
       en 48 GB no entra. La comparación es válida entre sí, no extrapolable al grande.</li>
       <li>El banco son <b>12 preguntas</b>. Suficiente para ver un patrón, corto para
       afirmar un porcentaje con intervalo de confianza.</li>
+      <li>Y una lección de método que costó dos tablas tiradas: las mediciones
+      reutilizaban el identificador de conversación, y el orquestador <b>le carga su
+      historial</b>. La segunda corrida heredaba los turnos de la primera, y el mismo
+      modelo daba 92 % y 67 %. Con un id por corrida y temperatura 0, las columnas
+      del base salen <b>idénticas en dos corridas independientes</b>.</li>
       <li>La mejora medida es de <b>un caso de doce</b>, y en la otra dirección hay una
       <b>regresión</b>: el adaptador empeora la emisión de llamadas a herramienta.
       No se despliega tal cual.</li>
