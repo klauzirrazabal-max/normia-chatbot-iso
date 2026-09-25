@@ -146,3 +146,37 @@ def test_un_intento_de_inyeccion_va_por_la_ruta_estricta(texto):
     exactamente lo que busca quien lo escribe.
     """
     assert clasificar_turno(texto, hay_turno_previo=True) is TipoTurno.DOCUMENTAL
+
+
+# --- Seguimiento: preguntar por algo en marcha no es consultar el SGC --------
+#
+# "lo estas creando?" acababa clasificado como consulta documental: no recuperaba
+# nada, y el guardrail lo derivaba al Responsable de Calidad. Una repregunta
+# convertida en escalacion, que ademas ensucia la cola de Calidad.
+
+
+def test_el_seguimiento_no_es_una_consulta():
+    for texto in (
+        "lo estas creando?",
+        "ya lo tienes?",
+        "esta listo?",
+        "lo generaste?",
+        "sigues ahi?",
+        "falta mucho?",
+    ):
+        assert clasificar_turno(texto, hay_turno_previo=True) is TipoTurno.CONVERSACIONAL, texto
+
+
+def test_el_seguimiento_con_vocabulario_del_dominio_si_es_consulta():
+    # La regla de oro: si el mensaje nombra documentacion, va al RAG aunque
+    # empiece igual que una repregunta.
+    for texto in (
+        "esta listo el procedimiento de compras?",
+        "ya tienes la politica de seguridad?",
+    ):
+        assert clasificar_turno(texto, hay_turno_previo=True) is TipoTurno.DOCUMENTAL, texto
+
+
+def test_sin_turno_previo_no_hay_nada_que_seguir():
+    # En el primer mensaje de una conversacion no hay nada en marcha.
+    assert clasificar_turno("esta listo?", hay_turno_previo=False) is TipoTurno.DOCUMENTAL

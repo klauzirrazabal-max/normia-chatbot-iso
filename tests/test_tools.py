@@ -92,6 +92,7 @@ def test_los_nombres_declarados():
         "leer_documento",
         "describir_capacidades",
         "ampliar_hallazgo",
+        "generar_material_visual",
     } == TOOL_NAMES
 
 
@@ -320,3 +321,72 @@ def test_un_hallazgo_ajeno_responde_igual_que_uno_inexistente():
     inexistente = get_capa_status(_SesionFalsa(resultado=None), "empresa-a", 99999)
     assert ajeno["error"] == inexistente["error"] == "not_found"
     assert ajeno["message"].replace("1", "N") == inexistente["message"].replace("99999", "N")
+
+
+# --- Guardrail del material visual -------------------------------------------
+#
+# El chat se niega a lo que esta fuera del SGC. Si el generador de imagenes
+# aceptara cualquier descripcion seria una puerta trasera al mismo sistema: una
+# herramienta de gestion de calidad produciendo imagenes de cualquier cosa.
+
+
+def test_rechaza_lo_que_no_es_del_sistema():
+    from app.channels.imagen_adapter import _fuera_de_alcance
+
+    for texto in (
+        "invitation for my birthday party with balloons",
+        "beach sunset with palm trees",
+        "cute cartoon superhero for my kid",
+        "portrait of a celebrity",
+    ):
+        assert _fuera_de_alcance(texto) is not None, texto
+
+
+def test_acepta_material_del_sistema():
+    from app.channels.imagen_adapter import _fuera_de_alcance
+
+    for texto in (
+        "warehouse worker in hard hat and high-visibility vest beside pallets",
+        "emergency exit kept clear, floor markings, wide aisle",
+        "controlled document folders and filing cabinet",
+        "quality audit meeting with checklist and clipboard",
+    ):
+        assert _fuera_de_alcance(texto) is None, texto
+
+
+def test_lo_neutro_tampoco_pasa():
+    # Lista BLANCA, no solo negra: "un bol de fruta" no tiene ninguna palabra
+    # prohibida, pero tampoco ninguna del vocabulario del sistema. Con solo una
+    # lista negra, cualquier tema nuevo se colaria.
+    from app.channels.imagen_adapter import _fuera_de_alcance
+
+    assert _fuera_de_alcance("a bowl of fruit on a wooden table") is not None
+
+
+def test_la_solicitud_exige_los_tres_campos():
+    resultado = execute_tool(
+        "generar_material_visual",
+        {"titular": "Usa tu EPP"},
+        db=None,
+        tenant_id="t",
+        conversation_id=1,
+    )
+    assert resultado["error"] == "invalid_arguments"
+
+
+# --- Guardrail: no prometer material que nadie esta generando ----------------
+#
+# La regla es DETERMINISTA: si el turno pedia producir material y no hay
+# solicitud, la respuesta se sustituye. La primera version buscaba frases en el
+# texto y el modelo se la salto cambiando la formulacion -- "¡Listo! Aqui tienes
+# el cartel" en vez de "en proceso de generacion". Cazar formulaciones es perder
+# siempre.
+
+
+def test_el_mensaje_de_material_no_generado_pide_lo_que_falta():
+    from app.core.orchestrator import SIN_MATERIAL_MESSAGE
+
+    # No basta con decir que no se pudo: hay que decir que hace falta, o el
+    # usuario no sabe como desbloquearse.
+    assert "que debe mostrar" in SIN_MATERIAL_MESSAGE
+    assert "documento" in SIN_MATERIAL_MESSAGE

@@ -146,6 +146,33 @@
       border-left: 3px solid var(--n-warning); border-radius: 4px;
     }
 
+    /* --- material visual generado --- */
+    .pieza {
+      margin-top: 9px; border: 1px solid var(--n-border); border-radius: 6px;
+      overflow: hidden; background: var(--n-bg);
+    }
+    .pieza img { display: block; width: 100%; height: auto; }
+    .pieza .cargando {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      min-height: 190px; font-size: 12px; color: var(--n-muted); text-align: center;
+      padding: 14px;
+    }
+    .pieza .giro {
+      width: 14px; height: 14px; border: 2px solid var(--n-border);
+      border-top-color: var(--n-primary); border-radius: 50%;
+      animation: pieza-giro .9s linear infinite; flex: none;
+    }
+    @keyframes pieza-giro { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { .pieza .giro { animation: none; } }
+    .pieza .pie {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      padding: 7px 9px; border-top: 1px solid var(--n-border); font-size: 11.5px;
+    }
+    .pieza .pie .respaldo { color: var(--n-muted); }
+    .pieza .pie a {
+      color: var(--n-primary); text-decoration: none; font-weight: 600; flex: none;
+    }
+
     .suggestions {
       display: flex; flex-wrap: wrap; gap: 6px;
       margin-top: 10px; padding-left: 2px;
@@ -475,6 +502,76 @@
      * Solo se muestran las del ultimo turno: dejar las viejas en pantalla invita
      * a pulsar una opcion que ya no corresponde a la conversacion.
      */
+    /**
+     * Pinta el material visual y lo pide aparte.
+     *
+     * El turno del chat NO trae la imagen: generarla tarda ~29 s y el timeout
+     * del LLM son 45. El servidor devuelve la solicitud ya validada -- tema
+     * dentro del sistema y clausula que existe -- y el navegador hace la llamada
+     * lenta mientras ensena un marcador. Asi el bot contesta en segundos y la
+     * imagen llega cuando esta.
+     */
+    async renderPieza(bubble, solicitud) {
+      const caja = document.createElement("div");
+      caja.className = "pieza";
+      const espera = document.createElement("div");
+      espera.className = "cargando";
+      espera.innerHTML = '<span class="giro"></span><span>Generando el material…</span>';
+      caja.appendChild(espera);
+      bubble.appendChild(caja);
+      this.scrollToBottom();
+
+      const t0 = Date.now();
+      const reloj = setInterval(() => {
+        const s = Math.round((Date.now() - t0) / 1000);
+        espera.lastElementChild.textContent =
+          `Generando el material… ${s} s` + (s > 45 ? " (la primera vez carga el modelo)" : "");
+      }, 1000);
+
+      try {
+        const res = await fetch(this.apiUrl + "/api/imagenes/generar", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...solicitud, vertical: true, pasos: 28 }),
+        });
+        if (!res.ok) {
+          const cuerpo = await res.json().catch(() => ({}));
+          throw new Error(cuerpo.detail || `Error ${res.status}`);
+        }
+        const d = await res.json();
+
+        caja.innerHTML = "";
+        const img = document.createElement("img");
+        img.src = d.imagen;
+        img.alt = d.titular;
+        caja.appendChild(img);
+
+        const pie = document.createElement("div");
+        pie.className = "pie";
+        const respaldo = document.createElement("span");
+        respaldo.className = "respaldo";
+        respaldo.textContent = d.clausula || "sin respaldo";
+        const enlace = document.createElement("a");
+        enlace.href = d.imagen;
+        // El titular da el nombre del fichero: "material-sgc.png" no le dice
+        // nada a quien se descarga cinco carteles seguidos.
+        enlace.download =
+          (d.titular || "material").toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 48) + ".png";
+        enlace.textContent = "Descargar";
+        pie.append(respaldo, enlace);
+        caja.appendChild(pie);
+      } catch (err) {
+        caja.innerHTML = "";
+        const fallo = document.createElement("div");
+        fallo.className = "cargando";
+        fallo.textContent = "No se pudo generar: " + (err.message || err);
+        caja.appendChild(fallo);
+      } finally {
+        clearInterval(reloj);
+        this.scrollToBottom();
+      }
+    }
+
     renderSuggestions(suggestions) {
       const previas = this.messagesEl.querySelector(".suggestions");
       if (previas) previas.remove();
@@ -564,6 +661,10 @@
             "No pude verificar esta respuesta contra los documentos vigentes. " +
             "Confírmala con Calidad antes de actuar.";
           bubble.appendChild(aviso);
+        }
+
+        if (data.solicitud_imagen) {
+          this.renderPieza(bubble, data.solicitud_imagen);
         }
 
         this.renderSuggestions(data.suggestions);

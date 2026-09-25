@@ -135,7 +135,11 @@ def _system_prompt(db: Session, tenant_id: str) -> str:
 
 
 def _build_messages(
-    system_prompt: str, retrieval: RetrievalResult, history: list[dict[str, str]], user_text: str
+    system_prompt: str,
+    retrieval: RetrievalResult,
+    history: list[dict[str, str]],
+    user_text: str,
+    produccion: bool = False,
 ) -> list[dict[str, Any]]:
     messages: list[dict[str, Any]] = [{"role": "system", "content": system_prompt}]
 
@@ -183,6 +187,30 @@ def _build_messages(
                     "consulta. No inventes procedimientos ni cites documentos. Indica que no "
                     "tienes informacion suficiente y escala a Calidad con escalate_to_quality."
                     f"\n\n{OUT_OF_SCOPE_HINT}"
+                ),
+            }
+        )
+
+    # La instruccion de produccion va APARTE y siempre, no en la rama del "sin
+    # contexto". Se probo ponerla ahi y fallaba en los dos casos: sin contexto el
+    # bloque de al lado le decia "escala a Calidad" y derivaba la peticion; con
+    # contexto ni siquiera se inyectaba, asi que el modelo contestaba la consulta
+    # documental en vez de generar el cartel. Va siempre, y el contexto de arriba
+    # le da la clausula con la que respaldarlo.
+    if produccion:
+        messages.append(
+            {
+                "role": "system",
+                "content": (
+                    "El usuario pide PRODUCIR material visual, no consultar documentacion. "
+                    "Llama a generar_material_visual EN ESTE TURNO. Necesita tres cosas: "
+                    "`titular` en espanol, breve y directo; `descripcion` de UNA ESCENA "
+                    "en ingles -- quien aparece, que hace y donde -- sin pedir nunca "
+                    "infographic, poster, chart, panels, list ni title, porque el modelo "
+                    "dibuja letras ilegibles; y `clausula` que lo respalda, tomada de los "
+                    "fragmentos de arriba si los hay. "
+                    "NO expliques el procedimiento y NO escales esto a Calidad: lo que se "
+                    "pide es el cartel."
                 ),
             }
         )
@@ -333,6 +361,11 @@ def _version_maps(db: Session, tenant_id: str) -> tuple[dict[str, set[str]], dic
 # clausula. Lo que afirman ("estos documentos existen") se respalda a nivel de
 # documento, no de seccion.
 CATALOG_TOOLS = {"buscar_documentos"}
+
+# Errores cuyo mensaje le dice al modelo QUE cambiar. Solo estos justifican una
+# segunda ronda de herramientas: los demas (datos que no existen, argumentos
+# invalidos) no mejoran por repetir la llamada.
+_ERRORES_CORREGIBLES = {"pide_texto", "fuera_de_alcance", "codigo_inexistente"}
 
 # Herramientas que leen un documento COMPLETO. Una respuesta construida asi se
 # respalda en ese documento -- incluyendo los formatos que el propio documento
@@ -679,6 +712,44 @@ def _dominant_document(chunks: list[RetrievedChunk]) -> str | None:
     return codigo if veces * 2 >= len(chunks) else None
 
 
+# --- Guardrail: no prometer un cartel que no se esta generando ----------------
+#
+# El mismo criterio que con las escalaciones: prometer una accion y no ejecutarla
+# es peor que declararse incapaz. Ocurrio dos veces seguidas -- el modelo
+# contesto "¡Listo! Aqui tienes el cartel" y describio la escena en prosa, sin
+# haber llamado a la herramienta. El usuario espera una imagen que nadie hace.
+#
+# La primera version buscaba frases ("en proceso de generacion") y se la salto
+# escribiendo "¡Hecho! Aqui tienes el cartel generado". Cazar formulaciones es
+# perder siempre: hay infinitas maneras de decir lo mismo.
+#
+# Asi que la regla es DETERMINISTA y no mira el texto: si el turno pedia producir
+# material y no hay solicitud, la respuesta se sustituye. No hace falta adivinar
+# si el modelo prometio o no -- no habia nada que prometer.
+
+SIN_MATERIAL_MESSAGE = (
+    "No he llegado a preparar el material. Dime que debe mostrar la imagen -- quien "
+    "aparece, que hace y donde -- y sobre que documento del SGC quieres apoyarlo."
+)
+
+
+def _solicitud_imagen(tool_results: list[tuple[str, dict[str, Any]]]):
+    """
+    Recoge la solicitud de material visual, si la herramienta la produjo.
+
+    La imagen NO se genera aqui: tarda ~29 s y el timeout del LLM son 45. El
+    turno devuelve la solicitud ya validada y el cliente pide la imagen aparte,
+    ensenando un marcador mientras llega. Asi el chat sigue contestando en
+    segundos, que es lo que hace que se use.
+    """
+    from app.models.schemas import SolicitudImagen
+
+    for nombre, resultado in tool_results:
+        if nombre == "generar_material_visual" and "solicitud_imagen" in resultado:
+            return SolicitudImagen(**resultado["solicitud_imagen"])
+    return None
+
+
 def _suggestions_for_response(
     db: Session,
     tenant_id: str,
@@ -861,7 +932,13 @@ def handle_message(db: Session, msg: IncomingMessage) -> BotResponse:
         db, msg.tenant_id, msg.text
     )
 
-    messages = _build_messages(_system_prompt(db, msg.tenant_id), retrieval, history, msg.text)
+    messages = _build_messages(
+        _system_prompt(db, msg.tenant_id),
+        retrieval,
+        history,
+        msg.text,
+        produccion=tipo_turno is TipoTurno.PRODUCCION,
+    )
 
     client = get_llm_client()
     executed_tools: list[str] = []
@@ -869,7 +946,16 @@ def handle_message(db: Session, msg: IncomingMessage) -> BotResponse:
     mentioned_tools: set[str] = set()
 
     try:
-        completion = client.generate(messages, tools=TOOLS_SCHEMA)
+        # En un turno de produccion la llamada ES la respuesta: describir el
+        # cartel en prosa no sirve de nada. Se exige la herramienta en vez de
+        # dejarlo a criterio del modelo, que medido acierta la mitad de las veces.
+        eleccion: Any = "auto"
+        if tipo_turno is TipoTurno.PRODUCCION:
+            eleccion = {
+                "type": "function",
+                "function": {"name": "generar_material_visual"},
+            }
+        completion = client.generate(messages, tools=TOOLS_SCHEMA, tool_choice=eleccion)
 
         tool_calls = completion["tool_calls"]
         recovered = False
@@ -899,6 +985,37 @@ def handle_message(db: Session, msg: IncomingMessage) -> BotResponse:
             )
             messages.append(assistant_turn)
             messages.extend(tool_messages)
+
+            # UN reintento, y solo cuando el error es corregible por el modelo.
+            #
+            # Hay errores que le dicen exactamente que cambiar: "la descripcion
+            # pide elementos con letras, describe una escena". Sin reintento, el
+            # turno terminaba con el modelo prometiendo "voy a reintentar con los
+            # parametros correctos" -- algo que su propia arquitectura le impedia
+            # hacer, porque solo hay una ronda de herramientas por turno. Prometer
+            # y no cumplir es peor que fallar.
+            #
+            # NO es un bucle de agente: es exactamente una ronda mas, y solo para
+            # estos errores. Un fallo de datos o una escalacion no se reintentan.
+            if any(
+                resultado.get("error") in _ERRORES_CORREGIBLES
+                for _, resultado in tool_results
+            ):
+                completion = client.generate(messages, tools=TOOLS_SCHEMA)
+                if completion["tool_calls"]:
+                    reintento_msgs, reintento_tools, reintento_results = _run_tool_calls(
+                        db, completion["tool_calls"], msg.tenant_id,
+                        conversation.id, msg.text, msg.channel,
+                    )
+                    executed_tools += reintento_tools
+                    tool_results += reintento_results
+                    messages.append(completion["raw"])
+                    messages.extend(reintento_msgs)
+                    logger.info(
+                        "tool.retry",
+                        extra={"tools": reintento_tools},
+                    )
+
             # Segunda pasada: el modelo redacta la respuesta final ya con el
             # resultado de la herramienta a la vista.
             completion = client.generate(messages)
@@ -1059,8 +1176,21 @@ def handle_message(db: Session, msg: IncomingMessage) -> BotResponse:
             _catalog_citations(db, msg.tenant_id, answer) if catalog_ran else []
         )
         document_citations = _read_document_citations(tool_results, answer)
+        solicitud = _solicitud_imagen(tool_results)
+        if tipo_turno is TipoTurno.PRODUCCION and solicitud is None:
+            logger.warning(
+                "guardrail.material_prometido_sin_generar",
+                extra={
+                    "question": msg.text[:120],
+                    "answer": answer[:160],
+                    "tools": executed_tools,
+                },
+            )
+            answer = SIN_MATERIAL_MESSAGE
+
         response = BotResponse(
             text=answer,
+            solicitud_imagen=solicitud,
             suggestions=_suggestions_for_response(
                 db, msg.tenant_id, tool_results, retrieval
             ),

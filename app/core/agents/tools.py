@@ -21,7 +21,8 @@ from typing import Any
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
-from app.models.db_models import CapaAction, Finding
+from app.core.guardrails.grounding_check import extract_cited_codes
+from app.models.db_models import CapaAction, Document, Finding
 
 logger = logging.getLogger(__name__)
 
@@ -189,6 +190,47 @@ TOOLS_SCHEMA: list[dict[str, Any]] = [
             "parameters": {
                 "type": "object",
                 "properties": {},
+                "additionalProperties": False,
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "generar_material_visual",
+            "description": (
+                "Prepara un cartel, senaletica o lamina de induccion para el sistema de "
+                "gestion. Usala cuando el usuario pida crear, disenar o generar una "
+                "imagen, cartel, afiche o material visual. SIEMPRE hay que citar la "
+                "clausula que lo respalda: si no sabes cual es, buscala antes."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "titular": {
+                        "type": "string",
+                        "description": "El texto grande del cartel, en espanol. Breve y directo.",
+                    },
+                    "descripcion": {
+                        "type": "string",
+                        "description": (
+                            "UNA ESCENA, en ingles: quien aparece, que hace y donde. "
+                            "Ej: 'warehouse worker in hard hat and safety vest beside "
+                            "stacked pallets'. PROHIBIDO pedir infographic, poster, "
+                            "chart, diagram, panels, list, steps, title o cualquier "
+                            "elemento con letras: el modelo de difusion escribe "
+                            "garabatos ilegibles. El titular va aparte, como texto real."
+                        ),
+                    },
+                    "clausula": {
+                        "type": "string",
+                        "description": (
+                            "Documento y seccion que respaldan el cartel, como "
+                            "'OPE-PR-02 v4, seccion 7.6'. Tiene que existir en el SGC."
+                        ),
+                    },
+                },
+                "required": ["titular", "descripcion", "clausula"],
                 "additionalProperties": False,
             },
         },
@@ -903,6 +945,79 @@ def leer_documento(
     }
 
 
+
+def generar_material_visual(
+    db: Session, tenant_id: str, titular: str, descripcion: str, clausula: str
+) -> dict[str, Any]:
+    """
+    Valida la peticion y devuelve la solicitud. NO genera la imagen.
+
+    Generar tarda ~29 s y el timeout del LLM son 45: hacerlo aqui dejaria el chat
+    mudo medio minuto y podria abrir el cortacircuitos. Asi que esta herramienta
+    solo comprueba lo que hay que comprobar -- que es un tema del sistema y que la
+    clausula existe -- y devuelve una solicitud. El widget hace la llamada lenta
+    por su cuenta y ensena un marcador mientras tanto.
+
+    Los dos guardrails son los mismos que aplica el endpoint web. No se confia en
+    que el modelo haya elegido bien: un cartel que cita un documento inexistente
+    es exactamente el fallo que este proyecto existe para evitar.
+    """
+    from app.channels.imagen_adapter import _fuera_de_alcance, pide_texto
+
+    motivo = _fuera_de_alcance(descripcion)
+    if motivo:
+        return {"error": "fuera_de_alcance", "message": motivo}
+
+    # Si la descripcion pide paneles o infografias, el modelo llenara la imagen
+    # de garabatos que imitan palabras. Se corta aqui y se le dice al modelo que
+    # describa una escena, que es lo unico que sabe dibujar bien.
+    induce = pide_texto(descripcion)
+    if induce:
+        return {
+            "error": "pide_texto",
+            "message": (
+                f"La descripcion pide elementos con letras ({', '.join(induce)}). "
+                "Vuelve a llamar describiendo UNA ESCENA: quien aparece, que hace y "
+                "donde. El titular ya va aparte."
+            ),
+        }
+
+    codigos = extract_cited_codes(clausula)
+    if not codigos:
+        return {
+            "error": "sin_respaldo",
+            "message": "Falta la clausula que respalda el cartel.",
+        }
+
+    reales = {
+        c.split(" (")[0].upper()
+        for (c,) in db.query(Document.code)
+        .filter_by(tenant_id=tenant_id, status="vigente")
+        .distinct()
+    }
+    inexistentes = codigos - reales
+    if inexistentes:
+        return {
+            "error": "codigo_inexistente",
+            "message": (
+                f"{', '.join(sorted(inexistentes))} no existe en el SGC. "
+                "Busca el documento correcto antes de generar el material."
+            ),
+        }
+
+    return {
+        "solicitud_imagen": {
+            "titular": titular.strip(),
+            "descripcion": descripcion.strip(),
+            "clausula": clausula.strip(),
+        },
+        "message": (
+            f"Material preparado: «{titular.strip()}», con respaldo en {clausula.strip()}. "
+            "Se esta generando."
+        ),
+    }
+
+
 def escalate_to_quality(
     reason: str,
     db: Session | None = None,
@@ -1004,6 +1119,19 @@ def execute_tool(
 
     if name == "describir_capacidades":
         return describir_capacidades(db, tenant_id)
+
+    if name == "generar_material_visual":
+        faltan = [c for c in ("titular", "descripcion", "clausula") if not arguments.get(c)]
+        if faltan:
+            return {
+                "error": "invalid_arguments",
+                "message": f"Falta {', '.join(faltan)}.",
+            }
+        return generar_material_visual(
+            db, tenant_id,
+            str(arguments["titular"]), str(arguments["descripcion"]),
+            str(arguments["clausula"]),
+        )
 
     if name == "register_finding":
         description = str(arguments.get("description", "")).strip()

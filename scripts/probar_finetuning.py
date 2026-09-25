@@ -104,6 +104,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--rapido", action="store_true")
     parser.add_argument("--desde", type=int, default=1)
+    parser.add_argument(
+        "--rehacer", action="store_true", help="repite los pasos aunque ya esten hechos"
+    )
     args = parser.parse_args()
 
     print(__doc__.split("Uso")[0].strip() if "Uso" in __doc__ else "")
@@ -139,17 +142,24 @@ def main() -> int:
 
     if args.desde <= 3:
         titulo(3, total, "Dataset de entrenamiento")
-        correr(
-            [PY, "scripts/build_finetune_dataset.py", "--tenant", TENANT],
-            "construir el dataset",
-        )
+        dataset = RAIZ / "data" / "finetune" / TENANT / "train.jsonl"
+        if dataset.exists() and not args.rehacer:
+            print("      ya esta hecho; --rehacer para rehacerlo", flush=True)
+        else:
+            correr(
+                [PY, "scripts/build_finetune_dataset.py", "--tenant", TENANT],
+                "construir el dataset",
+            )
 
     if args.desde <= 4:
         titulo(4, total, f"Entrenar el adaptador QLoRA{' (rapido)' if args.rapido else ''}")
-        orden = [PY, "scripts/train_lora.py", "-c", "scripts/lora_demo-publica.yaml"]
-        if args.rapido:
-            orden += ["--iters", "60"]
-        correr(orden, "entrenar")
+        if (ADAPTADOR / "adapters.safetensors").exists() and not args.rehacer:
+            print("      ya existe el adaptador; --rehacer para reentrenar", flush=True)
+        else:
+            orden = [PY, "scripts/train_lora.py", "-c", "scripts/lora_demo-publica.yaml"]
+            if args.rapido:
+                orden += ["--iters", "60"]
+            correr(orden, "entrenar")
 
     if args.desde <= 5:
         titulo(5, total, "Medir: sin entrenamiento / con entrenamiento / con fine-tuning")

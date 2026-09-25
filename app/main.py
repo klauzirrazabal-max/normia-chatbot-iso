@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 from sqlalchemy import text
 
-from app.channels import admin_adapter, web_adapter
+from app.channels import admin_adapter, imagen_adapter, web_adapter
 from app.config import settings
 from app.core.rag.embeddings import warmup
 from app.db.session import engine
@@ -57,6 +57,9 @@ app.add_middleware(
 
 app.include_router(web_adapter.router)
 app.include_router(admin_adapter.router)
+# Generacion de material visual. Va en su propio flujo y no como
+# herramienta del chat: tarda ~40 s y el timeout del LLM son 45.
+app.include_router(imagen_adapter.router)
 
 
 @app.get("/health", tags=["infra"])

@@ -47,10 +47,19 @@ GRAFITO = (0x30, 0x30, 0x30)
 # Medido: con la version larga se truncaba justo "no text, no letters", que es lo
 # que impide que el modelo garabatee letras falsas. Lo corto va primero; lo que
 # no cabe se repite en el negativo, que se evalua aparte.
-MARCA = "flat vector illustration, corporate blue and white, minimal, clean, no text"
+MARCA = (
+    "flat vector illustration, corporate blue and white, minimal, clean, "
+    "single clear scene, no text"
+)
 
+# El negativo carga contra el texto por partida triple -- letras, y ademas las
+# FORMAS que las invocan: un panel, una pancarta o una infografia hacen que el
+# modelo rellene el hueco con garabatos que parecen palabras. Medido: pidiendo
+# "los 4 pilares de la calidad" salio una lamina entera de texto ilegible.
 NEGATIVO = (
-    "text, letters, words, typography, watermark, signature, logo, brand name, "
+    "text, letters, words, numbers, typography, caption, label, watermark, "
+    "signature, logo, brand name, infographic, chart, graph, diagram, poster, "
+    "banner, sign, signage, slide, presentation board, speech bubble, document page, "
     "cluttered, distorted hands, extra limbs, lowres, jpeg artifacts"
 )
 

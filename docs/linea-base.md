@@ -265,3 +265,28 @@ ejemplos**, para que las reglas tengan que vivir en los pesos. Es un cambio en
    documento delante.
 
 Y uno donde **resta**: la emision de llamadas a herramienta. Medido.
+
+
+---
+
+## Ollama ignora `tool_choice` (medido)
+
+Buscando por que el asistente describia un cartel en prosa en vez de generarlo,
+se probo a EXIGIR la herramienta en vez de dejarla a criterio del modelo. El
+protocolo compatible con OpenAI lo permite. Ollama no lo respeta:
+
+| `tool_choice` | `tool_calls` devueltas |
+|---|---|
+| `"auto"` | ninguna |
+| `"required"` | ninguna |
+| `{"type":"function","function":{"name":"..."}}` | ninguna |
+
+Mismo mensaje, mismo modelo (`qwen3.8:27b-mlx`), los tres valores. Es el mismo
+caso que `reasoning_effort`, que tampoco respeta, y **refuerza la hipotesis del
+addendum**: el 50% de "usa la herramienta correcta" de la linea base no era una
+limitacion del modelo de 27B, sino del camino por el que se le habla.
+
+Consecuencia practica: con Ollama no se puede forzar una llamada, asi que la
+fiabilidad tiene que venir de un guardrail de aguas abajo -- si el turno pedia
+producir material y no hay solicitud, la respuesta se sustituye. Con vLLM o
+cualquier backend que honre `tool_choice`, el problema se resuelve de raiz.

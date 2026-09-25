@@ -59,4 +59,5 @@ def chat(
         escalate=response.escalate,
         grounded=response.grounded,
         suggestions=response.suggestions,
+        solicitud_imagen=response.solicitud_imagen,
     )

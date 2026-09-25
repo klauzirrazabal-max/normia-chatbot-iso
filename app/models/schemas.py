@@ -52,6 +52,20 @@ class Suggestion(BaseModel):
     message: str
 
 
+class SolicitudImagen(BaseModel):
+    """
+    Una pieza de material visual ya validada, pendiente de generar.
+
+    No lleva la imagen: generar tarda ~29 s y el timeout del LLM son 45. El turno
+    del chat devuelve la solicitud y el cliente pide la imagen aparte, mostrando
+    un marcador mientras llega. Asi el bot sigue respondiendo en segundos.
+    """
+
+    titular: str
+    descripcion: str
+    clausula: str
+
+
 class BotResponse(BaseModel):
     """Formato interno de salida, antes de que el adapter lo formatee por canal."""
 
@@ -60,6 +74,7 @@ class BotResponse(BaseModel):
     escalate: bool = False
     grounded: bool = True
     suggestions: list[Suggestion] = Field(default_factory=list)
+    solicitud_imagen: SolicitudImagen | None = None
 
 
 class WebChatRequest(BaseModel):
@@ -73,4 +88,5 @@ class WebChatResponse(BaseModel):
     citations: list[Citation] = Field(default_factory=list)
     escalate: bool = False
     grounded: bool = True
+    solicitud_imagen: SolicitudImagen | None = None
     suggestions: list[Suggestion] = Field(default_factory=list)

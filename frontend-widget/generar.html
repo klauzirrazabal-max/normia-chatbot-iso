@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>NormIA · Material visual del SGC</title>
+<style>
+  :root{
+    --papel:#F3F5F3; --superficie:#fff; --tinta:#15191A; --grafito:#5D6663;
+    --linea:#D4DAD5; --marca:#1050D0; --marca-clara:#2090E0;
+    --sombra:0 1px 2px rgba(20,28,22,.05), 0 10px 30px rgba(20,28,22,.06);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --papel:#101410; --superficie:#181D19; --tinta:#E7ECE8; --grafito:#96A09B;
+      --linea:#28312B; --marca:#5C9BF5; --marca-clara:#2090E0;
+      --sombra:0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+    }
+    :root{color-scheme:dark}
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--papel); color:var(--tinta);
+    font:15px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;
+    padding:clamp(16px,4vw,40px);
+  }
+  .marco{max-width:1080px;margin:0 auto}
+  h1{font-size:clamp(1.4rem,3vw,1.9rem);margin:0 0 6px;letter-spacing:-.02em}
+  .bajada{color:var(--grafito);margin:0 0 28px;max-width:62ch}
+  .cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(16px,3vw,32px);align-items:start}
+  @media (max-width:820px){.cols{grid-template-columns:1fr}}
+  .panel{background:var(--superficie);border:1px solid var(--linea);border-radius:6px;padding:clamp(14px,2.2vw,22px);box-shadow:var(--sombra)}
+  label{display:block;font-size:.76rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--grafito);margin:16px 0 6px}
+  label:first-of-type{margin-top:0}
+  input,textarea,select{
+    width:100%;padding:10px 12px;border:1px solid var(--linea);border-radius:4px;
+    background:var(--papel);color:var(--tinta);font:inherit;
+  }
+  textarea{min-height:92px;resize:vertical}
+  .pista{font-size:.82rem;color:var(--grafito);margin:6px 0 0}
+  button{
+    margin-top:22px;width:100%;padding:12px;border:0;border-radius:4px;
+    background:var(--marca);color:#fff;font:600 15px/1 inherit;cursor:pointer;
+  }
+  button:disabled{opacity:.55;cursor:progress}
+  .lienzo{
+    display:flex;align-items:center;justify-content:center;min-height:380px;
+    border:1px dashed var(--linea);border-radius:4px;background:var(--papel);
+    padding:12px;text-align:center;color:var(--grafito);
+  }
+  .lienzo img{max-width:100%;max-height:70vh;border-radius:3px;display:block}
+  .estado{font-size:.88rem;color:var(--grafito);margin:12px 0 0;min-height:1.4em}
+  .error{color:#9E2B21}
+  .acciones{display:flex;gap:10px;margin-top:14px}
+  .acciones a{
+    flex:1;text-align:center;padding:10px;border:1px solid var(--linea);
+    border-radius:4px;text-decoration:none;color:var(--tinta);font-size:.9rem;
+  }
+  .reloj{font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body>
+<div class="marco">
+  <h1>Material visual del sistema de gestión</h1>
+  <p class="bajada">
+    Genera carteles de concienciación, señalética y láminas de inducción. El modelo de
+    difusión corre <strong>en esta máquina</strong>; el logotipo real se compone encima, no se
+    dibuja. Cada pieza puede citar la cláusula que la respalda — un cartel sin respaldo es
+    propaganda, con él es material del sistema.
+  </p>
+
+  <div class="cols">
+    <form class="panel" id="formulario">
+      <label for="titular">Titular</label>
+      <input id="titular" required maxlength="120"
+             value="El equipo de protección no es opcional">
+
+      <label for="descripcion">Qué debe mostrar la imagen</label>
+      <textarea id="descripcion" required maxlength="400">Warehouse worker in hard hat and high-visibility vest beside stacked pallets, full figure centered</textarea>
+      <p class="pista">En inglés funciona mejor. No pidas texto: el modelo lo escribe mal, y el titular ya va aparte.</p>
+
+      <label for="clausula">Cláusula que lo respalda</label>
+      <select id="clausula"><option value="">— sin respaldo documental —</option></select>
+      <p class="pista" id="pista-clausulas">Cargando el catálogo…</p>
+
+      <label for="orientacion">Orientación</label>
+      <select id="orientacion">
+        <option value="1">Vertical — cartel</option>
+        <option value="0">Horizontal — lámina</option>
+      </select>
+
+      <button type="submit" id="boton">Generar</button>
+      <p class="estado" id="estado"></p>
+    </form>
+
+    <div class="panel">
+      <div class="lienzo" id="lienzo">La pieza aparecerá aquí.</div>
+      <div class="acciones" id="acciones" hidden>
+        <a id="descargar" download="material-sgc.png">Descargar</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = "http://localhost:8000";
+const $ = (id) => document.getElementById(id);
+
+// Mismo patron que admin.html: la clave solo hace falta si el servidor la exige
+// (ADMIN_API_KEY). Se guarda en el navegador de quien la usa y nunca viaja al
+// repositorio. Generar consume GPU, asi que el endpoint va protegido igual que
+// el resto de /api/admin.
+let CLAVE = localStorage.getItem("normia_admin_key") || "";
+const _fetch = window.fetch.bind(window);
+window.fetch = (url, opts = {}) => {
+  if (CLAVE && String(url).includes("/api/imagenes/")) {
+    opts.headers = { ...(opts.headers || {}), "X-Admin-Key": CLAVE };
+  }
+  return _fetch(url, opts).then((r) => {
+    if (r.status === 401) {
+      const k = prompt("Clave de administración:");
+      if (k) { CLAVE = k; localStorage.setItem("normia_admin_key", k); location.reload(); }
+    }
+    return r;
+  });
+};
+
+// El catalogo viene de la base: asi la pieza solo puede citar una clausula que
+// existe de verdad, igual que hace el chat.
+fetch(`${API}/api/imagenes/clausulas`)
+  .then((r) => r.ok ? r.json() : Promise.reject(r.status))
+  .then((filas) => {
+    for (const f of filas) {
+      const o = document.createElement("option");
+      o.value = f.referencia;
+      o.textContent = f.etiqueta;
+      $("clausula").appendChild(o);
+    }
+    $("pista-clausulas").textContent = `${filas.length} cláusulas vigentes.`;
+  })
+  .catch(() => { $("pista-clausulas").textContent = "No se pudo cargar el catálogo."; });
+
+let reloj = null;
+
+$("formulario").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  $("boton").disabled = true;
+  $("acciones").hidden = true;
+  $("lienzo").textContent = "";
+  $("estado").className = "estado";
+
+  // La primera generacion carga el modelo (~7 GB) y tarda casi el doble. Decirlo
+  // es la diferencia entre "esta lento" y "esta roto".
+  const t0 = Date.now();
+  reloj = setInterval(() => {
+    const s = Math.round((Date.now() - t0) / 1000);
+    $("estado").innerHTML = `Generando… <span class="reloj">${s} s</span>` +
+      (s > 45 ? " — la primera vez carga el modelo, tarda más." : "");
+  }, 500);
+
+  try {
+    const r = await fetch(`${API}/api/imagenes/generar`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        titular: $("titular").value,
+        descripcion: $("descripcion").value,
+        clausula: $("clausula").value,
+        vertical: $("orientacion").value === "1",
+      }),
+    });
+    if (!r.ok) {
+      const cuerpo = await r.json().catch(() => ({}));
+      throw new Error(cuerpo.detail || `Error ${r.status}`);
+    }
+    const d = await r.json();
+    const img = document.createElement("img");
+    img.src = d.imagen;
+    img.alt = d.titular;
+    $("lienzo").appendChild(img);
+    $("descargar").href = d.imagen;
+    $("acciones").hidden = false;
+    $("estado").textContent = `Lista en ${d.segundos} s.` +
+      (d.clausula ? ` Respaldo: ${d.clausula}` : " Sin respaldo documental.");
+  } catch (err) {
+    $("estado").className = "estado error";
+    $("estado").textContent = String(err.message || err);
+    $("lienzo").textContent = "No se pudo generar.";
+  } finally {
+    clearInterval(reloj);
+    $("boton").disabled = false;
+  }
+});
+</script>
+</body>
+</html>

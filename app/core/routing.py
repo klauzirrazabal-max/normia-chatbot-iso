@@ -40,6 +40,17 @@ class TipoTurno(StrEnum):
     CONVERSACIONAL = "conversacional"
     """Continua el turno anterior: repregunta, correccion, formato, asentimiento."""
 
+    PRODUCCION = "produccion"
+    """
+    Pide PRODUCIR material, no consultarlo: un cartel, senaletica, una lamina.
+
+    Tiene tipo propio porque el guardrail de fundamentacion no le aplica igual.
+    Una consulta documental sin respaldo se escala; una peticion de material sin
+    respaldo no se escala, se rechaza pidiendo la clausula. Sin esta distincion,
+    "hazme un cartel de EPP" acababa derivado al Responsable de Calidad -- que es
+    justo lo que se observo antes de separarlos.
+    """
+
     DOCUMENTAL = "documental"
     """Consulta al contenido de la documentacion. El caso por defecto."""
 
@@ -122,6 +133,19 @@ _META_PATRONES = (
 _META_RE = re.compile("|".join(_META_PATRONES))
 
 
+# --- Produccion: pide crear material visual ----------------------------------
+
+_PRODUCCION_PATRONES = (
+    r"\b(haz|hazme|crea|crear|creame|genera|generame|disena|disename|elabora)\b"
+    r".{0,40}\b(cartel|carteles|afiche|poster|imagen|imagenes|senaletica|"
+    r"senalizacion|lamina|laminas|infografia|material visual|grafico)\b",
+    r"\b(cartel|afiche|poster|senaletica|infografia)\b.{0,30}\b(para|sobre|de)\b",
+    r"\bmaterial (visual|de concienciacion|de induccion)\b",
+    r"\bnecesito un (cartel|afiche|poster)\b",
+)
+_PRODUCCION_RE = re.compile("|".join(_PRODUCCION_PATRONES))
+
+
 # --- Conversacional: continua el turno anterior -------------------------------
 
 # Formulas que SOLO tienen sentido encadenadas a algo dicho antes. Sin turno
@@ -150,6 +174,19 @@ _CONVERSACIONAL_DEBIL = re.compile("|".join((
     r"^(y|pero|entonces|ademas|tambien) ",
     r"\bla anterior\b",
     r"\b(leelo|leela|el completo|la completa)\b",
+    # SEGUIMIENTO: preguntan por el estado de algo que esta en marcha, no por la
+    # documentacion. "lo estas creando?" acababa clasificado como consulta
+    # documental, no recuperaba nada y terminaba derivado al Responsable de
+    # Calidad -- una repregunta convertida en escalacion.
+    #
+    # Van entre las DEBILES a proposito: asi se exige que el mensaje no traiga
+    # vocabulario del dominio, y "esta listo el procedimiento de compras?" sigue
+    # siendo una consulta documental de pleno derecho.
+    r"^(ya )?(lo|la) (tienes|creaste|generaste|hiciste|terminaste|acabaste)\b",
+    r"^(lo|la) (estas|estás) (creando|generando|haciendo|preparando)\b",
+    r"^(ya )?(esta|está) (listo|lista|terminado|terminada|generado|generada)\b",
+    r"^(sigues|estas|estás) (ahi|ahí|trabajando)\b",
+    r"^(falta|cuanto falta|cuánto falta|tarda mucho)\b",
 )))
 
 # Si aparece cualquiera de estas, el mensaje habla de la documentacion y va al RAG
@@ -208,9 +245,15 @@ def clasificar_turno(texto: str, *, hay_turno_previo: bool = False) -> TipoTurno
     if not limpio:
         return TipoTurno.DOCUMENTAL
 
-    # Un codigo de documento desempata siempre hacia documental.
-    if _CODIGO_RE.search(limpio):
+    # Un codigo de documento desempata hacia documental, salvo que lo que se
+    # pida sea producir material: "un cartel de OPE-PR-02" no es una consulta.
+    if _CODIGO_RE.search(limpio) and not _PRODUCCION_RE.search(limpio):
         return TipoTurno.DOCUMENTAL
+
+    # Antes que META y que el desempate documental: "hazme un cartel del
+    # procedimiento OPE-PR-02" lleva codigo, pero no es una consulta.
+    if _PRODUCCION_RE.search(limpio):
+        return TipoTurno.PRODUCCION
 
     if _META_RE.search(limpio):
         return TipoTurno.META

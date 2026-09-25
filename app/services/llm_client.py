@@ -236,6 +236,7 @@ class OpenAICompatibleClient:
         self,
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]] | None = None,
+        tool_choice: Any = "auto",
     ) -> dict[str, Any]:
         """
         Devuelve {"content": str, "tool_calls": list, "raw": dict}.
@@ -263,7 +264,16 @@ class OpenAICompatibleClient:
 
         if tools:
             payload["tools"] = tools
-            payload["tool_choice"] = "auto"
+            # OJO: OLLAMA IGNORA ESTE CAMPO. Medido contra qwen3.8:27b-mlx con
+            # los tres valores -- "auto", "required" y una funcion concreta --:
+            # los tres devuelven tool_calls vacio ante el mismo mensaje. Es el
+            # mismo caso que `reasoning_effort`, que tampoco respeta.
+            #
+            # Se envia porque otros backends SI lo honran (vLLM, OpenAI, Groq), y
+            # ahi resuelve el problema de raiz. Con Ollama hay que apoyarse en el
+            # guardrail de aguas abajo: si el turno pedia material y no hay
+            # solicitud, la respuesta se sustituye.
+            payload["tool_choice"] = tool_choice
 
         headers = {"Content-Type": "application/json"}
         if self.api_key:
