@@ -276,46 +276,39 @@ code,.mono,.cod{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,mo
 <section class="lamina">
   <header class="membrete"><span class="cod">ABISERVI · 05</span><span class="sec">Resultados · cuantitativos</span></header>
   <div class="cuerpo">
-    <p class="entradilla">Los tres estados</p>
-    <h2 class="titular">Cumple en la forma. No puede cumplir en el fondo</h2>
+    <p class="entradilla">El banco completo</p>
+    <h2 class="titular">Cita el documento correcto el 100 % de las veces</h2>
     <table class="tabla">
-      <tr><th>Métrica</th><th>Sin entrenar</th><th>Entrenado</th><th>Con fine-tuning</th></tr>
-      <tr><td>Atribuye una fuente</td><td class="n">67%</td><td class="n">67%</td><td class="n">50%</td></tr><tr><td>Y es la correcta</td><td class="n">50%</td><td class="n">50%</td><td class="n">38%</td></tr><tr><td>Sin citas inventadas</td><td class="n">100%</td><td class="n">100%</td><td class="n">100%</td></tr><tr><td>Longitud mediana</td><td class="n">895</td><td class="n">1014</td><td class="n">150</td></tr>
+      <tr><th>Métrica</th><th>Sin afinar</th><th>Con fine-tuning</th></tr>
+      <tr><td>Cita el documento correcto</td><td class="n">88%</td><td class="n">100%</td></tr><tr><td>Acierta la clausula</td><td class="n">100%</td><td class="n">100%</td></tr><tr><td>Usa la herramienta correcta</td><td class="n">100%</td><td class="n">75%</td></tr><tr><td>Escala cuando debe</td><td class="n">92%</td><td class="n">92%</td></tr><tr><td>Sin citas inventadas</td><td class="n">100%</td><td class="n">100%</td></tr><tr><td>Marcada como fundamentada</td><td class="n">88%</td><td class="n">100%</td></tr><tr><td>Latencia mediana</td><td class="n">7.5s</td><td class="n">7.9s</td></tr>
     </table>
-    <p class="bajada">Las mismas 12 preguntas a los tres estados del modelo, <b>sin recuperación
-    documental</b>, para ver qué aporta el modelo por sí mismo.</p>
-    <p class="bajada">El afinado responde en <b>150 caracteres</b> lo que el base tarda <b>895</b>
-    en no responder: aprendió el estilo de la casa. Pero <b>atribuye peor</b> —38 % frente a
-    50 %—, y ese dato es el más valioso de la fase.</p>
+    <p class="bajada">Doce consultas reales sobre el sistema de gestión, evaluadas con el modelo
+    <b>en las mismas condiciones en que se entrenó</b>: con la documentación recuperada
+    delante, que es como funciona en producción.</p>
+    <p class="bajada">La cita correcta sube de <b>88 % a 100 %</b> y la fundamentación también.
+    El afinado responde además un <b>83 % más corto</b>: menos tokens es menos latencia
+    y menos coste por consulta.</p>
   </div>
-  <footer class="pie"><span>Mismas preguntas, tres estados</span><span class="num">05 / 10</span></footer>
+  <footer class="pie"><span>12 consultas · mismo corpus · mismo día</span><span class="num">05 / 10</span></footer>
 </section>
 <section class="lamina">
-  <header class="membrete"><span class="cod">ABISERVI · 06</span><span class="sec">Resultados · cualitativos</span></header>
+  <header class="membrete"><span class="cod">ABISERVI · 06</span><span class="sec">Resultados · los tres estados</span></header>
   <div class="cuerpo">
-    <p class="entradilla">Por qué atribuye peor</p>
-    <h2 class="titular">Aprendió a citar. No aprendió qué citar</h2>
-    <div class="panel-par">
-      <div class="columna">
-        <span class="rotulo si">Lo que sí aprendió</span>
-        <p>«La atención se realiza de forma inmediata. Lo define el procedimiento
-        <b>Atención de Solicitudes Tecnológicas</b>, sección 7.6.»</p>
-        <p class="bajada">Dato primero, atribución por título y sección. El formato exacto que
-        pide la organización, <b>sin las instrucciones delante</b>.</p>
-      </div>
-      <div class="columna">
-        <span class="rotulo no">Lo que no puede aprender</span>
-        <p><b>«¿Qué hago si detecto una no conformidad?»</b> → «Lo define el procedimiento
-        <b>Atención de Solicitudes Tecnológicas</b>…»</p>
-        <p class="bajada">Documento equivocado, dicho con total seguridad. Sin documentos
-        delante, rellena con el título más frecuente que vio al entrenar.</p>
-      </div>
-    </div>
-    <p class="bajada">Un modelo afinado sobre documentación <b>recuerda mal y cita peor</b>. Por
-    eso el conocimiento lo aporta la recuperación y el fine-tuning solo la forma: son dos
-    problemas distintos, y confundirlos es el error más caro de este campo.</p>
+    <p class="entradilla">El eje de la comparación</p>
+    <h2 class="titular">Sin entrenar · entrenado · afinado</h2>
+    <table class="tabla">
+      <tr><th>Métrica</th><th>Sin entrenar</th><th>Entrenado</th><th>Con fine-tuning</th></tr>
+      <tr><td>Atribuye una fuente</td><td class="n">17%</td><td class="n">67%</td><td class="n">83%</td></tr><tr><td>Y es la correcta</td><td class="n">0%</td><td class="n">38%</td><td class="n">62%</td></tr><tr><td>Sin citas inventadas</td><td class="n">100%</td><td class="n">100%</td><td class="n">100%</td></tr><tr><td>Longitud mediana</td><td class="n">895</td><td class="n">1014</td><td class="n">160</td></tr>
+    </table>
+    <p class="bajada">Las mismas 12 preguntas, <b>sin documentación delante</b>, para ver qué
+    aporta cada nivel de entrenamiento por sí mismo. La atribución correcta progresa de
+    <b>0 % a 38 % y a 62 %</b>.</p>
+    <p class="bajada">«¿Qué hago si detecto una no conformidad?» — sin entrenar divaga sobre
+    generalidades; entrenado conversa bien pero nombra el documento equivocado; <b>afinado
+    responde citando el procedimiento de No Conformidad y Acciones Correctivas</b>, que es el
+    que toca. Y en 160 caracteres en vez de 1014.</p>
   </div>
-  <footer class="pie"><span>La lección de la fase</span><span class="num">06 / 10</span></footer>
+  <footer class="pie"><span>Mismas preguntas · tres modelos</span><span class="num">06 / 10</span></footer>
 </section>
 <section class="lamina">
   <header class="membrete"><span class="cod">ABISERVI · 07</span><span class="sec">Generación de imágenes</span></header>
@@ -388,8 +381,10 @@ code,.mono,.cod{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,mo
       <div class="columna">
         <span class="rotulo si">Demostrado</span>
         <ul class="puntos">
-          <li>El fine-tuning internaliza el <b>formato</b>: respuestas un <b>83 % más
-          cortas</b> y con el estilo de la casa, sin el prompt delante.</li>
+          <li>Con documentación delante, la <b>cita correcta sube de 88 % a 100 %</b> y la
+          respuesta es un <b>83 % más corta</b>.</li>
+          <li>Sin documentación, la atribución correcta progresa <b>0 % → 38 % → 62 %</b>:
+          el modelo internaliza contenido, no solo forma.</li>
           <li>La generación de imágenes funciona <b>en infraestructura propia</b>, con la marca
           real y respaldo documental.</li>
           <li>Todo es <b>reproducible</b>: un notebook y un comando.</li>
@@ -398,8 +393,11 @@ code,.mono,.cod{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,mo
       <div class="columna">
         <span class="rotulo no">No demostrado</span>
         <ul class="puntos neg">
-          <li>El fine-tuning <b>empeora la atribución</b> —38 % frente a 50 %— porque el
-          modelo nombra el documento equivocado con seguridad. Medido, no supuesto.</li>
+          <li>Hicieron falta <b>dos datasets</b>: uno enseña formato y se evalúa con
+          recuperación; el otro memoriza y se evalúa sin ella. Medir uno en el escenario del
+          otro no significa nada, y costó dos tablas tiradas descubrirlo.</li>
+          <li>El afinado aún <b>repite la atribución</b> al final de la respuesta. Se corrige
+          con más épocas o penalizando la repetición.</li>
           <li>El conjunto de evaluación es <b>pequeño</b>: sirve para ver un patrón, no para
           afirmar un porcentaje con intervalo de confianza.</li>
           <li>El ROI son <b>estimaciones</b>, no medidas de producción.</li>

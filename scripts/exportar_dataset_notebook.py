@@ -29,6 +29,7 @@ RAIZ = Path(__file__).resolve().parent.parent
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--tenant", default="empresa-demo-iso")
+    parser.add_argument("--nombre", default="normia_dataset.jsonl")
     parser.add_argument("--salida", type=Path, default=RAIZ / "notebooks")
     args = parser.parse_args()
 
@@ -38,7 +39,7 @@ def main() -> int:
         return 1
 
     args.salida.mkdir(parents=True, exist_ok=True)
-    destino = args.salida / "normia_dataset.jsonl"
+    destino = args.salida / args.nombre
 
     cuenta: Counter[str] = Counter()
     familias: Counter[str] = Counter()

@@ -1,0 +1,78 @@
+# Entrenamiento LoRA sobre base cuantizada a 4 bits (QLoRA) con MLX.
+#
+#   uv run python scripts/train_lora.py -c scripts/lora_qwen3-4b.yaml
+#
+# MEMORIZACION. Los ejemplos NO llevan el texto de la clausula: solo pregunta y
+# respuesta. El modelo tiene que sacar el contenido de sus pesos, no de un
+# documento delante. Es el experimento del taller de la sesion 2 -- el dossier de
+# Wayra no es consultable -- aplicado al SGC del cliente.
+#
+# La variante CON contexto (`lora_qwen3-4b.yaml`) ensena el FORMATO y se evalua
+# CON recuperacion. Esta ensena el CONTENIDO y se evalua SIN ella. Medir una en
+# el escenario de la otra no significa nada.
+#
+# Secuencia 2048 y no 4608: sin los fragmentos, la mediana baja de 3.236 tokens a
+# 1.890 y el maximo a 1.950. Cabe de sobra, y cada paso cuesta la mitad, asi que
+# se suben las iteraciones de 400 a 600 -- memorizar necesita mas pasadas que
+# aprender un formato.
+
+# POR QUE ESTE MODELO Y NO Qwen3.5-4B
+# -----------------------------------
+# Qwen3.5-4B parecia la eleccion obvia: es el que usa el taller de la sesion 2 y
+# comparte familia con el de produccion. Pero no se puede entrenar aqui, y se
+# comprobo midiendo:
+#
+#   * 24 de sus 32 capas son `linear_attention` con `mamba_ssm_dtype: float32`.
+#     Es un hibrido tipo Mamba, y la ruta de entrenamiento de atencion lineal en
+#     MLX materializa el estado recurrente a lo largo de toda la secuencia.
+#   * Su vocabulario son 248.320 tokens, no 151.936.
+#   * Medido: 33 GB de pico con secuencias de 512 tokens, y el doble al doblar la
+#     longitud. Bajar `num_layers` de 16 a 4 no cambiaba nada -- la memoria no se
+#     iba en las capas LoRA.
+#
+# Qwen3-4B es denso y de atencion completa: 8.3 GB de pico a 4608 tokens.
+model: "mlx-community/Qwen3-4B-4bit"
+train: true
+data: "data/finetune/empresa-demo-iso-memoria"
+adapter_path: "adapters/qwen3-4b-memoria"
+
+fine_tune_type: lora
+optimizer: adamw
+
+# 4608 y no 2048. Medido con el tokenizador sobre el dataset real: la mediana es
+# de 3180 tokens y el maximo 4388, porque los esquemas de las 7 herramientas se
+# renderizan enteros en CADA ejemplo. Con el 2048 por defecto se truncarian los
+# 584 ejemplos, y truncar con `mask_prompt` activo corta la respuesta del
+# asistente: se enmascara todo, no queda ni un token que aprender y la perdida
+# sale NaN. Se observo exactamente eso.
+max_seq_length: 2048
+
+# La perdida se calcula SOLO sobre la respuesta del asistente. Sin esto el modelo
+# tambien se entrena para generar el prompt -- que aqui incluye el texto integro
+# de la clausula recuperada -- y eso es lo contrario de lo que queremos: traer la
+# clausula es trabajo del RAG, no del modelo.
+mask_prompt: true
+
+# Imprescindible, no opcional: sin el, el pico pasa de 8.3 GB a 44.8 GB y no cabe.
+grad_checkpoint: true
+
+batch_size: 1
+grad_accumulation_steps: 4   # lote efectivo de 4
+num_layers: 16
+
+# 468 ejemplos / lote efectivo 4 = 117 pasos por epoca. 400 pasos son ~3.4
+# epocas; el taller de clase usa 4.
+iters: 500
+
+learning_rate: 1.0e-4
+steps_per_report: 20
+steps_per_eval: 100
+save_every: 100
+val_batches: -1              # el conjunto de validacion entero, son 57
+test: true
+test_batches: -1
+
+lora_parameters:
+  rank: 16                   # igual que LORA_R del taller de la sesion 2
+  scale: 20.0
+  dropout: 0.0

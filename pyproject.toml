@@ -74,3 +74,5 @@ extend-immutable-calls = [
 # cumplir el ancho de linea romperia la indentacion del codigo generado.
 "scripts/construir_notebook.py" = ["E501"]
 "scripts/construir_ejecutiva.py" = ["E402", "E501"]
+# El LEEME de la entrega es una tabla markdown dentro de un literal.
+"scripts/preparar_entrega.py" = ["E501"]

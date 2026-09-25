@@ -81,6 +81,21 @@ logger = logging.getLogger("build_finetune_dataset")
 #           tienen donde vivir salvo en los pesos, que es de lo que se trata.
 _SYSTEM_PROMPT = DEFAULT_SYSTEM_PROMPT
 
+# Si esta activo, los ejemplos NO llevan el texto de la clausula dentro del
+# prompt: solo pregunta y respuesta. Cambia por completo QUE aprende el modelo.
+#
+#   con contexto (por defecto)  "dado ESTE documento delante, redacta asi"
+#                               -> aprende el FORMATO. Se evalua CON recuperacion.
+#   sin contexto                "esta es la respuesta, memorizala"
+#                               -> aprende el CONTENIDO. Se evalua SIN recuperacion.
+#
+# Son dos experimentos distintos, no uno mejor que otro. El taller de la sesion 2
+# hace el segundo -- el dossier de Wayra no es consultable, hay que memorizarlo.
+# Medir un dataset con contexto en un escenario sin recuperacion es pedirle al
+# modelo algo que nunca se le enseno, y da un resultado que no significa nada.
+_SIN_CONTEXTO = False
+_CON_HERRAMIENTAS = True
+
 RAIZ = Path(__file__).resolve().parent.parent
 BENCHMARK = RAIZ / "scripts" / "benchmark_models.py"
 
@@ -100,7 +115,10 @@ class Ejemplo:
 
     def to_record(self) -> dict[str, Any]:
         record: dict[str, Any] = {"messages": fundir_sistemas(self.messages)}
-        if self.tools:
+        # Los esquemas solo viajan si el dataset entrena herramientas. En uno de
+        # memorizacion son 1.200 tokens de ruido en cada ejemplo, y ademas le
+        # ensenan al modelo que la etiqueta <tool_call> es una salida valida.
+        if self.tools and _CON_HERRAMIENTAS:
             record["tools"] = self.tools
         return record
 
@@ -207,6 +225,13 @@ def mensajes_con_contexto(
     clausulas: list[Clausula],
     faqs: list[tuple[str, str, Clausula]] | None = None,
 ) -> list[dict[str, Any]]:
+    if _SIN_CONTEXTO:
+        # Sin fragmentos: el modelo tiene que sacar la respuesta de sus pesos.
+        return [
+            {"role": "system", "content": _SYSTEM_PROMPT},
+            {"role": "user", "content": pregunta},
+        ]
+
     """
     Reproduce el prompt exacto que el orquestador arma en produccion.
 
@@ -995,6 +1020,24 @@ def main() -> int:
         help="tope de la familia `cita`, la mayoritaria. 0 = sin tope",
     )
     parser.add_argument(
+        "--solo-familias",
+        nargs="*",
+        help=(
+            "quedarse solo con estas familias. En un dataset de MEMORIZACION hay que "
+            "usar `--solo-familias cita fantasma`: las de herramienta no tienen sentido "
+            "sin contexto, y mezclarlas produjo un adaptador que escupia <tool_call> en "
+            "bucle ante cualquier pregunta."
+        ),
+    )
+    parser.add_argument(
+        "--sin-contexto",
+        action="store_true",
+        help=(
+            "los ejemplos NO llevan el texto de la clausula: solo pregunta y respuesta. "
+            "El modelo memoriza el contenido en vez de aprender el formato."
+        ),
+    )
+    parser.add_argument(
         "--prompt",
         choices=["tenant", "minimo"],
         default="tenant",
@@ -1022,7 +1065,11 @@ def main() -> int:
         logger.error("OJO: hace falta el .json VALIDADO, no el .jsonl (checkpoint crudo)")
         return 1
 
-    global _SYSTEM_PROMPT
+    global _SYSTEM_PROMPT, _SIN_CONTEXTO, _CON_HERRAMIENTAS
+    _SIN_CONTEXTO = args.sin_contexto
+    _CON_HERRAMIENTAS = not args.solo_familias or "herramienta" in args.solo_familias
+    if _SIN_CONTEXTO:
+        logger.info("modo MEMORIZACION: los ejemplos no llevan el texto de la clausula")
     if args.prompt == "tenant":
         _SYSTEM_PROMPT, procedencia = prompt_del_tenant(args.tenant)
     else:
@@ -1064,6 +1111,15 @@ def main() -> int:
     if not ejemplos:
         logger.error("no se construyo ningun ejemplo")
         return 1
+
+    if args.solo_familias:
+        antes = len(ejemplos)
+        ejemplos = [e for e in ejemplos if e.familia in set(args.solo_familias)]
+        descartes.append(
+            f"--solo-familias={' '.join(args.solo_familias)}: "
+            f"{antes - len(ejemplos)} ejemplos de otras familias fuera"
+        )
+        logger.info("familias conservadas: %s", ", ".join(args.solo_familias))
 
     ejemplos, recortados = limitar_familia(ejemplos, "cita", args.cap_cita, rng)
     if recortados:

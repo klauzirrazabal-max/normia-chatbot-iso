@@ -5,10 +5,10 @@ Asi se ve lo que aporta el modelo por si mismo.
 
 | Metrica | Sin entrenamiento | Con entrenamiento | Con fine-tuning |
 |---|---|---|---|
-| Atribuye una fuente | 67% | 67% | 50% |
-| Y es la correcta | 50% | 50% | 38% |
+| Atribuye una fuente | 17% | 67% | 83% |
+| Y es la correcta | 0% | 38% | 62% |
 | Sin citas inventadas | 100% | 100% | 100% |
-| Longitud mediana | 895 | 1014 | 150 |
+| Longitud mediana | 895 | 1014 | 160 |
 
 ## Una respuesta de cada estado
 
@@ -31,5 +31,5 @@ Asi se ve lo que aporta el modelo por si mismo.
 > 
 > </think>
 > 
-> La atención se realiza de forma inmediata. Lo define el procedimiento Atención de Solicitudes Tecnologicas, seccion 7.6.
+> El tiempo de atención se establece en el procedimiento Atención de Solicitudes Tecnológicas, seccion 7.6. Esta en el procedimiento Atención de Solicitudes Tecnológicas, seccion 7.6.
 

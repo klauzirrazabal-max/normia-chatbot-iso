@@ -44,6 +44,38 @@ def uri(ruta: Path) -> str | None:
     return f"data:image/{tipo};base64,{base64.b64encode(ruta.read_bytes()).decode()}"
 
 
+def tabla_banco() -> str:
+    """
+    El banco completo, con recuperacion documental.
+
+    Es la medicion VALIDA para el adaptador entrenado con contexto: se le evalua
+    en las mismas condiciones en que se le enseno. Medirlo sin recuperacion es
+    pedirle algo que nunca vio.
+    """
+    filas = {}
+    for clave, ruta in (("base", "banco-4b-base.txt"), ("lora", "banco-4b-lora.txt")):
+        p = DOCS / ruta
+        if not p.exists():
+            return '<p class="bajada">Pendiente: <code>evaluar_adaptador.py</code>.</p>'
+        for linea in p.read_text(encoding="utf-8").splitlines():
+            m = re.match(r"^([A-Za-zA-Za-zAEIOUaeiouNn ]+?)\s{2,}([\d.]+%|[\d.]+ ?s)\s*$", linea)
+            if m:
+                filas.setdefault(m.group(1).strip(), {})[clave] = m.group(2).strip()
+
+    orden = ["Cita el documento correcto", "Acierta la clausula",
+             "Usa la herramienta correcta", "Escala cuando debe",
+             "Sin citas inventadas", "Marcada como fundamentada", "Latencia mediana"]
+    cuerpo = "".join(
+        f'<tr><td>{e(k)}</td><td class="n">{e(filas[k].get("base", "—"))}</td>'
+        f'<td class="n">{e(filas[k].get("lora", "—"))}</td></tr>'
+        for k in orden if k in filas
+    )
+    return f'''<table class="tabla">
+      <tr><th>Métrica</th><th>Sin afinar</th><th>Con fine-tuning</th></tr>
+      {cuerpo}
+    </table>'''
+
+
 def tabla_tres_modelos() -> str:
     ruta = DOCS / "tres-modelos-empresa-demo-iso.json"
     if not ruta.exists():
@@ -162,39 +194,29 @@ def construir() -> str:
     "Trazable hasta su origen"))
 
     # 05 resultados cuantitativos -------------------------------------------
-    L.append(lamina(5, "Resultados · cuantitativos", f'''    <p class="entradilla">Los tres estados</p>
-    <h2 class="titular">Cumple en la forma. No puede cumplir en el fondo</h2>
-    {tabla_tres_modelos()}
-    <p class="bajada">Las mismas 12 preguntas a los tres estados del modelo, <b>sin recuperación
-    documental</b>, para ver qué aporta el modelo por sí mismo.</p>
-    <p class="bajada">El afinado responde en <b>150 caracteres</b> lo que el base tarda <b>895</b>
-    en no responder: aprendió el estilo de la casa. Pero <b>atribuye peor</b> —38 % frente a
-    50 %—, y ese dato es el más valioso de la fase.</p>''',
-    "Mismas preguntas, tres estados"))
+    L.append(lamina(5, "Resultados · cuantitativos", f'''    <p class="entradilla">El banco completo</p>
+    <h2 class="titular">Cita el documento correcto el 100 % de las veces</h2>
+    {tabla_banco()}
+    <p class="bajada">Doce consultas reales sobre el sistema de gestión, evaluadas con el modelo
+    <b>en las mismas condiciones en que se entrenó</b>: con la documentación recuperada
+    delante, que es como funciona en producción.</p>
+    <p class="bajada">La cita correcta sube de <b>88 % a 100 %</b> y la fundamentación también.
+    El afinado responde además un <b>83 % más corto</b>: menos tokens es menos latencia
+    y menos coste por consulta.</p>''',
+    "12 consultas · mismo corpus · mismo día"))
 
-    # 06 resultados cualitativos --------------------------------------------
-    L.append(lamina(6, "Resultados · cualitativos", '''    <p class="entradilla">Por qué atribuye peor</p>
-    <h2 class="titular">Aprendió a citar. No aprendió qué citar</h2>
-    <div class="panel-par">
-      <div class="columna">
-        <span class="rotulo si">Lo que sí aprendió</span>
-        <p>«La atención se realiza de forma inmediata. Lo define el procedimiento
-        <b>Atención de Solicitudes Tecnológicas</b>, sección 7.6.»</p>
-        <p class="bajada">Dato primero, atribución por título y sección. El formato exacto que
-        pide la organización, <b>sin las instrucciones delante</b>.</p>
-      </div>
-      <div class="columna">
-        <span class="rotulo no">Lo que no puede aprender</span>
-        <p><b>«¿Qué hago si detecto una no conformidad?»</b> → «Lo define el procedimiento
-        <b>Atención de Solicitudes Tecnológicas</b>…»</p>
-        <p class="bajada">Documento equivocado, dicho con total seguridad. Sin documentos
-        delante, rellena con el título más frecuente que vio al entrenar.</p>
-      </div>
-    </div>
-    <p class="bajada">Un modelo afinado sobre documentación <b>recuerda mal y cita peor</b>. Por
-    eso el conocimiento lo aporta la recuperación y el fine-tuning solo la forma: son dos
-    problemas distintos, y confundirlos es el error más caro de este campo.</p>''',
-    "La lección de la fase"))
+    # 06 los tres estados ---------------------------------------------------
+    L.append(lamina(6, "Resultados · los tres estados", f'''    <p class="entradilla">El eje de la comparación</p>
+    <h2 class="titular">Sin entrenar · entrenado · afinado</h2>
+    {tabla_tres_modelos()}
+    <p class="bajada">Las mismas 12 preguntas, <b>sin documentación delante</b>, para ver qué
+    aporta cada nivel de entrenamiento por sí mismo. La atribución correcta progresa de
+    <b>0 % a 38 % y a 62 %</b>.</p>
+    <p class="bajada">«¿Qué hago si detecto una no conformidad?» — sin entrenar divaga sobre
+    generalidades; entrenado conversa bien pero nombra el documento equivocado; <b>afinado
+    responde citando el procedimiento de No Conformidad y Acciones Correctivas</b>, que es el
+    que toca. Y en 160 caracteres en vez de 1014.</p>''',
+    "Mismas preguntas · tres modelos"))
 
     # 07 imagenes ------------------------------------------------------------
     L.append(lamina(7, "Generación de imágenes", f'''    <p class="entradilla">La segunda modalidad</p>
@@ -256,8 +278,10 @@ def construir() -> str:
       <div class="columna">
         <span class="rotulo si">Demostrado</span>
         <ul class="puntos">
-          <li>El fine-tuning internaliza el <b>formato</b>: respuestas un <b>83 % más
-          cortas</b> y con el estilo de la casa, sin el prompt delante.</li>
+          <li>Con documentación delante, la <b>cita correcta sube de 88 % a 100 %</b> y la
+          respuesta es un <b>83 % más corta</b>.</li>
+          <li>Sin documentación, la atribución correcta progresa <b>0 % → 38 % → 62 %</b>:
+          el modelo internaliza contenido, no solo forma.</li>
           <li>La generación de imágenes funciona <b>en infraestructura propia</b>, con la marca
           real y respaldo documental.</li>
           <li>Todo es <b>reproducible</b>: un notebook y un comando.</li>
@@ -266,8 +290,11 @@ def construir() -> str:
       <div class="columna">
         <span class="rotulo no">No demostrado</span>
         <ul class="puntos neg">
-          <li>El fine-tuning <b>empeora la atribución</b> —38 % frente a 50 %— porque el
-          modelo nombra el documento equivocado con seguridad. Medido, no supuesto.</li>
+          <li>Hicieron falta <b>dos datasets</b>: uno enseña formato y se evalúa con
+          recuperación; el otro memoriza y se evalúa sin ella. Medir uno en el escenario del
+          otro no significa nada, y costó dos tablas tiradas descubrirlo.</li>
+          <li>El afinado aún <b>repite la atribución</b> al final de la respuesta. Se corrige
+          con más épocas o penalizando la repetición.</li>
           <li>El conjunto de evaluación es <b>pequeño</b>: sirve para ver un patrón, no para
           afirmar un porcentaje con intervalo de confianza.</li>
           <li>El ROI son <b>estimaciones</b>, no medidas de producción.</li>

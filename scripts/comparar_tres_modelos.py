@@ -65,6 +65,29 @@ _COMUNES = {
 }
 
 
+# UNA ATRIBUCION TIENE FORMA, no solo vocabulario. "lo define el procedimiento de
+# Compras" atribuye; "la evaluacion de proveedores es un proceso crucial" habla
+# del mismo tema y no atribuye nada.
+#
+# La primera version solo exigia dos palabras distintivas de algun titulo, y eso
+# daba por CITADO a un modelo crudo que divagaba sobre el tema: encontraba
+# "informacion" y "documentada" y concluia que habia citado CAL-IN-01, un
+# documento que jamas ha visto. Le daba 67%.
+#
+# Peor aun, era un SESGO POR LONGITUD: cuanto mas largo el texto, mas
+# oportunidades de acertar dos palabras por azar. El modelo afinado, que responde
+# en 150 caracteres, salia penalizado por ser conciso. La tabla no media
+# atribucion, medía verborrea.
+#
+# Exigiendo el conector, el modelo crudo baja de 67% a 25% y el entrenado se
+# queda igual en 67%: la metrica empieza a separar lo que debe.
+_ATRIBUCION = re.compile(
+    r"\b(el|la|los|las)\s+(procedimiento|politica|manual|instructivo|formato|plan|"
+    r"organigrama|documento|ficha|registro)\b",
+    re.I,
+)
+
+
 def _distintivas(titulo: str) -> set[str]:
     return {
         p for p in re.findall(r"\w+", _sin_acentos(titulo))
@@ -137,12 +160,14 @@ def medir(caso, respuesta: str, reales: set[str], titulos: dict[str, str]) -> di
     citados = extract_cited_codes(respuesta)
     fantasmas = citados - reales
     normal = _sin_acentos(respuesta)
+    palabras = set(re.findall(r"\w+", normal))
 
-    # Titulos nombrados: se exigen dos palabras distintivas, el mismo criterio
-    # que `response_cites_source` aplica en produccion.
+    # El titulo solo cuenta si viene acompanado del conector: sin el, dos
+    # palabras sueltas del tema bastarian para dar por citado a quien divaga.
+    hay_conector = bool(_ATRIBUCION.search(normal))
     nombrados = {
         codigo for codigo, titulo in titulos.items()
-        if len(_distintivas(titulo) & set(re.findall(r"\w+", normal))) >= 2
+        if hay_conector and len(_distintivas(titulo) & palabras) >= 2
     }
     esperados = {c.upper() for c in caso.codigos_esperados}
 

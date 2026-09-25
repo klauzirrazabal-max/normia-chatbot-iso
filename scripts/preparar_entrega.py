@@ -9,7 +9,8 @@ asi que no hay que acordarse de actualizar copias sueltas.
     entrega/
       LEEME.md                      que es cada cosa y en que orden
       NormIA_Fase2.ipynb            el notebook, listo para Colab
-      normia_dataset.jsonl          584 ejemplos (se sube al panel de archivos)
+      normia_dataset.jsonl          584 ejemplos, CON el documento delante
+      normia_dataset_memoria.jsonl  los mismos 584, SIN el documento
       presentacion-ejecutiva.html   10 laminas
       presentacion-ejecutiva.pdf    la misma, para imprimir o adjuntar
       imagenes/                     las piezas generadas
@@ -41,15 +42,32 @@ generacion de material visual con difusion.
 
 1. Sube **`NormIA_Fase2.ipynb`** a [colab.research.google.com](https://colab.research.google.com).
 2. **Entorno de ejecucion → Cambiar tipo de entorno → GPU** (una T4 basta).
-3. Abre el panel de archivos (icono de carpeta, a la izquierda) y **arrastra
-   `normia_dataset.jsonl`**.
+3. Abre el panel de archivos (icono de carpeta, a la izquierda) y **arrastra los
+   dos ficheros `.jsonl`**.
 4. **Entorno de ejecucion → Ejecutar todas.**
 
 Tarda unos 45 minutos: la mayor parte es el entrenamiento y la descarga del
 modelo de difusion.
 
-> El dataset son 584 ejemplos derivados de los documentos controlados del
-> cliente. No es publico.
+> Los datasets son 584 ejemplos derivados de los documentos controlados del
+> cliente. No son publicos.
+
+## Los dos datasets, y por que son dos
+
+Los mismos 584 ejemplos, construidos de dos maneras. **No es una copia de
+seguridad: son dos experimentos distintos.**
+
+| Fichero | Que lleva el ejemplo | Que aprende el modelo | Como se evalua |
+|---|---|---|---|
+| `normia_dataset.jsonl` | El texto de la clausula **dentro** del prompt | El **formato**: dato primero, atribuir por titulo | **CON** recuperacion |
+| `normia_dataset_memoria.jsonl` | Solo pregunta y respuesta | El **contenido**: lo memoriza | **SIN** recuperacion |
+
+El primero es el de produccion. El segundo es el experimento del taller de la
+sesion 2 -- el dossier de Wayra no es consultable, hay que memorizarlo --
+aplicado al sistema de gestion del cliente.
+
+**Medir uno en el escenario del otro no significa nada**: es pedirle al modelo
+algo que nunca se le enseno.
 
 ## Que contiene el notebook
 
@@ -96,7 +114,10 @@ def main() -> int:
     for orden, desc in (
         ([PY, "scripts/construir_notebook.py"], "notebook"),
         ([PY, "scripts/construir_ejecutiva.py"], "presentacion ejecutiva"),
-        ([PY, "scripts/exportar_dataset_notebook.py"], "dataset"),
+        ([PY, "scripts/exportar_dataset_notebook.py"], "dataset con contexto"),
+        ([PY, "scripts/exportar_dataset_notebook.py",
+          "--tenant", "empresa-demo-iso-memoria",
+          "--nombre", "normia_dataset_memoria.jsonl"], "dataset de memorizacion"),
     ):
         if not correr(orden, desc):
             return 1
@@ -110,6 +131,8 @@ def main() -> int:
     copias = [
         (RAIZ / "notebooks" / "NormIA_Fase2.ipynb", DESTINO / "NormIA_Fase2.ipynb"),
         (RAIZ / "notebooks" / "normia_dataset.jsonl", DESTINO / "normia_dataset.jsonl"),
+        (RAIZ / "notebooks" / "normia_dataset_memoria.jsonl",
+         DESTINO / "normia_dataset_memoria.jsonl"),
         (RAIZ / "docs" / "presentacion-ejecutiva.html", DESTINO / "presentacion-ejecutiva.html"),
     ]
     for origen, destino in copias:

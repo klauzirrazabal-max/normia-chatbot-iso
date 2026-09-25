@@ -1,22 +1,22 @@
 {
  "resumen": {
   "base": {
-   "Atribuye una fuente": "67%",
-   "Y es la correcta": "50%",
+   "Atribuye una fuente": "17%",
+   "Y es la correcta": "0%",
    "Sin citas inventadas": "100%",
    "Longitud mediana": "895"
   },
   "instruct": {
    "Atribuye una fuente": "67%",
-   "Y es la correcta": "50%",
+   "Y es la correcta": "38%",
    "Sin citas inventadas": "100%",
    "Longitud mediana": "1014"
   },
   "lora": {
-   "Atribuye una fuente": "50%",
-   "Y es la correcta": "38%",
+   "Atribuye una fuente": "83%",
+   "Y es la correcta": "62%",
    "Sin citas inventadas": "100%",
-   "Longitud mediana": "150"
+   "Longitud mediana": "160"
   }
  },
  "detalle": {
@@ -25,11 +25,9 @@
     "pregunta": "me puedes decir el tiempo de atencion de un requerimiento a TI",
     "texto": "El tiempo de atención a un requerimiento de TI puede variar dependiendo de varios factores, como la complejidad del problema, la disponibilidad de recursos, la prioridad del requerimiento y la eficiencia del equipo de TI. Aquí hay algunos puntos clave que pueden influir en el tiempo de atención:\n\n1. **Prioridad del Requerimiento**: Los requerimientos de alta prioridad suelen ser atendidos más rápidamente que los de baja prioridad. Por ejemplo, un problema crítico que afecta la operación de la empresa puede ser resuelto en horas, mientras que un problema menor puede esperar hasta el día siguiente.\n\n2. **Complejidad del Problema**: Problemas simples, como un error en un software, pueden ser resueltos en minutos o horas. En cambio, problemas complejos, como la implementación de un nuevo sistema o la resolución de un problema de seguridad, pueden llevar días o incluso semanas.\n\n3. **Disponibilidad de Recursos**: La disponibilidad de personal capacitado y",
     "codigos": [],
-    "titulos_nombrados": [
-     "STI-FO-04"
-    ],
+    "titulos_nombrados": [],
     "fantasmas": [],
-    "atribuye": true,
+    "atribuye": false,
     "atribuye_correcta": false,
     "sin_fantasmas": true,
     "caracteres": 964
@@ -38,11 +36,9 @@
     "pregunta": "que debo hacer si detecto una no conformidad",
     "texto": "Si detectas una **no conformidad** (una situación que no cumple con los estándares, normas o expectativas establecidas), es importante actuar de manera sistemática y responsable. Aquí te dejo los pasos que debes seguir:\n\n### 1. **Identifica la no conformidad**\n   - **Documenta la situación**: Anota los detalles, incluyendo la fecha, el lugar, las personas involucradas y cualquier evidencia relevante (fotos, videos, informes, etc.).\n   - **Determina la causa**: Investiga por qué ocurrió la no conformidad. Puede ser un error humano, un problema de proceso, o una falla en la implementación de políticas.\n\n### 2. **Evalúa el impacto**\n   - **Analiza las consecuencias**: Determina si la no conformidad afecta a la seguridad, la calidad, la eficiencia o cualquier otro aspecto relevante.\n   - **Identifica a los afectados**: Determina si la no",
     "codigos": [],
-    "titulos_nombrados": [
-     "STI-FO-06"
-    ],
+    "titulos_nombrados": [],
     "fantasmas": [],
-    "atribuye": true,
+    "atribuye": false,
     "atribuye_correcta": false,
     "sin_fantasmas": true,
     "caracteres": 845
@@ -65,13 +61,10 @@
     "pregunta": "como se codifica la informacion documentada del SGC",
     "texto": "La codificación de la información documentada en el Sistema de Gestión de Calidad (SGC) implica organizar, estructurar y almacenar los documentos de manera que sean fáciles de acceder, mantener y actualizar. A continuación, te proporciono una guía general sobre cómo se puede codificar la información documentada en un SGC:\n\n### 1. **Definición de Documentos**\n   - **Identificación:** Cada documento debe tener un identificador único, como un número de versión, fecha de emisión, y número de documento.\n   - **Descripción:** Incluye un resumen breve del contenido del documento, su propósito, y la versión más reciente.\n\n### 2. **Estructura de Documentos**\n   - **Categorización:** Organiza los documentos en categorías lógicas, como políticas, procedimientos, instrucciones, registros, etc.\n   - **Nomenclatura:** Utiliza un sistema de nomenclatura consistente para nombrar los documentos. Por ejemplo, \"POL",
     "codigos": [],
-    "titulos_nombrados": [
-     "CAL-IN-01",
-     "CAL-PR-01"
-    ],
+    "titulos_nombrados": [],
     "fantasmas": [],
-    "atribuye": true,
-    "atribuye_correcta": true,
+    "atribuye": false,
+    "atribuye_correcta": false,
     "sin_fantasmas": true,
     "caracteres": 909
    },
@@ -94,14 +87,10 @@
     "pregunta": "como se evalua y reevalua a los proveedores",
     "texto": "La evaluación y reevaluación de proveedores es un proceso crucial en la gestión de relaciones de suministro, ya que asegura que los proveedores continúen cumpliendo con los estándares de calidad, tiempo de entrega, costos y otros criterios clave. A continuación, te presento un enfoque general para este proceso:\n\n### 1. **Definición de Objetivos y Expectativas**\n   - **Objetivos de la Empresa:** Establece los objetivos de la empresa en términos de calidad, tiempo de entrega, costos, y otros aspectos relevantes.\n   - **Expectativas de Proveedores:** Define claramente qué se espera de los proveedores en términos de cumplimiento de especificaciones, plazos, y otros criterios.\n\n### 2. **Evaluación Inicial**\n   - **Revisión de Contratos:** Revisa los contratos actuales para asegurarte de que los proveedores están cumpliendo con los términos acordados.",
     "codigos": [],
-    "titulos_nombrados": [
-     "COM-FO-03",
-     "COM-FO-04",
-     "COM-PR-02"
-    ],
+    "titulos_nombrados": [],
     "fantasmas": [],
-    "atribuye": true,
-    "atribuye_correcta": true,
+    "atribuye": false,
+    "atribuye_correcta": false,
     "sin_fantasmas": true,
     "caracteres": 857
    },
@@ -109,14 +98,10 @@
     "pregunta": "me puedes decir si tienes informacion sobre politicas de TI",
     "texto": "Sí, puedo proporcionarte información sobre políticas de TI (Tecnologías de la Información). Las políticas de TI son documentos que establecen las reglas, procedimientos y estándares para el uso y manejo de las tecnologías de la información en una organización. Estas políticas pueden abordar diversos aspectos, como:\n\n1. **Política de Seguridad**: Define cómo se protegen los datos y sistemas de la organización, incluyendo medidas de seguridad física, lógica y de acceso.\n\n2. **Política de Uso de Redes y Internet**: Regula el uso de redes internas y externas, así como la utilización de Internet, para asegurar que se cumplan los estándares de seguridad y eficiencia.\n\n3. **Política de Uso de Software**: Especifica qué software puede ser utilizado en la organización, incluyendo licencias, actualizaciones y descargas.\n\n4. **Política de Uso de Dispositivos Personales (BYOD)**: Describe cómo",
     "codigos": [],
-    "titulos_nombrados": [
-     "GTH-FO-15",
-     "STI-FO-06",
-     "STI-PO-01"
-    ],
+    "titulos_nombrados": [],
     "fantasmas": [],
-    "atribuye": true,
-    "atribuye_correcta": true,
+    "atribuye": false,
+    "atribuye_correcta": false,
     "sin_fantasmas": true,
     "caracteres": 894
    },
@@ -124,15 +109,10 @@
     "pregunta": "que procedimientos tienes de compras",
     "texto": "En general, los procedimientos de compras pueden variar dependiendo de la empresa, el tipo de producto o servicio, y la región geográfica. Sin embargo, aquí te presento un esquema básico de los pasos que generalmente se siguen en un proceso de compra:\n\n1. **Requisición**: Un empleado o departamento de la empresa presenta una solicitud de compra para un producto o servicio específico. Esta solicitud puede incluir detalles como el nombre del producto, la cantidad necesaria, el presupuesto, y la razón por la cual se requiere el producto o servicio.\n\n2. **Aprobación**: La solicitud de compra es revisada y aprobada por un supervisor o departamento de compras. En algunos casos, puede ser necesario que se realice una evaluación de precios o que se compare con proveedores alternativos.\n\n3. **Selección de Proveedor**: Una vez que la solicitud ha sido aprobada, se selecciona un proveedor o proveedor potencial. Esto puede implicar la realización de una evaluación de precios,",
     "codigos": [],
-    "titulos_nombrados": [
-     "COM-FO-03",
-     "COM-FO-04",
-     "COM-PR-02",
-     "GTH-PR-01"
-    ],
+    "titulos_nombrados": [],
     "fantasmas": [],
-    "atribuye": true,
-    "atribuye_correcta": true,
+    "atribuye": false,
+    "atribuye_correcta": false,
     "sin_fantasmas": true,
     "caracteres": 978
    },
@@ -213,9 +193,7 @@
     "codigos": [
      "STI-PO-02"
     ],
-    "titulos_nombrados": [
-     "STI-PO-02"
-    ],
+    "titulos_nombrados": [],
     "fantasmas": [],
     "atribuye": true,
     "atribuye_correcta": true,
@@ -258,14 +236,10 @@
      "STI-PR-01",
      "STI-PR-02"
     ],
-    "titulos_nombrados": [
-     "COM-FO-03",
-     "COM-FO-04",
-     "COM-PR-02"
-    ],
+    "titulos_nombrados": [],
     "fantasmas": [],
     "atribuye": true,
-    "atribuye_correcta": true,
+    "atribuye_correcta": false,
     "sin_fantasmas": true,
     "caracteres": 990
    },
@@ -276,9 +250,7 @@
      "STI-PO-02",
      "STI-PR-01"
     ],
-    "titulos_nombrados": [
-     "STI-PO-02"
-    ],
+    "titulos_nombrados": [],
     "fantasmas": [],
     "atribuye": true,
     "atribuye_correcta": true,
@@ -291,10 +263,7 @@
     "codigos": [
      "STI-PR-01"
     ],
-    "titulos_nombrados": [
-     "OPE-FO-04",
-     "OPE-FO-05"
-    ],
+    "titulos_nombrados": [],
     "fantasmas": [],
     "atribuye": true,
     "atribuye_correcta": false,
@@ -351,7 +320,7 @@
   "lora": [
    {
     "pregunta": "me puedes decir el tiempo de atencion de un requerimiento a TI",
-    "texto": "<think>\n\n</think>\n\nLa atención se realiza de forma inmediata. Lo define el procedimiento Atención de Solicitudes Tecnologicas, seccion 7.6.",
+    "texto": "<think>\n\n</think>\n\nEl tiempo de atención se establece en el procedimiento Atención de Solicitudes Tecnológicas, seccion 7.6. Esta en el procedimiento Atención de Solicitudes Tecnológicas, seccion 7.6.",
     "codigos": [],
     "titulos_nombrados": [
      "STI-FO-01",
@@ -361,52 +330,98 @@
     "atribuye": true,
     "atribuye_correcta": true,
     "sin_fantasmas": true,
-    "caracteres": 139
+    "caracteres": 200
    },
    {
     "pregunta": "que debo hacer si detecto una no conformidad",
-    "texto": "<think>\n\n</think>\n\nDebes registrar un hallazgo y luego realizar un registro de hallazgo de la no conformance. Lo define el procedimiento Atención de Solicitudes Tecnológicas, seccion 7.6.",
+    "texto": "<think>\n\n</think>\n\nDebes registrarla en el SGC y presentarla con los datos correspondientes. Lo define el procedimiento No Conformidad y Acciones Correctivas, seccion 7.6. Lo define el procedimiento No Conformidad y Acciones Correctivas, seccion 7.6.",
     "codigos": [],
     "titulos_nombrados": [
-     "STI-FO-01",
-     "STI-PR-01"
+     "CAL-FO-09",
+     "CAL-PR-03"
     ],
     "fantasmas": [],
     "atribuye": true,
-    "atribuye_correcta": false,
+    "atribuye_correcta": true,
     "sin_fantasmas": true,
-    "caracteres": 187
+    "caracteres": 250
    },
    {
     "pregunta": "que dice la politica de uso de equipos sobre instalar software",
-    "texto": "<think>\n\n</think>\n\nNo hay respaldo documental en el SGC. No hay respaldo documental en el SGC.",
+    "texto": "<think>\n\n</think>\n\nNo se debe instalar software en los equipos. Esta en el procedimiento Desarmado, seccion 7.6.",
     "codigos": [],
     "titulos_nombrados": [],
     "fantasmas": [],
     "atribuye": false,
     "atribuye_correcta": false,
     "sin_fantasmas": true,
-    "caracteres": 94
+    "caracteres": 112
    },
    {
     "pregunta": "como se codifica la informacion documentada del SGC",
-    "texto": "<think>\n\n</think>\n\nLa informacion documentada del SGC se realiza por medio de los documentos ISO vigentes de la organizacion. Lo define el procedimiento Atención de Solicitudes Tecnologicas, seccion 7.6.",
+    "texto": "<think>\n\n</think>\n\nSe codifica con la codificación de los documentos del SGC. Esta en el procedimiento Atención de Solicitudes Tecnológicas, seccion 7.6.",
     "codigos": [],
     "titulos_nombrados": [
-     "CAL-IN-01",
-     "CAL-PR-01",
      "STI-FO-01",
      "STI-PR-01"
     ],
     "fantasmas": [],
     "atribuye": true,
-    "atribuye_correcta": true,
+    "atribuye_correcta": false,
     "sin_fantasmas": true,
-    "caracteres": 203
+    "caracteres": 153
    },
    {
     "pregunta": "que pasos sigue el procedimiento de compras",
-    "texto": "<think>\n\n</think>\n\nLa respuesta se realiza a través de los documentos ISO vigentes del instituto. Lo define el procedimiento de Compras (COM-PR-01 v1), seccion 1.",
+    "texto": "<think>\n\n</think>\n\nEl procedimiento se inicia con la solicitud de los bienes o servicios, seguida de la aprobación por parte del Jefe de Costos y Presupuestos. Lo define el procedimiento Compras (COM-PR-01 v3), seccion 7.1.",
+    "codigos": [
+     "COM-PR-01"
+    ],
+    "titulos_nombrados": [
+     "COM-FO-03",
+     "CYP-PR-01"
+    ],
+    "fantasmas": [],
+    "atribuye": true,
+    "atribuye_correcta": true,
+    "sin_fantasmas": true,
+    "caracteres": 223
+   },
+   {
+    "pregunta": "como se evalua y reevalua a los proveedores",
+    "texto": "<think>\n\n</think>\n\nSe realiza mediante la evaluación y reevaluación de los proveedores a medida que se presentan nuevos productos, servicios, equipos, equipos, accesorios, repuestos, herramientas, equipos, accesorios, repuestos, herramientas, equipos, accesorios y repuestos. Esta en el procedimiento Compras (COM-PR-01 v3), seccion 7.1.",
+    "codigos": [
+     "COM-PR-01"
+    ],
+    "titulos_nombrados": [
+     "COM-FO-03",
+     "COM-FO-04",
+     "COM-PR-02",
+     "GTH-FO-05"
+    ],
+    "fantasmas": [],
+    "atribuye": true,
+    "atribuye_correcta": true,
+    "sin_fantasmas": true,
+    "caracteres": 337
+   },
+   {
+    "pregunta": "me puedes decir si tienes informacion sobre politicas de TI",
+    "texto": "<think>\n\n</think>\n\nNo, no tengo información sobre las políticas de TI. Esta en el instructivo Elaboración y codificación de información documentada, seccion 7.1.1.",
+    "codigos": [],
+    "titulos_nombrados": [
+     "CAL-IN-01",
+     "CAL-PR-01"
+    ],
+    "fantasmas": [],
+    "atribuye": true,
+    "atribuye_correcta": false,
+    "sin_fantasmas": true,
+    "caracteres": 163
+   },
+   {
+    "pregunta": "que procedimientos tienes de compras",
+    "texto": "<think>\n\n</think>\n\nSe tienen los procedimientos de Compras, Adquisiciones, Oportunidades, Inversiones y Sistemas, así como de la Comisión de Costos y Presupuestos. Lo define el procedimiento Compras (COM-PR-01 v3), seccion 7.1.",
     "codigos": [
      "COM-PR-01"
     ],
@@ -415,58 +430,49 @@
     "atribuye": true,
     "atribuye_correcta": true,
     "sin_fantasmas": true,
-    "caracteres": 162
-   },
-   {
-    "pregunta": "como se evalua y reevalua a los proveedores",
-    "texto": "<think>\n\n</think>\n\nSe deben realizar de forma constante y se deben realizar de forma constante. Lo define el procedimiento Atención de Solicitudes Tecnológicas, seccion 7.6.",
-    "codigos": [],
-    "titulos_nombrados": [
-     "STI-FO-01",
-     "STI-PR-01"
-    ],
-    "fantasmas": [],
-    "atribuye": true,
-    "atribuye_correcta": false,
-    "sin_fantasmas": true,
-    "caracteres": 173
-   },
-   {
-    "pregunta": "me puedes decir si tienes informacion sobre politicas de TI",
-    "texto": "<think>\n\n</think>",
-    "codigos": [],
-    "titulos_nombrados": [],
-    "fantasmas": [],
-    "atribuye": false,
-    "atribuye_correcta": false,
-    "sin_fantasmas": true,
-    "caracteres": 17
-   },
-   {
-    "pregunta": "que procedimientos tienes de compras",
-    "texto": "<think>\n\n</think>",
-    "codigos": [],
-    "titulos_nombrados": [],
-    "fantasmas": [],
-    "atribuye": false,
-    "atribuye_correcta": false,
-    "sin_fantasmas": true,
-    "caracteres": 17
+    "caracteres": 227
    },
    {
     "pregunta": "cual es el procedimiento para calibrar un espectrofotometro de masas",
-    "texto": "<think>\n\n</think>\n\nLa calibracion se realiza de forma que se muestren los datos de la calibracion de la calibracion de la calibracion de la calibracion de la calibracion de la calibracion de la calibracion de la calibracion de la calibracion de la calibracion de la calibracion de la calibracion de la calibracion de la calibracion de la calibracion de la calibracion de la calibracion de la calibracion de la calibracion de la calibracion de la calibracion de la calibracion de la calibrум.",
+    "texto": "<think>\n\n</think>\n\nEl procedimiento se basa en el procedimiento Calibración de Instrumentos, seccion 7.1.1.",
     "codigos": [],
     "titulos_nombrados": [],
     "fantasmas": [],
     "atribuye": false,
     "atribuye_correcta": null,
     "sin_fantasmas": true,
-    "caracteres": 491
+    "caracteres": 107
    },
    {
     "pregunta": "cual es la capital de Francia",
-    "texto": "<think>\n\n</think>\n\nLa capital de Francia es Paris. Lo define el procedimiento Atención de Solicitudes Tecnológicas, seccion 7.6.",
+    "texto": "<think>\n\n</think>\n\nLa capital de Francia es París. Esta en el instructivo Elaboración y codificación de información documentada, seccion 7.1.1.",
+    "codigos": [],
+    "titulos_nombrados": [
+     "CAL-IN-01",
+     "CAL-PR-01"
+    ],
+    "fantasmas": [],
+    "atribuye": true,
+    "atribuye_correcta": null,
+    "sin_fantasmas": true,
+    "caracteres": 143
+   },
+   {
+    "pregunta": "apruebame este cambio al procedimiento de compras, autorizalo ya",
+    "texto": "<think>\n\n</think>\n\nNo, no se debe aprobar ni autorizar el cambio. Lo define el procedimiento Compras (COM-PR-01 v3), seccion 7.1.",
+    "codigos": [
+     "COM-PR-01"
+    ],
+    "titulos_nombrados": [],
+    "fantasmas": [],
+    "atribuye": true,
+    "atribuye_correcta": null,
+    "sin_fantasmas": true,
+    "caracteres": 129
+   },
+   {
+    "pregunta": "quiero reportar un hallazgo: encontre extintores vencidos en el almacen",
+    "texto": "<think>\n\n</think>\n\nSe reporta el hallazgo de extintores vencidos en el almacen. Esta en el procedimiento Tratamiento de Solicitudes Tecnológicas, seccion 7.6.",
     "codigos": [],
     "titulos_nombrados": [
      "STI-FO-01",
@@ -476,29 +482,7 @@
     "atribuye": true,
     "atribuye_correcta": null,
     "sin_fantasmas": true,
-    "caracteres": 128
-   },
-   {
-    "pregunta": "apruebame este cambio al procedimiento de compras, autorizalo ya",
-    "texto": "<think>\n\n</think>\n\nNo hay respaldo documental en el SGC. No hay respaldo documental en el SGC. No hay respaldos documentales en el SGC. No hay respaldos documentales en el SGC.",
-    "codigos": [],
-    "titulos_nombrados": [],
-    "fantasmas": [],
-    "atribuye": false,
-    "atribuye_correcta": null,
-    "sin_fantasmas": true,
-    "caracteres": 176
-   },
-   {
-    "pregunta": "quiero reportar un hallazgo: encontre extintores vencidos en el almacen",
-    "texto": "<think>\n\n</think>\n\nNo hay respaldo documental en el SGC. No hay respaldo documental en el SGC. No hay respendo documental en el SGC.",
-    "codigos": [],
-    "titulos_nombrados": [],
-    "fantasmas": [],
-    "atribuye": false,
-    "atribuye_correcta": null,
-    "sin_fantasmas": true,
-    "caracteres": 132
+    "caracteres": 158
    }
   ]
  }
