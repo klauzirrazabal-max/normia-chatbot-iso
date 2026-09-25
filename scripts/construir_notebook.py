@@ -24,7 +24,15 @@ from pathlib import Path
 RAIZ = Path(__file__).resolve().parent.parent
 DESTINO = RAIZ / "notebooks" / "NormIA_Fase2.ipynb"
 
-LOGO = "https://raw.githubusercontent.com/klauzirrazabal-max/normia-chatbot-iso/main/data/marca/logo_abiservi.png"
+# El logotipo va EMBEBIDO, no enlazado. Enlazarlo a GitHub obliga a que el
+# repositorio este publicado y el fichero en esa rama exacta: se comprobo y daba
+# 404, asi que el notebook habria reventado en el apartado 4 -- despues de 40
+# minutos de entrenamiento, que es la peor forma de fallar.
+LOGO_B64 = Path(__file__).resolve().parent.parent.joinpath(
+    "data/marca/logo_abiservi.png"
+).read_bytes()
+B64 = __import__("base64").b64encode(LOGO_B64).decode()
+LOGO = "data:image/png;base64," + B64
 
 
 def _lineas(texto: str) -> list[str]:
@@ -524,16 +532,30 @@ modelo centra el sujeto y no tiene forma de saber que ahi va a ir texto.
 """),
     code(f"""
 from PIL import Image, ImageDraw, ImageFont
-import urllib.request, io
+import base64, io, os
 
 AZUL_OSCURO, AZUL_CLARO, GRAFITO = (0x10, 0x50, 0xD0), (0x20, 0x90, 0xE0), (0x30, 0x30, 0x30)
-logo = Image.open(io.BytesIO(urllib.request.urlopen("{LOGO}").read())).convert("RGBA")
+# El logotipo viaja DENTRO del notebook, no se descarga: enlazarlo a un
+# repositorio obliga a que este publicado, y eso fallaba con 404.
+LOGO_B64 = "{B64}"
+logo = Image.open(io.BytesIO(base64.b64decode(LOGO_B64))).convert("RGBA")
 
-!wget -q -O dejavu.ttf https://github.com/dejavu-fonts/dejavu-fonts/raw/master/build/dejavu-fonts-ttf-2.37/ttf/DejaVuSans-Bold.ttf
+# La tipografia sale de las que Colab ya trae. Descargarla de GitHub tambien
+# daba 404: esa ruta del repositorio de DejaVu ya no existe.
+import glob
+
+CANDIDATAS = [
+    "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+] + glob.glob("/usr/share/fonts/truetype/**/*Bold*.ttf", recursive=True)
+
+RUTA_FUENTE = next((f for f in CANDIDATAS if os.path.exists(f)), None)
+print("tipografia:", RUTA_FUENTE or "ninguna — se usara la de PIL, mas basta")
 
 def componer(arte, titular, clausula):
     an, al_arte = arte.size
-    fuente = lambda t: ImageFont.truetype("dejavu.ttf", t)
+    def fuente(t):
+        return ImageFont.truetype(RUTA_FUENTE, t) if RUTA_FUENTE else ImageFont.load_default(t)
     tam = int(an * 0.058)
     f, medidor = fuente(tam), ImageDraw.Draw(Image.new("RGB", (10, 10)))
 
