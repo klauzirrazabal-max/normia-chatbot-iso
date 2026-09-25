@@ -95,6 +95,18 @@ hace falta y con que clausula se respalda; el de difusion lo dibuja.
 
 Unsloth acelera el entrenamiento LoRA y reduce la memoria. `diffusers` es la
 libreria de Hugging Face para modelos de difusion; se usa en el apartado 4.
+
+> **Al instalar veras este aviso, y es inofensivo:**
+> ```
+> ERROR: pip's dependency resolver does not currently take into account all the
+> packages that are installed... gcsfs requires fsspec==..., but you have ...
+> ```
+> `gcsfs` es el cliente de Google Cloud Storage que Colab trae preinstalado.
+> Unsloth fija otra version de `fsspec` y pip avisa del choque, pero **este
+> notebook no usa GCS en ningun momento**. Sigue adelante.
+>
+> Un fallo de verdad se veria como `ERROR: Could not install packages` y
+> detendria la celda.
 """),
     code("""
 !pip install -q --upgrade unsloth unsloth_zoo
