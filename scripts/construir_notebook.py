@@ -234,6 +234,12 @@ modelo_base, tok = FastLanguageModel.from_pretrained(
     model_name=MODELO, max_seq_length=MAX_SEQ, load_in_4bit=True, full_finetuning=False,
 )
 FastLanguageModel.for_inference(modelo_base)
+
+# El aviso "Both max_new_tokens and max_length seem to have been set" sale en
+# CADA generacion y no aporta nada: max_new_tokens manda, que es lo que
+# queremos. Se quita el max_length del config para no llenar la salida de ruido.
+modelo_base.generation_config.max_length = None
+
 print(f"{modelo_base.num_parameters()/1e9:.2f}B parametros, cargado en 4 bits")
 """),
     code("""
@@ -257,13 +263,25 @@ PROMPTS = {
     ),
 }
 
+import re
+
+# RAZONAMIENTO DESACTIVADO, y no es opcional. Qwen3 abre un bloque <think> por
+# defecto y razona en ingles antes de contestar. Con 220 tokens de presupuesto
+# ese bloque se los come enteros y la respuesta nunca aparece: se midieron tres
+# variantes de prompt y las nueve salidas eran monologos en ingles.
+#
+# `enable_thinking=False` es como lo apaga la plantilla de Qwen. El `re.sub` es
+# la red de seguridad por si el modelo abre el bloque igualmente.
 def responder(modelo, sistema, pregunta, max_new_tokens=220):
     msgs = ([{"role": "system", "content": sistema}] if sistema else [])
     msgs.append({"role": "user", "content": pregunta})
-    entrada = tok.apply_chat_template(msgs, add_generation_prompt=True, return_tensors="pt").to("cuda")
+    entrada = tok.apply_chat_template(
+        msgs, add_generation_prompt=True, enable_thinking=False, return_tensors="pt",
+    ).to("cuda")
     salida = modelo.generate(entrada, max_new_tokens=max_new_tokens, do_sample=False,
                              pad_token_id=tok.eos_token_id)
-    return tok.decode(salida[0][entrada.shape[1]:], skip_special_tokens=True).strip()
+    texto = tok.decode(salida[0][entrada.shape[1]:], skip_special_tokens=True)
+    return re.sub(r"<think>.*?</think>", "", texto, flags=re.S).strip()
 
 filas = []
 for nombre, sistema in PROMPTS.items():
@@ -331,8 +349,12 @@ def fundir_sistemas(mensajes):
     return ([{"role": "system", "content": "\\n\\n".join(sistemas)}] if sistemas else []) + resto
 
 def a_texto(d):
+    # enable_thinking=False tambien AQUI: si los ejemplos de entrenamiento
+    # llevan el bloque <think> vacio y la inferencia no, el modelo ve dos
+    # formatos distintos y el adaptador transfiere peor.
     return {"text": tok.apply_chat_template(
-        fundir_sistemas(d["messages"]), tools=d.get("tools"), tokenize=False,
+        fundir_sistemas(d["messages"]), tools=d.get("tools"),
+        tokenize=False, enable_thinking=False,
     )}
 
 train = Dataset.from_list([d for d in datos if d["particion"] == "train"]).map(a_texto)
