@@ -373,9 +373,21 @@ print(f"train {len(train)} · valid {len(valid)} · test {len(test)}")
 print("\\nUltimos 300 caracteres de un ejemplo renderizado (lo que debe aprender):")
 print(repr(train[0]["text"][-300:]))
 """),
+    md("""
+### Cuanto va a tardar
+
+En una T4, la corrida completa son unos **40-50 minutos**. Si necesitas ver la
+cadena entera antes, pon `RAPIDO = True`: entrena 120 pasos en lugar de 351.
+
+La perdida baja menos, pero **el modelo aprende el formato igual** -- lo que
+cambia es cuanto contenido retiene. Para ensenar que el pipeline funciona basta;
+para el resultado que va a la presentacion, no.
+"""),
     code("""
 from trl import SFTTrainer, SFTConfig
 from unsloth.chat_templates import train_on_responses_only
+
+RAPIDO = False   # True -> 120 pasos, ~12 min. False -> 3 epocas, ~45 min.
 
 entrenador = SFTTrainer(
     model=modelo,
@@ -388,13 +400,15 @@ entrenador = SFTTrainer(
         per_device_train_batch_size=1,
         gradient_accumulation_steps=4,
         warmup_steps=10,
+        # max_steps manda sobre num_train_epochs cuando es > 0.
+        max_steps=120 if RAPIDO else -1,
         num_train_epochs=3,
         learning_rate=1e-4,
         fp16=not torch.cuda.is_bf16_supported(),
         bf16=torch.cuda.is_bf16_supported(),
         logging_steps=10,
         eval_strategy="steps",
-        eval_steps=50,
+        eval_steps=25 if RAPIDO else 50,
         optim="adamw_8bit",
         weight_decay=0.01,
         lr_scheduler_type="linear",
