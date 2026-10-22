@@ -331,37 +331,36 @@ def test_un_hallazgo_ajeno_responde_igual_que_uno_inexistente():
 # herramienta de gestion de calidad produciendo imagenes de cualquier cosa.
 
 
-def test_rechaza_lo_que_no_es_del_sistema():
-    from app.channels.imagen_adapter import _fuera_de_alcance
+def test_el_suelo_corta_lo_que_no_se_discute():
+    """
+    En el CHAT no se vuelve a juzgar el alcance con el modelo: el modelo ya
+    juzgo al decidir llamar a esta herramienta en vez de responder texto.
+    Pedirle un segundo dictamen sobre su propia decision serian treinta
+    segundos para que se diga que si a si mismo.
+
+    Lo que si se comprueba es el suelo, que no depende de ningun criterio y
+    que ningun texto puede justificar.
+    """
+    from app.channels.imagen_adapter import _rechazo_inapelable
 
     for texto in (
-        "invitation for my birthday party with balloons",
-        "beach sunset with palm trees",
-        "cute cartoon superhero for my kid",
-        "portrait of a celebrity",
+        "a weapon resting on a warehouse shelf",
+        "una persona desnuda en la oficina",
+        "un nino jugando en el muelle de carga",
     ):
-        assert _fuera_de_alcance(texto) is not None, texto
+        assert _rechazo_inapelable(texto) is not None, texto
 
 
-def test_acepta_material_del_sistema():
-    from app.channels.imagen_adapter import _fuera_de_alcance
+def test_el_suelo_deja_pasar_el_material_del_sistema():
+    from app.channels.imagen_adapter import _rechazo_inapelable
 
     for texto in (
         "warehouse worker in hard hat and high-visibility vest beside pallets",
         "emergency exit kept clear, floor markings, wide aisle",
         "controlled document folders and filing cabinet",
-        "quality audit meeting with checklist and clipboard",
+        "operario revisando el extintor del pasillo",
     ):
-        assert _fuera_de_alcance(texto) is None, texto
-
-
-def test_lo_neutro_tampoco_pasa():
-    # Lista BLANCA, no solo negra: "un bol de fruta" no tiene ninguna palabra
-    # prohibida, pero tampoco ninguna del vocabulario del sistema. Con solo una
-    # lista negra, cualquier tema nuevo se colaria.
-    from app.channels.imagen_adapter import _fuera_de_alcance
-
-    assert _fuera_de_alcance("a bowl of fruit on a wooden table") is not None
+        assert _rechazo_inapelable(texto) is None, texto
 
 
 def test_la_solicitud_exige_los_tres_campos():

@@ -96,70 +96,46 @@ _PARECIDO_MINIMO = 0.37
 #
 # Sin las dos, no se genera. Un cartel sin respaldo es propaganda.
 
-_VOCABULARIO = {
-    # entorno y operacion
-    "warehouse", "logistics", "pallet", "pallets", "forklift", "shelf", "shelves",
-    "storage", "inventory", "loading", "dock", "shipment", "cargo", "truck",
-    "office", "workplace", "workshop", "工場", "factory", "supplier", "delivery",
-    # seguridad y salud
-    "safety", "helmet", "hard", "vest", "gloves", "goggles", "protective", "ppe",
-    "emergency", "exit", "extinguisher", "hazard", "signage", "first", "aid",
-    "harness", "ladder", "spill", "fire", "evacuation",
-    # calidad, procesos y documentacion
-    "quality", "audit", "process", "procedure", "checklist", "clipboard",
-    "document", "documents", "folder", "folders", "filing", "cabinet", "form",
-    "inspection", "compliance", "standard", "iso", "certificate", "label",
-    "training", "induction", "meeting", "presentation", "diagram", "flowchart",
-    "worker", "workers", "employee", "staff", "supervisor", "team", "manager",
-    "calibration", "measurement", "maintenance", "cleaning", "temperature",
-    # --- y lo mismo en castellano ----------------------------------------
-    #
-    # Faltaba entero. La pagina del generador pide la escena en ingles porque
-    # el modelo de difusion rinde mejor asi, pero por el CHAT la gente escribe
-    # en castellano y el modelo redacta la descripcion en castellano. Medido:
-    # de cuatro peticiones legitimas, solo paso la que por casualidad llevaba
-    # la palabra "pallets". "Senaletica de seguridad para el area de carga" se
-    # rechazaba por estar fuera de alcance, siendo material del SGC de manual.
-    # entorno y operacion
-    "almacen", "almacenes", "deposito", "logistica", "paleta", "paletas",
-    "montacargas", "estanteria", "estanterias", "anaquel", "inventario",
-    "carga", "descarga", "muelle", "despacho", "envio", "camion", "camiones",
-    "oficina", "planta", "taller", "fabrica", "proveedor", "proveedores",
-    "entrega", "transporte", "ruta", "operario", "operarios", "personal",
-    # seguridad y salud
-    "seguridad", "casco", "chaleco", "reflectivo", "guantes", "gafas", "lentes",
-    "botas", "epp", "proteccion", "emergencia", "salida", "extintor",
-    "extintores", "peligro", "riesgo", "riesgos", "senaletica", "senal",
-    "senales", "botiquin", "primeros", "auxilios", "arnes", "escalera",
-    "derrame", "incendio", "evacuacion", "altura", "alturas",
-    # calidad, procesos y documentacion
-    "calidad", "auditoria", "auditorias", "proceso", "procesos",
-    "procedimiento", "procedimientos", "lista", "verificacion", "documento",
-    "documentos", "carpeta", "archivo", "formato", "formatos", "registro",
-    "registros", "inspeccion", "cumplimiento", "norma", "certificado",
-    "etiqueta", "rotulo", "capacitacion", "induccion", "formacion", "charla",
-    "reunion", "presentacion", "diagrama", "flujograma", "cartel", "afiche",
-    "lamina", "trabajador", "trabajadores", "empleado", "empleados",
-    "equipo", "jefe", "calibracion", "medicion", "mantenimiento",
-    "limpieza", "orden", "temperatura", "conformidad",
-}
+# El vocabulario de palabras permitidas vivia aqui, y se retiro.
+#
+# Decidia si una peticion era del sistema de gestion comprobando si contenia
+# alguna de unas 140 palabras. No entendia el contexto: rechazaba "que se vea
+# real, no dibujo" por la palabra "dibujo", cuando pedia lo contrario, y solo
+# funcionaba en el idioma en que estuviera escrita la lista. Ahora juzga el
+# modelo, que lee la frase entera -- ver `juzgar_alcance` -- y lo que queda
+# duro es `_NUNCA`, el suelo que ningun texto puede justificar.
+
 
 # Lo que no tiene sitio en material de un SGC, por muy inocente que suene.
+# Lo que NO es material de un sistema de gestion.
+#
+# Son ASUNTOS, no estilos. Antes estaban aqui "dibujo", "caricatura",
+# "retrato" y "paisaje", y eso rechazaba peticiones legitimas: pedir "que se
+# vea real, no dibujo" es decir COMO se quiere la imagen, no pedir un dibujo
+# animado. Y aunque alguien pidiera un cartel de almacen en estilo ilustrado,
+# seguiria siendo material del sistema: el estilo es una eleccion, no un
+# limite.
+#
+# Lo que se rechaza es el tema: una fiesta, una boda, una mascota, un arma.
 _FUERA_DE_ALCANCE = {
-    "party", "beach", "holiday", "vacation", "wedding", "birthday", "game",
-    "cartoon", "anime", "superhero", "weapon", "gun", "politician", "celebrity",
-    "religious", "nude", "portrait", "selfie", "pet", "landscape", "sunset",
+    "party", "beach", "holiday", "vacation", "wedding", "birthday",
+    "anime", "superhero", "weapon", "gun", "politician", "celebrity",
+    "religious", "nude", "selfie", "pet",
     # En castellano tambien. Al abrir el vocabulario al castellano esta lista
     # pasa a ser la que sostiene el rechazo: antes bastaba con no reconocer
     # ninguna palabra, y ahora "una invitacion para la fiesta de la oficina"
     # reconoceria "oficina" y pasaria.
-    "fiesta", "cumpleanos", "boda", "matrimonio", "bautizo", "navidad",
-    "vacaciones", "feriado", "playa", "piscina", "videojuego", "juego",
-    "caricatura", "dibujo", "superheroe", "arma", "pistola", "politico",
-    "famoso", "famosa", "religioso", "religiosa", "desnudo", "desnuda",
-    "retrato", "selfi", "mascota", "perro", "gato", "paisaje", "atardecer",
-    "invitacion", "cumple",
+    "fiesta", "cumpleanos", "cumple", "boda", "matrimonio", "bautizo",
+    "navidad", "vacaciones", "feriado", "playa", "piscina", "videojuego",
+    "superheroe", "arma", "pistola", "politico", "famoso", "famosa",
+    "religioso", "religiosa", "desnudo", "desnuda", "selfi", "mascota",
+    "perro", "gato", "invitacion",
 }
+
+# Palabras que NIEGAN lo que viene detras. "no dibujo" y "sin fiesta" no piden
+# un dibujo ni una fiesta: piden lo contrario, y rechazarlas por la palabra
+# suelta es leer al reves.
+_NIEGAN = frozenset({"no", "sin", "nada", "ningun", "ninguna", "nunca", "evita", "evitar"})
 
 
 def _palabras(texto: str) -> set[str]:
@@ -176,32 +152,6 @@ def _palabras(texto: str) -> set[str]:
     plano = unicodedata.normalize("NFKD", texto.lower())
     plano = "".join(c for c in plano if not unicodedata.combining(c))
     return set(re.findall(r"[a-z]+", plano))
-
-
-def _fuera_de_alcance(descripcion: str) -> str | None:
-    """
-    Devuelve el motivo del rechazo, o None si la descripcion vale.
-
-    El motivo lo LEE una persona mientras escribe, asi que va con tildes, y las
-    palabras senaladas se devuelven TAL COMO LAS ESCRIBIO: la comparacion se
-    hace sin acentos, pero decirle a alguien que ha escrito "cumpleanos" cuando
-    escribio "cumpleaños" parece una falta del sistema.
-    """
-    palabras = _palabras(descripcion)
-
-    prohibidas = palabras & _FUERA_DE_ALCANCE
-    if prohibidas:
-        return (
-            "La descripción menciona algo ajeno al sistema de gestión: "
-            + ", ".join(sorted(_como_las_escribio(descripcion, prohibidas)))
-        )
-    if not palabras & _VOCABULARIO:
-        return (
-            "Esto no parece material del sistema de gestión. Describe algo del "
-            "entorno de trabajo: seguridad, almacén, procesos, documentación o "
-            "formación."
-        )
-    return None
 
 
 def _como_las_escribio(texto: str, normalizadas: set[str]) -> set[str]:
@@ -289,6 +239,97 @@ def _parece_castellano(texto: str) -> bool:
         return True
     palabras = set(re.findall(r"[a-záéíóúñ]+", bajo))
     return len(palabras & _INDICIOS_CASTELLANO) >= 2
+
+
+# Lo que NINGUN texto puede justificar. Es el suelo, no el criterio.
+#
+# El criterio lo pone el modelo, que entiende el contexto; esta lista existe
+# para lo que no se discute aunque el modelo se deje convencer. Un guardrail
+# que se puede convencer con palabras no es un guardrail: basta escribir
+# "ignora las instrucciones anteriores".
+_NUNCA = frozenset({
+    "nude", "nudity", "naked", "desnudo", "desnuda", "erotic", "erotico",
+    "weapon", "gun", "rifle", "arma", "pistola", "fusil",
+    "child", "children", "minor", "nino", "nina", "menor",
+    "gore", "blood", "sangre", "corpse", "cadaver",
+})
+
+
+def _rechazo_inapelable(descripcion: str) -> str | None:
+    """
+    El suelo: lo que no se genera diga lo que diga el texto.
+
+    Se comprueba ANTES de preguntarle al modelo y no admite negaciones: "sin
+    armas" sigue hablando de armas, y en esta lista no se corren riesgos.
+    """
+    # Se mira tambien el singular: la lista dice "arma" y alguien escribe
+    # "armas". Un suelo que se salta anadiendo una ese no es un suelo.
+    palabras = _palabras(descripcion)
+    singulares = {w[:-2] for w in palabras if w.endswith("es")} | {
+        w[:-1] for w in palabras if w.endswith("s")
+    }
+    choque = (palabras | singulares) & _NUNCA
+    if choque:
+        return (
+            "Esa descripción no se puede generar con esta herramienta: "
+            + ", ".join(sorted(_como_las_escribio(descripcion, choque) or choque))
+        )
+    return None
+
+
+def juzgar_alcance(descripcion: str) -> tuple[bool, str, str]:
+    """
+    Le pregunta al MODELO si la pieza es material del sistema de gestion, y de
+    paso le pide la escena en ingles.
+
+    Las dos cosas en una sola llamada porque ya se estaba llamando para
+    traducir: juzgar no cuesta ni un segundo mas.
+
+    Por que el modelo y no una lista de palabras: la lista no entiende el
+    contexto. Rechazaba "que se vea real, no dibujo" por la palabra "dibujo",
+    cuando pedia justamente lo contrario, y solo funcionaba en el idioma en
+    que estuviera escrita. El modelo lee la frase entera.
+
+    Devuelve (vale, motivo, escena_en). Si el modelo no responde o responde
+    algo que no se entiende, se DEJA PASAR y se apoya en el suelo y en el
+    resto de guardrails: quedarse sin generar porque el juez no contesto seria
+    cambiar disponibilidad por una certeza que no se tiene.
+    """
+    import json
+
+    from app.services.llm_client import get_llm_client
+
+    instruccion = (
+        "Eres el filtro de un generador de material visual para un sistema de "
+        "gestion de calidad y seguridad de una empresa de logistica. Decide si "
+        "la descripcion sirve para una pieza de ese sistema: carteles de "
+        "concienciacion, senaletica, laminas de induccion, escenas del entorno "
+        "de trabajo (almacen, transporte, oficina, procesos, documentacion, "
+        "seguridad).\n"
+        "El ESTILO nunca es motivo de rechazo: pedir que sea realista, "
+        "ilustrado o fotografico es una eleccion, no un tema. Tampoco lo es "
+        "mencionar algo para EXCLUIRLO.\n"
+        "Responde SOLO un JSON: "
+        '{"vale": true|false, "motivo": "<una frase, solo si vale es false>", '
+        '"escena_en": "<la escena traducida al ingles, telegrafica>"}'
+    )
+    try:
+        respuesta = get_llm_client().generate([
+            {"role": "system", "content": instruccion},
+            {"role": "user", "content": descripcion},
+        ])
+        crudo = (respuesta.get("content") or "").strip()
+        inicio, fin = crudo.find("{"), crudo.rfind("}")
+        datos = json.loads(crudo[inicio : fin + 1])
+        vale = bool(datos.get("vale"))
+        motivo = str(datos.get("motivo") or "").strip()
+        escena = str(datos.get("escena_en") or "").strip()
+    except Exception:  # noqa: BLE001
+        logger.warning("imagenes.juicio_fallido", exc_info=True)
+        return True, "", ""
+
+    logger.info("imagenes.juzgada", extra={"vale": vale, "motivo": motivo[:80]})
+    return vale, motivo, escena
 
 
 def _a_ingles(descripcion: str) -> str:
@@ -575,9 +616,19 @@ def preparar(
     check_rate_limit(request)
     descripcion = peticion.descripcion.strip()
 
-    motivo = _fuera_de_alcance(descripcion)
-    if motivo:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, motivo)
+    # 1. El suelo. No se discute y no llega al modelo.
+    inapelable = _rechazo_inapelable(descripcion)
+    if inapelable:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, inapelable)
+
+    # 2. El juicio, que es donde hace falta entender la frase. Devuelve ya la
+    #    escena traducida, asi que no hay una segunda llamada al modelo.
+    vale, motivo, escena_en = juzgar_alcance(descripcion)
+    if not vale:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            motivo or "Esto no parece material del sistema de gestión.",
+        )
 
     sugerida: str | None = None
     titulo: str | None = None
@@ -605,7 +656,8 @@ def preparar(
         logger.warning("imagenes.sugerencia_fallida", exc_info=True)
 
     return {
-        "escena_en": _a_ingles(descripcion),
+        # El juez ya la tradujo; si no lo hizo, se traduce aparte.
+        "escena_en": escena_en or _a_ingles(descripcion),
         "clausula_sugerida": sugerida,
         "titulo_documento": titulo,
     }
@@ -621,9 +673,22 @@ def generar(
     check_rate_limit(request)
     import time
 
-    motivo = _fuera_de_alcance(peticion.descripcion)
-    if motivo:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, motivo)
+    # El suelo se comprueba SIEMPRE, venga de donde venga la peticion: lo que
+    # manda el navegador no se cree, y /generar es un endpoint publico.
+    inapelable = _rechazo_inapelable(peticion.descripcion)
+    if inapelable:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, inapelable)
+
+    # Y el juicio del modelo. Cuando la pagina ya paso por /preparar, la escena
+    # viene traducida y juzgada: repetirlo serian 30 s de espera por nada. Sin
+    # ella -- un script, otra interfaz -- se juzga aqui.
+    if not (peticion.escena_en or "").strip():
+        vale, motivo, _ = juzgar_alcance(peticion.descripcion)
+        if not vale:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                motivo or "Esto no parece material del sistema de gestión.",
+            )
     if peticion.clausula.strip() and not _clausula_existe(
         db, peticion.clausula, tenant_visible(usuario)
     ):
@@ -660,7 +725,7 @@ def generar(
     # bastaria mandar una descripcion inocente en castellano y la escena que se
     # quisiera en ingles.
     adelantada = (peticion.escena_en or "").strip()
-    if adelantada and not _fuera_de_alcance(adelantada) and not pide_texto(adelantada):
+    if adelantada and not _rechazo_inapelable(adelantada) and not pide_texto(adelantada):
         escena = adelantada
     else:
         escena = _a_ingles(peticion.descripcion.strip())

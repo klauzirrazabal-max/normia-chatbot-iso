@@ -10,56 +10,53 @@ from __future__ import annotations
 
 import pytest
 
-from app.channels.imagen_adapter import _fuera_de_alcance, _palabras, pide_texto
+from app.channels.imagen_adapter import _palabras, _rechazo_inapelable, pide_texto
 
 
-class TestVocabularioEnDosIdiomas:
+class TestElSuelo:
     """
-    Faltaba el castellano entero.
+    Lo que no se genera diga lo que diga el texto.
 
-    La pagina del generador pide la escena en ingles a proposito -- el modelo
-    de difusion rinde mejor asi -- pero por el CHAT la gente escribe en
-    castellano y el modelo redacta la descripcion en castellano. Medido antes
-    del arreglo: de cuatro peticiones legitimas solo paso la que por casualidad
-    llevaba la palabra "pallets".
+    El CRITERIO lo pone el modelo, que lee la frase entera y entiende el
+    contexto: la lista de palabras permitidas que habia aqui rechazaba "que se
+    vea real, no dibujo" por la palabra "dibujo", cuando pedia lo contrario, y
+    solo funcionaba en el idioma en que estuviera escrita.
+
+    Pero un guardrail que se puede convencer con palabras no es un guardrail.
+    Esto es el suelo: no se le pregunta a nadie y no admite negaciones, porque
+    "sin armas" sigue hablando de armas y aqui no se corren riesgos.
     """
 
-    @pytest.mark.parametrize("descripcion", [
-        "señalética de seguridad para el área de carga",
-        "operario de almacén con casco y chaleco reflectivo junto a pallets apilados",
-        "trabajador usando arnés en altura sobre una plataforma",
-        "operario revisando un extintor en el pasillo del almacén",
-        "inspección de EPP antes de iniciar la jornada",
-        "dos trabajadores revisando carpetas de documentos controlados en una oficina",
+    @pytest.mark.parametrize("texto", [
+        "un arma apoyada en una estanteria del almacen",
+        "una persona desnuda en la oficina",
+        "un nino jugando en el muelle de carga",
+        "sangre en el suelo del almacen",
     ])
-    def test_material_del_sistema_pasa(self, descripcion):
-        assert _fuera_de_alcance(descripcion) is None
+    def test_no_se_genera_nunca(self, texto):
+        assert _rechazo_inapelable(texto) is not None
 
-    @pytest.mark.parametrize("descripcion", [
+    def test_ni_siquiera_negandolo(self):
+        """
+        A diferencia del juicio del modelo, el suelo NO atiende negaciones: una
+        descripcion que necesita nombrar un arma para excluirla sigue siendo
+        una descripcion sobre armas, y el coste de equivocarse por exceso aqui
+        es que alguien reescriba una frase.
+        """
+        assert _rechazo_inapelable("un almacen sin armas") is not None
+
+    @pytest.mark.parametrize("texto", [
+        "Un operario de almacén con casco y chaleco reflectivo",
         "warehouse worker in hard hat beside stacked pallets",
-        "two employees reviewing quality documents in an office",
+        "una invitación para la fiesta de cumpleaños",
     ])
-    def test_el_ingles_sigue_pasando(self, descripcion):
-        assert _fuera_de_alcance(descripcion) is None
-
-
-class TestLoQueNoEsDelSistema:
-    @pytest.mark.parametrize("descripcion", [
-        "una invitación para la fiesta de cumpleaños de mi hijo",
-        "un paisaje al atardecer con una playa",
-        "mi mascota disfrazada de superhéroe",
-        "un retrato de un político famoso",
-    ])
-    def test_se_rechaza(self, descripcion):
-        assert _fuera_de_alcance(descripcion) is not None
-
-    def test_una_palabra_permitida_no_salva_la_peticion(self):
+    def test_lo_demas_lo_juzga_el_modelo(self, texto):
         """
-        Al abrir el vocabulario al castellano, la lista de lo prohibido pasa a
-        sostener el rechazo: antes bastaba con no reconocer ninguna palabra.
-        "Oficina" esta permitida, y aun asi esto no es material del SGC.
+        Incluso lo que claramente no es del sistema pasa el suelo: rechazarlo
+        es trabajo del juez, que sabe DECIR POR QUE. El suelo solo corta lo que
+        no se discute.
         """
-        assert _fuera_de_alcance("una invitación para la fiesta de la oficina") is not None
+        assert _rechazo_inapelable(texto) is None
 
 
 class TestAcentos:
@@ -153,3 +150,57 @@ class TestIdiomaDeLaEscena:
         monkeypatch.setattr(cliente, "get_llm_client", lambda: Divaga())
         original = "Un operario de almacén con casco"
         assert _a_ingles(original) == original
+
+
+class TestElJuez:
+    """
+    El criterio lo pone el modelo. Estas pruebas fijan el CONTRATO de la
+    funcion -- que devuelve, y que hace cuando el modelo falla -- sin depender
+    de que haya un modelo levantado.
+    """
+
+    def test_si_el_modelo_no_contesta_se_deja_pasar(self, monkeypatch):
+        """
+        Quedarse sin generar porque el juez no contesto seria cambiar
+        disponibilidad por una certeza que no se tiene. El suelo y el resto de
+        guardrails siguen puestos.
+        """
+        import app.services.llm_client as cliente
+        from app.channels.imagen_adapter import juzgar_alcance
+
+        def revienta():
+            raise RuntimeError("modelo caido")
+
+        monkeypatch.setattr(cliente, "get_llm_client", revienta)
+        vale, motivo, escena = juzgar_alcance("lo que sea")
+        assert vale is True
+        assert escena == ""
+
+    def test_una_respuesta_ilegible_tambien_deja_pasar(self, monkeypatch):
+        import app.services.llm_client as cliente
+        from app.channels.imagen_adapter import juzgar_alcance
+
+        class Divaga:
+            def generate(self, *a, **k):
+                return {"content": "Pues mira, depende de como lo veas."}
+
+        monkeypatch.setattr(cliente, "get_llm_client", lambda: Divaga())
+        assert juzgar_alcance("lo que sea")[0] is True
+
+    def test_el_veredicto_y_la_escena_vienen_juntos(self, monkeypatch):
+        """Una sola llamada: juzgar no cuesta mas que traducir."""
+        import app.services.llm_client as cliente
+        from app.channels.imagen_adapter import juzgar_alcance
+
+        class Juez:
+            def generate(self, *a, **k):
+                return {
+                    "content":
+                        '{"vale": false, "motivo": "Es un evento personal.",'
+                        ' "escena_en": ""}'
+                }
+
+        monkeypatch.setattr(cliente, "get_llm_client", lambda: Juez())
+        vale, motivo, _ = juzgar_alcance("la fiesta de mi hijo")
+        assert vale is False
+        assert "evento personal" in motivo

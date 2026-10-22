@@ -1228,9 +1228,15 @@ def generar_material_visual(
     que el modelo haya elegido bien: un cartel que cita un documento inexistente
     es exactamente el fallo que este proyecto existe para evitar.
     """
-    from app.channels.imagen_adapter import _fuera_de_alcance, pide_texto
+    from app.channels.imagen_adapter import _rechazo_inapelable, pide_texto
 
-    motivo = _fuera_de_alcance(descripcion)
+    # Aqui NO se vuelve a juzgar el alcance con el modelo: el modelo ya juzgo
+    # al decidir llamar a esta herramienta en vez de responder texto. Pedirle
+    # un segundo dictamen sobre su propia decision serian 30 s de espera para
+    # que se diga que si a si mismo.
+    #
+    # Lo que si se comprueba es el suelo, que no depende de ningun criterio.
+    motivo = _rechazo_inapelable(descripcion)
     if motivo:
         return {"error": "fuera_de_alcance", "message": motivo}
 
