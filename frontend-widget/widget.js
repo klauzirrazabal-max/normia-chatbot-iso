@@ -628,6 +628,10 @@
       this.busy = busy;
       this.sendBtn.disabled = busy;
       this.textarea.disabled = busy;
+      // Desactivar los controles se ve, pero no se oye: un lector de pantalla
+      // no anuncia que el asistente esta pensando. Una respuesta tarda entre 8
+      // y 15 segundos, y ese silencio se interpreta como que no paso nada.
+      this.messagesEl.setAttribute("aria-busy", busy ? "true" : "false");
     }
 
     async send() {
