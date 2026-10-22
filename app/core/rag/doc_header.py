@@ -286,6 +286,36 @@ def code_from_filename(filename: str) -> str | None:
 
 
 def title_from_filename(filename: str) -> str:
+    """
+    Un titulo presentable a partir del nombre del archivo.
+
+    Los archivos suelen venir en forma de slug --
+    "com_pr_01_compras.pdf" -- y ese texto acababa tal cual en la ficha de
+    cada respuesta y en el desplegable de clausulas: "COM-PR-01 v3, seccion
+    7.2 - com_pr_01_compras". Se retira el codigo, se deshacen los guiones
+    bajos y se capitaliza.
+
+    No sustituye al titulo real del documento: es lo mejor que se puede
+    deducir cuando no hay otra cosa.
+    """
     stem = Path(filename).stem.strip()
     code = code_from_filename(filename)
-    return stem[len(code) :].strip() if code else stem
+    if code:
+        stem = stem[len(code):].strip()
+    else:
+        # El slug lleva el codigo delante en minusculas y con guiones bajos:
+        # "com_pr_01_compras" -> "compras".
+        sin_codigo = re.sub(r"^[a-z]{2,5}_[a-z]{2,5}_\d{1,3}_", "", stem, flags=re.I)
+        stem = sin_codigo if sin_codigo != stem else stem
+
+    limpio = re.sub(r"[_\-]+", " ", stem).strip()
+    limpio = re.sub(r"\s+", " ", limpio)
+    if not limpio:
+        return ""
+    # Capitalizacion de titulo, dejando en minuscula las palabras de enlace.
+    menores = {"de", "del", "la", "las", "el", "los", "y", "o", "en", "a", "por", "para"}
+    palabras = limpio.split()
+    return " ".join(
+        w.capitalize() if i == 0 or w.lower() not in menores else w.lower()
+        for i, w in enumerate(palabras)
+    )

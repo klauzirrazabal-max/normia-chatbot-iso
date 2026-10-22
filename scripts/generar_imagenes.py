@@ -58,12 +58,18 @@ GRAFITO = (0x30, 0x30, 0x30)
 # Y se retira "no text" del prompt POSITIVO. CLIP no entiende negaciones: "no
 # text" empuja hacia el concepto "text" en vez de alejarlo. De eso se encarga
 # el negativo, que lo cubre por triplicado.
+# ENCUADRE MEDIO, no cuerpo entero. Es la causa principal de que las personas
+# salieran deformes: a 768 px de ancho, una figura completa deja la cara en
+# unos 40 pixeles, y con tan pocos el modelo se la inventa -- caras fundidas,
+# manos de seis dedos, piernas que no encajan. Un plano de medio cuerpo le da
+# cuatro veces mas pixeles a lo que mas se mira.
 MARCA = (
     "modern editorial illustration for a corporate safety campaign, "
+    "medium shot from the waist up, subject filling the frame, "
     "clean geometric shapes with soft shading and depth, "
     "deep corporate blue, white and safety orange palette, "
-    "single dominant subject, centered, generous negative space, "
-    "balanced composition, crisp edges, professional, highly detailed"
+    "single dominant subject, centered, balanced composition, "
+    "crisp edges, professional, highly detailed, sharp focus on the face"
 )
 
 # El negativo carga contra el texto por partida triple -- letras, y ademas las
@@ -71,10 +77,20 @@ MARCA = (
 # modelo rellene el hueco con garabatos que parecen palabras. Medido: pidiendo
 # "los 4 pilares de la calidad" salio una lamina entera de texto ilegible.
 NEGATIVO = (
+    # Texto: por partida triple -- las letras, y ademas las FORMAS que las
+    # invocan. Un panel o una infografia hacen que el modelo rellene el hueco
+    # con garabatos que parecen palabras.
     "text, letters, words, numbers, typography, caption, label, watermark, "
     "signature, logo, brand name, infographic, chart, graph, diagram, poster, "
     "banner, sign, signage, slide, presentation board, speech bubble, document page, "
-    "cluttered, distorted hands, extra limbs, lowres, jpeg artifacts"
+    # Anatomia. Lo anterior solo decia "distorted hands, extra limbs", que para
+    # SDXL es poca cosa: salian caras fundidas, dedos de mas y proporciones
+    # imposibles. Estos son los terminos que de verdad mueven la aguja.
+    "deformed, disfigured, mutated, malformed, bad anatomy, bad proportions, "
+    "extra fingers, fused fingers, missing fingers, extra arms, extra legs, "
+    "disconnected limbs, poorly drawn face, poorly drawn hands, asymmetric eyes, "
+    "cross-eyed, blurry face, featureless face, long neck, duplicate, "
+    "cluttered, lowres, jpeg artifacts, out of frame, cropped head"
 )
 
 

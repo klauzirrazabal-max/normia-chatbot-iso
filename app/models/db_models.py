@@ -50,6 +50,10 @@ class Document(Base):
     area: Mapped[str | None] = mapped_column(String)
     effective_date: Mapped[object | None] = mapped_column(Date)
     status: Mapped[str] = mapped_column(String, nullable=False, default="vigente")
+    # Quien decidio el cambio de estado. Pasar un documento a obsoleto es un
+    # acto controlado: sin autor no se puede auditar.
+    actualizado_por: Mapped[str | None] = mapped_column(String)
+    actualizado_en: Mapped[object | None] = mapped_column(TIMESTAMP(timezone=True))
     source_filename: Mapped[str] = mapped_column(String, nullable=False)
     created_at: Mapped[object] = mapped_column(
         TIMESTAMP(timezone=True), server_default=func.now()
@@ -113,6 +117,34 @@ class Message(Base):
     )
 
 
+class User(Base):
+    """
+    Quien usa el sistema. No existia: habia una clave de administracion y nada
+    mas, asi que ningun acto controlado tenia autor.
+    """
+
+    __tablename__ = "users"
+    __table_args__ = (
+        CheckConstraint(
+            "rol IN ('operario', 'calidad', 'admin')", name="users_rol_check"
+        ),
+        UniqueConstraint("email"),
+        Index("idx_users_tenant", "tenant_id", "activo"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(String, ForeignKey("tenants.id"), nullable=False)
+    email: Mapped[str] = mapped_column(String, nullable=False)
+    nombre: Mapped[str] = mapped_column(String, nullable=False)
+    password: Mapped[str] = mapped_column(String, nullable=False)
+    rol: Mapped[str] = mapped_column(String, nullable=False, default="operario")
+    activo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    created_at: Mapped[object] = mapped_column(
+        TIMESTAMP(timezone=True), server_default=func.now()
+    )
+    last_login: Mapped[object | None] = mapped_column(TIMESTAMP(timezone=True))
+
+
 class Finding(Base):
     __tablename__ = "findings"
     __table_args__ = (
@@ -131,6 +163,7 @@ class Finding(Base):
         Integer, ForeignKey("conversations.id")
     )
     description: Mapped[str] = mapped_column(Text, nullable=False)
+    registrado_por: Mapped[str | None] = mapped_column(String)
     # La clausula 10.2 pide la naturaleza de la no conformidad, no solo el
     # relato. Sin severidad no se prioriza y sin area no se asigna.
     severity: Mapped[str] = mapped_column(String, nullable=False, default="menor")
@@ -159,6 +192,7 @@ class CapaAction(Base):
     # puede seguir ni cerrar, y un hallazgo "en revision" con una accion asi
     # queda parado para siempre sin que nadie lo note.
     responsible: Mapped[str] = mapped_column(String, nullable=False)
+    creada_por: Mapped[str | None] = mapped_column(String)
     due_date: Mapped[object] = mapped_column(Date, nullable=False)
     status: Mapped[str] = mapped_column(String, nullable=False, default="pendiente")
 
@@ -241,6 +275,7 @@ class Escalation(Base):
     status: Mapped[str] = mapped_column(String, nullable=False, default="pendiente")
     assigned_to: Mapped[str | None] = mapped_column(String)
     resolution: Mapped[str | None] = mapped_column(Text)
+    resuelta_por: Mapped[str | None] = mapped_column(String)
     created_at: Mapped[object] = mapped_column(
         TIMESTAMP(timezone=True), server_default=func.now()
     )

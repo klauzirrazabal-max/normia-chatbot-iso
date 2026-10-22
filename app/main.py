@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 from sqlalchemy import text
 
-from app.channels import admin_adapter, imagen_adapter, web_adapter
+from app.channels import admin_adapter, auth_adapter, imagen_adapter, web_adapter
 from app.core.licencias import inventario
 from app.config import settings
 from app.core.rag.embeddings import warmup
@@ -64,6 +64,7 @@ app.add_middleware(
     allow_headers=["Content-Type"],
 )
 
+app.include_router(auth_adapter.router)
 app.include_router(web_adapter.router)
 app.include_router(admin_adapter.router)
 # Generacion de material visual. Va en su propio flujo y no como
@@ -127,6 +128,31 @@ def raiz() -> RedirectResponse:
     return RedirectResponse(url="/demo.html")
 
 
+class EstaticosSinCache(StaticFiles):
+    """
+    Los estaticos se revalidan siempre.
+
+    El navegador cacheaba el HTML y el JS por su fecha, asi que un cambio en la
+    interfaz no aparecia hasta forzar la recarga: pase un buen rato mirando
+    estilos que ya estaban corregidos y creyendo que no funcionaban. En una
+    demostracion en vivo eso es peor -- ensenas una version vieja sin saberlo.
+
+    `no-cache` NO significa no guardar: el navegador conserva la copia y
+    pregunta si cambio, asi que sigue habiendo 304 y no se descarga de nuevo lo
+    que no ha cambiado. Lo que se elimina es servir una copia vieja sin
+    preguntar.
+    """
+
+    def is_not_modified(self, response_headers, request_headers) -> bool:
+        return super().is_not_modified(response_headers, request_headers)
+
+    async def get_response(self, path: str, scope):
+        respuesta = await super().get_response(path, scope)
+        if path.endswith((".html", ".js", ".css")):
+            respuesta.headers["Cache-Control"] = "no-cache, must-revalidate"
+        return respuesta
+
+
 _FRONTEND = Path(__file__).resolve().parent.parent / "frontend-widget"
 if _FRONTEND.is_dir():
-    app.mount("/", StaticFiles(directory=str(_FRONTEND), html=True), name="frontend")
+    app.mount("/", EstaticosSinCache(directory=str(_FRONTEND), html=True), name="frontend")

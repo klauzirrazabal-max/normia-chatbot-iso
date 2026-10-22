@@ -120,7 +120,11 @@ def process_job(job_id: int) -> None:
             job.created_document = True
         else:
             document.source_filename = pdf_path.name
-            if job.title:
+            # NO se pisa un titulo que ya existe. El del job se deduce del
+            # nombre del archivo, y volver a subir "com_pr_01_compras.pdf"
+            # convertia "Compras" en el slug. El titulo de un documento
+            # controlado es su nombre: no se degrada por recargarlo.
+            if job.title and not (document.title or "").strip():
                 document.title = job.title
             if job.area:
                 document.area = job.area

@@ -345,7 +345,9 @@ class PeticionImagen(BaseModel):
     titular: str = Field(min_length=3, max_length=120)
     clausula: str = Field(min_length=3, max_length=120)
     vertical: bool = True
-    pasos: int = Field(default=30, ge=8, le=50)
+    # 30 pasos dejaban la anatomia a medio resolver. A 42 el coste sube unos 8 s
+    # y las manos y las caras se cierran. Por encima de 50 no se nota.
+    pasos: int = Field(default=42, ge=8, le=50)
     # La escena ya traducida al ingles, si el navegador la pidio mientras el
     # usuario elegia la clausula. Es solo un ahorro de tiempo: el servidor la
     # vuelve a validar y, si no viene, traduce el mismo.

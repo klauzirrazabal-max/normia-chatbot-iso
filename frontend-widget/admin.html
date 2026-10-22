@@ -187,56 +187,9 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
   @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
-  /* Barra de vistas. Las tres paginas vivian sueltas: para pasar de la gestion
-     documental al chat o al generador habia que escribir la URL a mano, que en
-     una demostracion delante de alguien es media presentacion perdida.
-     El tenant viaja en el enlace para no volver al de por defecto al cambiar. */
-  .vistas {
-    display: flex; gap: 2px; align-items: center; flex-wrap: wrap;
-    background: #fff; border-bottom: 1px solid var(--border, #e2e8f0);
-    padding: 0 20px;
-  }
-  .vistas a {
-    padding: 11px 14px; font-size: 13.5px; font-weight: 600;
-    color: #64748b; text-decoration: none;
-    border-bottom: 2px solid transparent;
-  }
-  .vistas a:hover { color: #2563eb; }
-  .vistas a[aria-current="page"] { color: #2563eb; border-bottom-color: #2563eb; }
-  .vistas .marca {
-    font-weight: 700; color: #0f172a; margin-right: 14px; font-size: 14px;
-  }
 </style>
 </head>
-<body>
-<script>
-// El tenant se arrastra entre vistas: cambiar de pantalla no deberia
-// devolverte al cliente por defecto sin avisar.
-(function () {
-  const tenant = new URLSearchParams(location.search).get("tenant");
-  const aqui = location.pathname.split("/").pop() || "demo.html";
-  const vistas = [
-    ["demo.html", "Asistente"],
-    ["generar.html", "Material visual"],
-    ["admin.html", "Gestión documental"],
-  ];
-  const barra = document.createElement("nav");
-  barra.className = "vistas";
-  barra.setAttribute("aria-label", "Vistas de NormIA");
-  const marca = document.createElement("span");
-  marca.className = "marca";
-  marca.textContent = "NormIA";
-  barra.appendChild(marca);
-  vistas.forEach(([href, texto]) => {
-    const a = document.createElement("a");
-    a.href = tenant ? `${href}?tenant=${encodeURIComponent(tenant)}` : href;
-    a.textContent = texto;
-    if (href === aqui) a.setAttribute("aria-current", "page");
-    barra.appendChild(a);
-  });
-  document.body.insertBefore(barra, document.body.firstChild);
-})();
-</script>
+<body data-exige-rol="gestionar">
 
 
 <header>
@@ -303,22 +256,19 @@
 
 <script>
 const API = "";  // mismo origen
-// La clave solo hace falta si el servidor la exige (ADMIN_API_KEY). Se guarda
-// en el navegador de quien administra; nunca viaja al repositorio.
-let ADMIN_KEY = localStorage.getItem("normia_admin_key") || "";
+// La credencial ya no vive en este script. Va en una cookie httpOnly que el
+// JavaScript de la pagina NO puede leer; antes estaba en localStorage, al
+// alcance de cualquier script que entrara en la pagina. Aqui solo queda
+// reaccionar a que se acabe: un 401 devuelve a la pantalla de acceso.
 const _fetch = window.fetch.bind(window);
-window.fetch = (url, opts = {}) => {
-  if (ADMIN_KEY && String(url).includes("/api/admin/")) {
-    opts.headers = { ...(opts.headers || {}), "X-Admin-Key": ADMIN_KEY };
-  }
-  return _fetch(url, opts).then(r => {
-    if (r.status === 401) {
-      const k = prompt("Clave de administracion:");
-      if (k) { ADMIN_KEY = k; localStorage.setItem("normia_admin_key", k); location.reload(); }
+window.fetch = (url, opts = {}) =>
+  _fetch(url, { credentials: "same-origin", ...opts }).then((r) => {
+    if (r.status === 401 && String(url).includes("/api/")) {
+      const aqui = location.pathname.split("/").pop();
+      location.href = `acceso.html?volver=${encodeURIComponent(aqui)}`;
     }
     return r;
   });
-};
 const TENANT = new URLSearchParams(location.search).get("tenant") || "demo-publica";
 let pollTimer = null;
 
@@ -872,5 +822,6 @@ refreshJobs();
 refreshEscalations();
 refreshFindings();
 </script>
+<script src="shell.js"></script>
 </body>
 </html>

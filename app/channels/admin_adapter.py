@@ -29,6 +29,7 @@ from fastapi import (
     Depends,
     File,
     Form,
+    Header,
     HTTPException,
     UploadFile,
     status,
@@ -39,6 +40,9 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.core.docs.pipeline import apply_advice_action, process_job
+from app.channels.auth_adapter import usuario_actual
+from app.core.auth import puede_gestionar
+from app.core.rag.doc_header import title_from_filename
 from app.db.session import get_db
 from app.security import require_admin_key
 from app.models.db_models import (
@@ -49,16 +53,49 @@ from app.models.db_models import (
     Finding,
     Incident,
     UploadJob,
+    User,
 )
 
 logger = logging.getLogger(__name__)
 
-# La dependencia va en el router entero: si se anade un endpoint nuevo queda
+
+def require_calidad_o_clave(
+    usuario: User | None = Depends(usuario_actual),
+    x_admin_key: str | None = Header(default=None),
+) -> User | None:
+    """
+    Entra quien tiene sesion de Calidad, o quien trae la clave de servicio.
+
+    Devuelve el usuario cuando lo hay, para que los endpoints puedan firmar lo
+    que cambian. Con la clave de servicio no hay usuario y la autoria queda en
+    blanco, que es honesto: no la firmo una persona.
+    """
+    if usuario is not None:
+        if not puede_gestionar(usuario.rol):
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                "Esta sección es del Responsable de Calidad.",
+            )
+        return usuario
+    require_admin_key(x_admin_key)
+    return None
+
+
+def firma(usuario: User | None) -> str | None:
+    """Como queda registrado el autor de un acto controlado."""
+    return usuario.nombre if usuario is not None else None
+
+# Las dependencias van en el router entero: si se anade un endpoint nuevo queda
 # protegido sin que nadie tenga que acordarse.
+#
+# Son DOS caminos a proposito. La sesion es como entra una persona, y es la que
+# deja autoria. La clave de cabecera se conserva para lo que no es una persona:
+# los scripts de carga, las pruebas y cualquier integracion. Exigir sesion a un
+# script obligaria a simular un navegador para subir un PDF.
 router = APIRouter(
     prefix="/api/admin",
     tags=["admin"],
-    dependencies=[Depends(require_admin_key)],
+    dependencies=[Depends(require_calidad_o_clave)],
 )
 
 MAX_UPLOAD_BYTES = 25 * 1024 * 1024  # 25 MB por archivo
@@ -152,7 +189,10 @@ def upload_documents(
             original_filename=original,
             stored_path=str(destination),
             status="pendiente",
-            title=Path(original).stem,
+            # `Path(original).stem` dejaba el slug tal cual: el desplegable
+            # de clausulas acababa diciendo "COM-PR-01 v3, seccion 7.2 -
+            # com_pr_01_compras".
+            title=title_from_filename(original),
             area=area or None,
         )
         db.add(job)

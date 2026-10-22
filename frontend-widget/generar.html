@@ -93,56 +93,29 @@
     font-size: 12.5px; color: #64748b; margin-top: 6px; line-height: 1.45;
   }
   .escena-en b { color: #334155; }
-  /* Barra de vistas. Las tres paginas vivian sueltas: para pasar de la gestion
-     documental al chat o al generador habia que escribir la URL a mano, que en
-     una demostracion delante de alguien es media presentacion perdida.
-     El tenant viaja en el enlace para no volver al de por defecto al cambiar. */
-  .vistas {
-    display: flex; gap: 2px; align-items: center; flex-wrap: wrap;
-    background: #fff; border-bottom: 1px solid var(--border, #e2e8f0);
-    padding: 0 20px;
+  .buscador { position: relative; }
+  .buscador input { width: 100%; }
+  #clausula-lista {
+    list-style: none; margin: 4px 0 0; padding: 4px;
+    position: absolute; left: 0; right: 0; z-index: 20; max-height: 280px;
+    overflow-y: auto; background: var(--superficie);
+    border: 1px solid var(--linea); border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(15,23,42,.12);
   }
-  .vistas a {
-    padding: 11px 14px; font-size: 13.5px; font-weight: 600;
-    color: #64748b; text-decoration: none;
-    border-bottom: 2px solid transparent;
+  #clausula-lista li {
+    padding: 8px 10px; border-radius: 6px; cursor: pointer;
+    display: flex; flex-direction: column; gap: 1px;
   }
-  .vistas a:hover { color: #2563eb; }
-  .vistas a[aria-current="page"] { color: #2563eb; border-bottom-color: #2563eb; }
-  .vistas .marca {
-    font-weight: 700; color: #0f172a; margin-right: 14px; font-size: 14px;
+  #clausula-lista li:hover, #clausula-lista li:focus {
+    background: var(--marca); color: #fff; outline: none;
   }
+  #clausula-lista li b { font-size: 13px; font-weight: 650; }
+  #clausula-lista li span { font-size: 12.5px; opacity: .78; }
+  #clausula-lista li.vacio { color: var(--grafito); font-size: 12.5px; cursor: default; }
+  #clausula-lista li.vacio:hover { background: none; color: var(--grafito); }
 </style>
 </head>
 <body>
-<script>
-// El tenant se arrastra entre vistas: cambiar de pantalla no deberia
-// devolverte al cliente por defecto sin avisar.
-(function () {
-  const tenant = new URLSearchParams(location.search).get("tenant");
-  const aqui = location.pathname.split("/").pop() || "demo.html";
-  const vistas = [
-    ["demo.html", "Asistente"],
-    ["generar.html", "Material visual"],
-    ["admin.html", "Gestión documental"],
-  ];
-  const barra = document.createElement("nav");
-  barra.className = "vistas";
-  barra.setAttribute("aria-label", "Vistas de NormIA");
-  const marca = document.createElement("span");
-  marca.className = "marca";
-  marca.textContent = "NormIA";
-  barra.appendChild(marca);
-  vistas.forEach(([href, texto]) => {
-    const a = document.createElement("a");
-    a.href = tenant ? `${href}?tenant=${encodeURIComponent(tenant)}` : href;
-    a.textContent = texto;
-    if (href === aqui) a.setAttribute("aria-current", "page");
-    barra.appendChild(a);
-  });
-  document.body.insertBefore(barra, document.body.firstChild);
-})();
-</script>
 
 <div class="marco">
   <h1>Material visual del sistema de gestión</h1>
@@ -166,7 +139,7 @@
         imagen: el modelo escribe letras ilegibles, y el titular ya va aparte como texto real.</p>
       <p class="escena-en" id="escena-en" hidden></p>
 
-      <label for="clausula">Cláusula que lo respalda</label>
+      <label for="clausula-busqueda">Cláusula que lo respalda</label>
       <!-- El respaldo lo propone el buscador a partir de la escena. Elegirlo a
            mano en una lista de 60 obliga a saber que el EPP es "SST-PR-02 v2,
            sección 5.1", y quien usa esto es un jefe de almacén. El requisito se
@@ -175,8 +148,16 @@
         <div class="respaldo"><b id="respaldo-texto"></b></div>
         <button type="button" class="enlace" id="cambiar-respaldo">Elegir otra</button>
       </div>
+      <!-- Un <select> nativo con 63 opciones no se puede usar: hay que
+           recorrerlo a ojo buscando la que toca. Se escribe y se filtra. -->
       <div id="respaldo-manual">
-        <select id="clausula"><option value="">— sin respaldo documental —</option></select>
+        <div class="buscador">
+          <input id="clausula-busqueda" type="text" autocomplete="off"
+                 placeholder="Escribe un tema o un código: EPP, compras, CAL-PR-03…"
+                 role="combobox" aria-expanded="false" aria-controls="clausula-lista" />
+          <ul id="clausula-lista" role="listbox" hidden></ul>
+        </div>
+        <input type="hidden" id="clausula" value="" />
         <p class="pista" id="pista-clausulas">Cargando el catálogo…</p>
       </div>
 
@@ -236,39 +217,132 @@ fetch(`${API}/api/licencias`)
       "No se pudo cargar el aviso de licencias. Consúltalo en /api/licencias.";
   });
 
-// Mismo patron que admin.html: la clave solo hace falta si el servidor la exige
-// (ADMIN_API_KEY). Se guarda en el navegador de quien la usa y nunca viaja al
-// repositorio. Generar consume GPU, asi que el endpoint va protegido igual que
-// el resto de /api/admin.
-let CLAVE = localStorage.getItem("normia_admin_key") || "";
+// La credencial ya no vive en este script. Va en una cookie httpOnly que el
+// JavaScript de la pagina NO puede leer; antes estaba en localStorage, al
+// alcance de cualquier script que entrara en la pagina. Aqui solo queda
+// reaccionar a que se acabe: un 401 devuelve a la pantalla de acceso.
 const _fetch = window.fetch.bind(window);
-window.fetch = (url, opts = {}) => {
-  if (CLAVE && String(url).includes("/api/imagenes/")) {
-    opts.headers = { ...(opts.headers || {}), "X-Admin-Key": CLAVE };
-  }
-  return _fetch(url, opts).then((r) => {
-    if (r.status === 401) {
-      const k = prompt("Clave de administración:");
-      if (k) { CLAVE = k; localStorage.setItem("normia_admin_key", k); location.reload(); }
+window.fetch = (url, opts = {}) =>
+  _fetch(url, { credentials: "same-origin", ...opts }).then((r) => {
+    if (r.status === 401 && String(url).includes("/api/")) {
+      const aqui = location.pathname.split("/").pop();
+      location.href = `acceso.html?volver=${encodeURIComponent(aqui)}`;
     }
     return r;
   });
+
+// El catalogo viene de la base: asi la pieza solo puede citar una clausula que
+// existe de verdad, igual que hace el chat.
+let CATALOGO = [];
+
+function sinAcentos(t) {
+  return t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
+function elegirClausula(f) {
+  $("clausula").value = f.referencia;
+  $("clausula-busqueda").value = `${f.referencia} — ${f.titulo}`;
+  $("clausula-lista").hidden = true;
+  $("clausula-busqueda").setAttribute("aria-expanded", "false");
+}
+
+function pintarLista(filas) {
+  const lista = $("clausula-lista");
+  lista.innerHTML = "";
+  if (!filas.length) {
+    const vacio = document.createElement("li");
+    vacio.className = "vacio";
+    vacio.textContent = "Ninguna cláusula coincide.";
+    lista.appendChild(vacio);
+    lista.hidden = false;
+    return;
+  }
+  // Un tope de doce: ensenar las 63 de golpe es el mismo problema que tenia el
+  // desplegable. Si hay mas, que afine la busqueda.
+  filas.slice(0, 12).forEach((f) => {
+    const li = document.createElement("li");
+    li.setAttribute("role", "option");
+    li.tabIndex = 0;
+    const ref = document.createElement("b");
+    ref.textContent = f.referencia;
+    const tit = document.createElement("span");
+    tit.textContent = f.titulo;
+    li.append(ref, tit);
+    li.onclick = () => elegirClausula(f);
+    li.onkeydown = (e) => { if (e.key === "Enter") elegirClausula(f); };
+    lista.appendChild(li);
+  });
+  if (filas.length > 12) {
+    const mas = document.createElement("li");
+    mas.className = "vacio";
+    mas.textContent = `y ${filas.length - 12} más. Escribe para afinar.`;
+    lista.appendChild(mas);
+  }
+  lista.hidden = false;
+}
+
+// Como se dice en planta, y como se titula el documento, no son lo mismo.
+// Nadie escribe "equipos de proteccion personal" en un buscador: escribe EPP.
+const SINONIMOS = {
+  epp: "proteccion personal",
+  sst: "seguridad salud",
+  "no conformidad": "conformidad correctiva",
+  nc: "conformidad",
+  capa: "correctiva",
+  ti: "tecnologica tecnologia informacion",
+  rrhh: "humana personal",
+  altura: "altura arnes",
 };
+
+function expandir(q) {
+  return SINONIMOS[q] ? `${q} ${SINONIMOS[q]}` : q;
+}
+
+function filtrarClausulas() {
+  const q = sinAcentos($("clausula-busqueda").value.trim());
+  $("clausula").value = "";
+  // Cada palabra de la consulta tiene que aparecer en algun sitio de la fila:
+  // asi "compras proveedor" encuentra lo que lleva las dos, en cualquier orden.
+  const terminos = expandir(q).split(/\s+/).filter(Boolean);
+  const filas = terminos.length
+    ? CATALOGO.filter((f) => {
+        const heno = sinAcentos(`${f.referencia} ${f.titulo}`);
+        return terminos.some((t) => heno.includes(t));
+      })
+    : CATALOGO;
+  $("clausula-busqueda").setAttribute("aria-expanded", "true");
+  pintarLista(filas);
+}
+
+$("clausula-busqueda").addEventListener("input", filtrarClausulas);
+$("clausula-busqueda").addEventListener("focus", filtrarClausulas);
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".buscador")) {
+    $("clausula-lista").hidden = true;
+    $("clausula-busqueda").setAttribute("aria-expanded", "false");
+  }
+});
 
 // El catalogo viene de la base: asi la pieza solo puede citar una clausula que
 // existe de verdad, igual que hace el chat.
 fetch(`${API}/api/imagenes/clausulas`)
-  .then((r) => r.ok ? r.json() : Promise.reject(r.status))
+  .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
   .then((filas) => {
-    for (const f of filas) {
-      const o = document.createElement("option");
-      o.value = f.referencia;
-      o.textContent = f.etiqueta;
-      $("clausula").appendChild(o);
-    }
-    $("pista-clausulas").textContent = `${filas.length} cláusulas vigentes.`;
+    CATALOGO = filas.map((f) => {
+      // La etiqueta viene como "CODIGO vN, seccion X - Titulo". Se parte para
+      // poder ensenar la referencia y el titulo con pesos distintos.
+      const corte = f.etiqueta.indexOf(" - ");
+      return {
+        referencia: f.referencia,
+        titulo: corte > 0 ? f.etiqueta.slice(corte + 3) : "",
+      };
+    });
+    $("pista-clausulas").textContent =
+      `${filas.length} cláusulas vigentes. Escribe para buscar.`;
   })
-  .catch(() => { $("pista-clausulas").textContent = "No se pudo cargar el catálogo."; });
+  .catch(() => {
+    $("pista-clausulas").textContent = "No se pudo cargar el catálogo.";
+  });
 
 let reloj = null;
 
@@ -411,5 +485,6 @@ $("formulario").addEventListener("submit", async (e) => {
   }
 });
 </script>
+<script src="shell.js"></script>
 </body>
 </html>
