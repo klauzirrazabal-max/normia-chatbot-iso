@@ -70,7 +70,9 @@ _generando = threading.Lock()
 # de texto 2 y el VAE con la base, asi que no son dos modelos enteros en
 # memoria sino uno y medio.
 _refinador = None
-_FRACCION_BASE = 0.8  # la base trabaja hasta el 80%; el ultimo 20% lo refina
+# Cuanto puede cambiar el refinador la imagen. 0.25 cierra bordes y caras sin
+# redibujar la escena.
+_FUERZA_REFINADO = 0.25
 
 
 # --- Guardrail de alcance -----------------------------------------------------
@@ -416,6 +418,18 @@ def _cargar_pipeline():
     return _pipeline
 
 
+def _tiene_luz(imagen) -> bool:
+    """
+    ¿La imagen tiene algo dibujado, o el VAE desbordo y devolvio negro?
+
+    El desbordamiento en fp16 no lanza ninguna excepcion: sale una imagen
+    completamente negra, y encima se le compone el logotipo. Se mide el brillo
+    medio sobre una miniatura, que es barato y suficiente.
+    """
+    muestra = list(imagen.convert("RGB").resize((40, 40)).getdata())
+    return sum(sum(c) for c in muestra) / (len(muestra) * 3) >= 6
+
+
 def _cargar_refinador():
     """
     Carga el refinador reutilizando las piezas de la base.
@@ -425,6 +439,8 @@ def _cargar_refinador():
     cambiar calidad por disponibilidad.
     """
     global _refinador
+    if not settings.imagen_refinar:
+        return None
     if _refinador is not None:
         return _refinador or None
 
@@ -608,8 +624,8 @@ def generar(
     if induce:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
-            f"La descripcion pide elementos con texto ({', '.join(induce)}) y el modelo "
-            "de difusion escribe letras ilegibles. Describe una ESCENA: quien aparece, "
+            f"La descripción pide elementos con texto ({', '.join(induce)}) y el modelo "
+            "de difusión escribe letras ilegibles. Describe una ESCENA: quién aparece, "
             "que hace y donde. El titular ya va aparte, como texto real.",
         )
 
@@ -628,7 +644,7 @@ def generar(
     if not _generando.acquire(blocking=False):
         raise HTTPException(
             status.HTTP_429_TOO_MANY_REQUESTS,
-            "Hay otra pieza generandose en este momento. Son unos 40 segundos: "
+            "Hay otra pieza generándose en este momento. Son unos 40 segundos: "
             "vuelve a intentarlo cuando termine.",
         )
     try:
@@ -643,43 +659,50 @@ def generar(
             "generator": semilla,
         }
 
-        if refinador is None:
-            imagen = pipe(
-                **comunes,
-                height=1024 if peticion.vertical else 768,
-                width=768 if peticion.vertical else 1024,
+        # La base SIEMPRE produce una imagen completa.
+        #
+        # Antes se detenia al 80% y le pasaba el latente a medio hacer al
+        # refinador. Es el reparto que recomienda la documentacion y es mas
+        # eficiente, pero en esta maquina devolvia imagenes NEGRAS: el latente
+        # a medias, en fp16 y sobre MPS, desborda al decodificarlo y el VAE
+        # saca NaN sin lanzar ningun error. Medido: sin refinador, 200; con el,
+        # tres de tres en negro.
+        #
+        # Asi que el refinado se hace sobre la imagen ya decodificada, como un
+        # segundo pase corto. Cuesta unos segundos mas y no depende del
+        # traspaso de latentes.
+        imagen = pipe(
+            **comunes,
+            height=1024 if peticion.vertical else 768,
+            width=768 if peticion.vertical else 1024,
+        ).images[0]
+
+        if refinador is not None:
+            afinada = refinador(
+                prompt=prompt,
+                negative_prompt=NEGATIVO,
+                image=imagen,
+                # Poco: se trata de cerrar el detalle, no de redibujar. Con
+                # mas, la escena cambia de contenido.
+                strength=_FUERZA_REFINADO,
+                num_inference_steps=max(12, peticion.pasos // 2),
+                guidance_scale=7.0,
             ).images[0]
-        else:
-            # Dos pasos sobre la MISMA imagen. La base resuelve la composicion
-            # y se detiene al 80%; el refinador toma el latente a medio hacer y
-            # cierra el ultimo 20%, que es donde estaba el problema: caras
-            # fundidas, manos con dedos de mas, bordes sucios.
-            #
-            # `denoising_end` y `denoising_start` tienen que sumar el corte
-            # exacto, o el refinador empieza desde un ruido que no corresponde
-            # y la imagen cambia de contenido en vez de afinarse.
-            latente = pipe(
-                **comunes,
-                height=1024 if peticion.vertical else 768,
-                width=768 if peticion.vertical else 1024,
-                denoising_end=_FRACCION_BASE,
-                output_type="latent",
-            ).images
-            imagen = refinador(
-                **comunes,
-                image=latente,
-                denoising_start=_FRACCION_BASE,
-            ).images[0]
+            # Si el segundo pase sale en negro, se conserva el primero: una
+            # pieza sin refinar es mejor que ninguna pieza.
+            if _tiene_luz(afinada):
+                imagen = afinada
+            else:
+                logger.warning("imagenes.refinado_descartado")
     finally:
         _generando.release()
 
     # Un desbordamiento del VAE no lanza excepcion: devuelve una imagen negra.
     # Mas vale un 500 con causa que un cartel negro con el logotipo encima.
-    muestra = list(imagen.convert("RGB").resize((40, 40)).getdata())
-    if sum(sum(c) for c in muestra) / (len(muestra) * 3) < 6:
+    if not _tiene_luz(imagen):
         raise HTTPException(
             status.HTTP_500_INTERNAL_SERVER_ERROR,
-            "La generacion devolvio una imagen vacia. Vuelve a intentarlo.",
+            "La generación devolvió una imagen vacía. Vuelve a intentarlo.",
         )
 
     # Se compone con el MISMO codigo que el script de linea de comandos, para que

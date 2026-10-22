@@ -167,7 +167,6 @@
         <input type="hidden" id="clausula" value="" />
         <p class="pista" id="pista-clausulas">Cargando el catálogo…</p>
         <p class="pista">
-          ¿Primera vez?
           <button type="button" class="enlace" id="ver-ejemplo">Rellenar con un ejemplo</button>
         </p>
       </div>
@@ -178,7 +177,11 @@
         <option value="0">Horizontal — lámina</option>
       </select>
 
-      <button type="submit" id="boton">Generar</button>
+      <button type="submit" id="boton" disabled>Generar</button>
+      <!-- Sin clausula, generar termina en un 422 despues de medio minuto de
+           espera. Es mejor decirlo antes de empezar que despues de hacer
+           esperar. -->
+      <p class="pista" id="porque-no" hidden></p>
       <p class="estado" id="estado"></p>
     </form>
 
@@ -223,6 +226,21 @@ window.fetch = (url, opts = {}) =>
 
 // El catalogo viene de la base: asi la pieza solo puede citar una clausula que
 // existe de verdad, igual que hace el chat.
+// El `detail` de un error no siempre es texto: cuando FastAPI rechaza el
+// cuerpo por validacion es una LISTA de objetos, y pintarla tal cual daba
+// "[object Object]" en rojo debajo del boton. Nadie puede hacer nada con eso.
+function leerDetalle(cuerpo, estado) {
+  const d = cuerpo && cuerpo.detail;
+  if (typeof d === "string" && d.trim()) return d;
+  if (Array.isArray(d) && d.length) {
+    const partes = d
+      .map((e) => (typeof e === "string" ? e : e && e.msg))
+      .filter(Boolean);
+    if (partes.length) return partes.join(". ");
+  }
+  return `No se pudo generar la pieza (error ${estado}).`;
+}
+
 let CATALOGO = [];
 
 function sinAcentos(t) {
@@ -234,6 +252,7 @@ function elegirClausula(f) {
   $("clausula-busqueda").value = `${f.referencia} — ${f.titulo}`;
   $("clausula-lista").hidden = true;
   $("clausula-busqueda").setAttribute("aria-expanded", "false");
+  revisarFormulario();
 }
 
 function pintarLista(filas) {
@@ -291,6 +310,7 @@ function expandir(q) {
 function filtrarClausulas() {
   const q = sinAcentos($("clausula-busqueda").value.trim());
   $("clausula").value = "";
+  revisarFormulario();
   // Cada palabra de la consulta tiene que aparecer en algun sitio de la fila:
   // asi "compras proveedor" encuentra lo que lleva las dos, en cualquier orden.
   const terminos = expandir(q).split(/\s+/).filter(Boolean);
@@ -305,6 +325,8 @@ function filtrarClausulas() {
 }
 
 $("clausula-busqueda").addEventListener("input", filtrarClausulas);
+$("titular").addEventListener("input", revisarFormulario);
+$("descripcion").addEventListener("input", revisarFormulario);
 $("clausula-busqueda").addEventListener("focus", filtrarClausulas);
 document.addEventListener("click", (e) => {
   if (!e.target.closest(".buscador")) {
@@ -350,6 +372,24 @@ let escenaPreparada = null;
 let ultimaPreparada = "";
 let respaldoSugerido = null;
 
+function revisarFormulario() {
+  const falta = [];
+  if (!$("titular").value.trim()) falta.push("el titular");
+  if ($("descripcion").value.trim().length < 8) falta.push("qué debe mostrar la imagen");
+  if (!respaldoElegido()) falta.push("la cláusula que lo respalda");
+
+  const listo = falta.length === 0;
+  $("boton").disabled = !listo;
+  $("porque-no").hidden = listo;
+  if (!listo) {
+    $("porque-no").textContent =
+      `Para generar falta ${falta.join(", ")}.` +
+      (falta.includes("la cláusula que lo respalda")
+        ? " Un cartel sin respaldo documental es propaganda; con él es material del sistema."
+        : "");
+  }
+}
+
 function respaldoElegido() {
   // Lo propuesto manda, salvo que el usuario haya abierto la lista para
   // cambiarlo.
@@ -365,12 +405,14 @@ function mostrarPropuesta(clausula, titulo) {
   $("respaldo-texto").textContent = titulo ? `${clausula} — ${titulo}` : clausula;
   $("respaldo-propuesto").hidden = false;
   $("respaldo-manual").hidden = true;
+  revisarFormulario();
 }
 
 $("cambiar-respaldo").addEventListener("click", () => {
   $("respaldo-propuesto").hidden = true;
   $("respaldo-manual").hidden = false;
   respaldoSugerido = null;
+  revisarFormulario();
 });
 
 async function prepararEscena() {
@@ -408,6 +450,7 @@ async function prepararEscena() {
 }
 
 $("descripcion").addEventListener("blur", prepararEscena);
+revisarFormulario();
 
 // El ejemplo, a peticion. Quien ya sabe lo que quiere no tiene que borrar
 // nada; quien no, lo tiene a un clic y ve de que forma es una buena entrada.
@@ -464,7 +507,7 @@ $("formulario").addEventListener("submit", async (e) => {
     });
     if (!r.ok) {
       const cuerpo = await r.json().catch(() => ({}));
-      throw new Error(cuerpo.detail || `Error ${r.status}`);
+      throw new Error(leerDetalle(cuerpo, r.status));
     }
     const d = await r.json();
     const img = document.createElement("img");

@@ -89,6 +89,12 @@ class Settings(BaseSettings):
     # la unica que el cliente no puede falsificar.
     trusted_proxy: str = ""
 
+    # El refinado de imagen es un segundo paso sobre la misma pieza. Mejora las
+    # caras y el detalle, y cuesta unos 12 s. Se puede apagar: si en una
+    # maquina concreta devuelve imagenes negras -- el VAE en fp16 desborda sin
+    # avisar -- es mejor una pieza peor que ninguna pieza.
+    imagen_refinar: bool = True
+
     @property
     def allowed_origins_list(self) -> list[str]:
         return [o.strip() for o in self.widget_allowed_origins.split(",") if o.strip()]
