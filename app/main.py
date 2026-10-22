@@ -12,6 +12,7 @@ from pathlib import Path
 from sqlalchemy import text
 
 from app.channels import admin_adapter, imagen_adapter, web_adapter
+from app.core.licencias import inventario
 from app.config import settings
 from app.core.rag.embeddings import warmup
 from app.db.session import engine
@@ -60,6 +61,19 @@ app.include_router(admin_adapter.router)
 # Generacion de material visual. Va en su propio flujo y no como
 # herramienta del chat: tarda ~40 s y el timeout del LLM son 45.
 app.include_router(imagen_adapter.router)
+
+
+@app.get("/api/licencias", tags=["infra"])
+def licencias() -> dict:
+    """
+    Que modelos usa el sistema y bajo que licencia.
+
+    No es un extra. La OpenRAIL++ de SDXL permite el uso comercial y el hosting
+    como servicio, pero obliga a dar aviso de sus restricciones de uso a quien
+    use el sistema. Servirlas aqui, desde el despliegue, es lo que convierte esa
+    obligacion en algo cumplido y no solo declarado en un README.
+    """
+    return inventario()
 
 
 @app.get("/health", tags=["infra"])

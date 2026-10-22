@@ -57,6 +57,16 @@
     border-radius:4px;text-decoration:none;color:var(--tinta);font-size:.9rem;
   }
   .reloj{font-variant-numeric:tabular-nums}
+  .licencia {
+    margin-top: 28px;
+    border-top: 1px solid #e3e6ea;
+    padding-top: 14px;
+    font-size: 13px;
+    color: #4a5159;
+  }
+  .licencia summary { cursor: pointer; font-weight: 600; color: #2a3038; }
+  .licencia ul, .licencia ol { margin: 8px 0 14px 20px; }
+  .licencia li { margin-bottom: 5px; line-height: 1.45; }
 </style>
 </head>
 <body>
@@ -100,11 +110,44 @@
       </div>
     </div>
   </div>
+
+  <!-- Esto no es letra pequeña de cortesía: la licencia del modelo de imagen
+       (CreativeML Open RAIL++-M) permite el uso comercial y el hosting como
+       servicio a condición de dar aviso de sus restricciones de uso a quien lo
+       utiliza. El aviso se arma desde /api/licencias, que es la misma fuente
+       que declara el inventario, para que no se desincronicen. -->
+  <details class="licencia" id="licencia">
+    <summary>Modelos utilizados y condiciones de uso</summary>
+    <div id="licencia-cuerpo">Cargando…</div>
+  </details>
 </div>
 
 <script>
 const API = "http://localhost:8000";
 const $ = (id) => document.getElementById(id);
+
+// El aviso de licencias se pide al arrancar. Si falla, el bloque dice que falló
+// en vez de quedarse en "Cargando...": un aviso legal que no se ve es un aviso
+// que no se dio.
+fetch(`${API}/api/licencias`)
+  .then((r) => (r.ok ? r.json() : Promise.reject(new Error(r.status))))
+  .then((inv) => {
+    const filas = inv.componentes
+      .map((c) => `<li><b>${c.nombre}</b> — ${c.papel}. Licencia: ${c.licencia}.</li>`)
+      .join("");
+    const restricciones = inv.restricciones_de_uso
+      .map((r) => `<li>${r}</li>`)
+      .join("");
+    $("licencia-cuerpo").innerHTML = `
+      <p>Este generador se apoya en modelos de terceros:</p>
+      <ul>${filas}</ul>
+      <p>Al usarlo aceptas <b>no</b> emplearlo para:</p>
+      <ol>${restricciones}</ol>`;
+  })
+  .catch(() => {
+    $("licencia-cuerpo").textContent =
+      "No se pudo cargar el aviso de licencias. Consúltalo en /api/licencias.";
+  });
 
 // Mismo patron que admin.html: la clave solo hace falta si el servidor la exige
 // (ADMIN_API_KEY). Se guarda en el navegador de quien la usa y nunca viaja al
