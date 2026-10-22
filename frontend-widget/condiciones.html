@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Modelos y condiciones de uso</title>
+<link rel="stylesheet" href="normia.css" />
+<style>
+  main { max-width: 760px; margin: 0 auto; padding: var(--e6) var(--e4) var(--e8); }
+  h1 { margin-bottom: var(--e2); }
+  .bajada { color: var(--tinta-suave); font-size: 14px; margin: 0 0 var(--e6); line-height: 1.55; }
+  h2 { margin: var(--e6) 0 var(--e3); }
+  .modelo {
+    display: flex; justify-content: space-between; gap: var(--e4);
+    padding: var(--e3) 0; border-bottom: 1px solid var(--borde);
+  }
+  .modelo div { min-width: 0; }
+  .modelo b { display: block; font-size: 14px; }
+  .modelo span { font-size: 13px; color: var(--tinta-suave); }
+  ol { padding-left: var(--e5); margin: 0; }
+  ol li { margin-bottom: var(--e2); font-size: 14px; line-height: 1.5; }
+  .nota {
+    margin-top: var(--e5); padding: var(--e4);
+    background: var(--superficie-2); border-radius: var(--radio);
+    font-size: 13.5px; color: var(--tinta-media); line-height: 1.55;
+  }
+</style>
+</head>
+<body>
+
+<main>
+  <h1>Modelos y condiciones de uso</h1>
+  <p class="bajada">
+    NormIA se apoya en modelos de terceros que corren <strong>en esta máquina</strong>.
+    Ninguna consulta ni ningún documento sale de aquí.
+  </p>
+
+  <h2>Qué modelos usa</h2>
+  <div id="modelos"><p class="cargando">Cargando…</p></div>
+
+  <h2>Restricciones de uso</h2>
+  <p class="bajada" id="intro-restricciones"></p>
+  <ol id="restricciones"></ol>
+
+  <div class="nota" id="nota"></div>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+fetch("/api/licencias")
+  .then((r) => r.json())
+  .then((inv) => {
+    const caja = $("modelos");
+    caja.innerHTML = "";
+    inv.componentes.forEach((c) => {
+      const fila = document.createElement("div");
+      fila.className = "modelo";
+      const izq = document.createElement("div");
+      const b = document.createElement("b");
+      b.textContent = c.nombre;
+      const s = document.createElement("span");
+      s.textContent = c.papel;
+      izq.append(b, s);
+      const sello = document.createElement("span");
+      sello.className = "sello " + (c.uso_comercial ? "sello-ok" : "sello-riesgo");
+      sello.textContent = c.licencia;
+      fila.append(izq, sello);
+      caja.appendChild(fila);
+    });
+
+    $("intro-restricciones").textContent =
+      "El modelo que genera las imágenes se distribuye con una licencia que " +
+      "obliga a trasladar estas restricciones a quien lo use. Al generar " +
+      "material visual aceptas no emplearlo para:";
+    inv.restricciones_de_uso.forEach((r) => {
+      const li = document.createElement("li");
+      li.textContent = r;
+      $("restricciones").appendChild(li);
+    });
+
+    const sdxl = inv.componentes.find((c) => c.nota);
+    $("nota").textContent = sdxl ? sdxl.nota : "";
+  })
+  .catch(() => {
+    $("modelos").textContent = "No se pudo cargar el inventario de modelos.";
+  });
+</script>
+<script src="shell.js"></script>
+</body>
+</html>

@@ -73,18 +73,12 @@
     border-radius:4px;text-decoration:none;color:var(--tinta);font-size:.9rem;
   }
   .reloj{font-variant-numeric:tabular-nums}
-  .licencia {
-    margin-top: 28px;
-    border-top: 1px solid #e3e6ea;
-    padding-top: 14px;
-    font-size: 13px;
-    color: #4a5159;
-  }
-  .licencia summary { cursor: pointer; font-weight: 600; color: #2a3038; }
-  .licencia ul, .licencia ol { margin: 8px 0 14px 20px; }
-  .licencia li { margin-bottom: 5px; line-height: 1.45; }
   #respaldo-propuesto { text-align: left; }
   #respaldo-propuesto .enlace { margin-top: 6px; display: inline-block; }
+  .pie-condiciones {
+    margin-top: var(--e4); padding-top: var(--e3);
+    border-top: 1px solid var(--linea);
+  }
   .respaldo {
     background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px;
     padding: 10px 12px; font-size: 13.5px; color: #1e3a8a;
@@ -196,43 +190,22 @@
     </div>
   </div>
 
-  <!-- Esto no es letra pequeña de cortesía: la licencia del modelo de imagen
-       (CreativeML Open RAIL++-M) permite el uso comercial y el hosting como
-       servicio a condición de dar aviso de sus restricciones de uso a quien lo
-       utiliza. El aviso se arma desde /api/licencias, que es la misma fuente
-       que declara el inventario, para que no se desincronicen. -->
-  <details class="licencia" id="licencia">
-    <summary>Modelos utilizados y condiciones de uso</summary>
-    <div id="licencia-cuerpo">Cargando…</div>
-  </details>
+  <!-- La licencia del modelo de imagen obliga a dar aviso de sus restricciones
+       de uso. Once prohibiciones numeradas en medio de la herramienta son
+       ruido para quien solo quiere un cartel, asi que el aviso se da -- hay
+       enlace, va junto al boton que genera, y el detalle completo esta a un
+       clic -- sin ocupar el sitio de trabajo. -->
+  <p class="pista pie-condiciones">
+    Al generar aceptas las
+    <a href="condiciones.html">condiciones de uso de los modelos</a>.
+    Todo corre en esta máquina.
+  </p>
 </div>
 
 <script>
 const API = "http://localhost:8000";
 const $ = (id) => document.getElementById(id);
 
-// El aviso de licencias se pide al arrancar. Si falla, el bloque dice que falló
-// en vez de quedarse en "Cargando...": un aviso legal que no se ve es un aviso
-// que no se dio.
-fetch(`${API}/api/licencias`)
-  .then((r) => (r.ok ? r.json() : Promise.reject(new Error(r.status))))
-  .then((inv) => {
-    const filas = inv.componentes
-      .map((c) => `<li><b>${c.nombre}</b> — ${c.papel}. Licencia: ${c.licencia}.</li>`)
-      .join("");
-    const restricciones = inv.restricciones_de_uso
-      .map((r) => `<li>${r}</li>`)
-      .join("");
-    $("licencia-cuerpo").innerHTML = `
-      <p>Este generador se apoya en modelos de terceros:</p>
-      <ul>${filas}</ul>
-      <p>Al usarlo aceptas <b>no</b> emplearlo para:</p>
-      <ol>${restricciones}</ol>`;
-  })
-  .catch(() => {
-    $("licencia-cuerpo").textContent =
-      "No se pudo cargar el aviso de licencias. Consúltalo en /api/licencias.";
-  });
 
 // La credencial ya no vive en este script. Va en una cookie httpOnly que el
 // JavaScript de la pagina NO puede leer; antes estaba en localStorage, al
@@ -497,7 +470,11 @@ $("formulario").addEventListener("submit", async (e) => {
     const img = document.createElement("img");
     img.src = d.imagen;
     img.alt = d.titular;
-    $("lienzo").appendChild(img);
+    // Se REEMPLAZA el contenido del lienzo, no se anade. Al mover el aviso de
+    // progreso aqui dentro, la pieza terminada aparecia debajo del girador y
+    // se veian las dos cosas a la vez: una imagen lista y un "dibujando la
+    // pieza, 69 s" encima.
+    $("lienzo").replaceChildren(img);
     $("descargar").href = d.imagen;
     $("acciones").hidden = false;
     $("estado").textContent = `Lista en ${d.segundos} s.` +
