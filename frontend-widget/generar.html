@@ -83,13 +83,17 @@
   .licencia summary { cursor: pointer; font-weight: 600; color: #2a3038; }
   .licencia ul, .licencia ol { margin: 8px 0 14px 20px; }
   .licencia li { margin-bottom: 5px; line-height: 1.45; }
+  #respaldo-propuesto { text-align: left; }
+  #respaldo-propuesto .enlace { margin-top: 6px; display: inline-block; }
   .respaldo {
     background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px;
     padding: 10px 12px; font-size: 13.5px; color: #1e3a8a;
   }
+  /* Un boton que se lee como enlace, y que FLUYE con el texto que lo rodea:
+     con `margin-top` se descolgaba a su propia linea. */
   .enlace {
-    background: none; border: none; padding: 4px 0; margin-top: 4px;
-    color: #2563eb; font-size: 13px; cursor: pointer; text-decoration: underline;
+    display: inline; background: none; border: none; padding: 0;
+    font: inherit; color: var(--marca); cursor: pointer; text-decoration: underline;
   }
   .escena-en {
     font-size: 12.5px; color: #64748b; margin-top: 6px; line-height: 1.45;
@@ -130,12 +134,19 @@
 
   <div class="cols">
     <form class="panel" id="formulario">
+      <!-- El ejemplo va en el MARCADOR DE POSICION, no en el valor.
+           Llegaba relleno y parecia contenido de quien abria la pagina: si no
+           te fijabas generabas el cartel del ejemplo en vez del tuyo, y si te
+           fijabas tenias que borrarlo antes de escribir. Asi se ve que forma
+           tiene una buena entrada, no hay que borrar nada, y lo que se envia
+           es siempre lo que escribio quien lo usa. -->
       <label for="titular">Titular</label>
       <input id="titular" required maxlength="120"
-             value="El equipo de protección no es opcional">
+             placeholder="El equipo de protección no es opcional">
 
       <label for="descripcion">Qué debe mostrar la imagen</label>
-      <textarea id="descripcion" required maxlength="400">Un operario de almacén con casco y chaleco reflectivo, de cuerpo entero, de pie en un pasillo entre estanterías con pallets</textarea>
+      <textarea id="descripcion" required maxlength="400"
+                placeholder="Un operario de almacén con casco y chaleco reflectivo, de pie en un pasillo entre estanterías con pallets"></textarea>
       <p class="pista">Escríbelo en castellano, como se lo contarías a alguien. Describe una
         escena: quién aparece, qué hace y dónde. No pidas carteles ni rótulos dentro de la
         imagen: el modelo escribe letras ilegibles, y el titular ya va aparte como texto real.</p>
@@ -161,6 +172,10 @@
         </div>
         <input type="hidden" id="clausula" value="" />
         <p class="pista" id="pista-clausulas">Cargando el catálogo…</p>
+        <p class="pista">
+          ¿Primera vez?
+          <button type="button" class="enlace" id="ver-ejemplo">Rellenar con un ejemplo</button>
+        </p>
       </div>
 
       <label for="orientacion">Orientación</label>
@@ -420,6 +435,16 @@ async function prepararEscena() {
 }
 
 $("descripcion").addEventListener("blur", prepararEscena);
+
+// El ejemplo, a peticion. Quien ya sabe lo que quiere no tiene que borrar
+// nada; quien no, lo tiene a un clic y ve de que forma es una buena entrada.
+$("ver-ejemplo").addEventListener("click", () => {
+  $("titular").value = "El equipo de protección no es opcional";
+  $("descripcion").value =
+    "Un operario de almacén con casco y chaleco reflectivo, de pie en un " +
+    "pasillo entre estanterías con pallets";
+  prepararEscena();
+});
 
 $("formulario").addEventListener("submit", async (e) => {
   e.preventDefault();
