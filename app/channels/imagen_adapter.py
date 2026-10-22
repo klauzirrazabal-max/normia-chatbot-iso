@@ -408,7 +408,19 @@ def _cargar_refinador():
     """
     global _refinador
     if _refinador is not None:
-        return _refinador
+        return _refinador or None
+
+    # La base se pide FUERA del candado. `_cargar_pipeline` toma ese mismo
+    # candado, y `threading.Lock` no es reentrante: pedirlo aqui dentro
+    # bloqueaba el hilo contra si mismo y la peticion se quedaba colgada para
+    # siempre, sin error y sin log. Tardé en verlo porque un interbloqueo no
+    # se parece a un fallo: se parece a algo que tarda mucho.
+    try:
+        base = _cargar_pipeline()
+    except Exception:  # noqa: BLE001
+        logger.warning("imagenes.sin_refinador", exc_info=True)
+        _refinador = False
+        return None
 
     with _candado:
         if _refinador is None:
@@ -416,7 +428,6 @@ def _cargar_refinador():
                 import torch
                 from diffusers import StableDiffusionXLImg2ImgPipeline
 
-                base = _cargar_pipeline()
                 logger.info("imagenes.cargando_refinador")
                 _refinador = StableDiffusionXLImg2ImgPipeline.from_pretrained(
                     "stabilityai/stable-diffusion-xl-refiner-1.0",

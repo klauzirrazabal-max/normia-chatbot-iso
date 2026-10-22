@@ -71,6 +71,46 @@
   color-scheme: light;
 }
 
+/* --- Modo oscuro -------------------------------------------------------------
+   Lo tenia UNA pagina de cuatro. Con el sistema operativo en oscuro, el
+   generador se ponia oscuro y el panel, el chat y el acceso seguian claros:
+   dentro del mismo producto, en la misma sesion. Peor que no tenerlo.
+
+   Se redefinen SOLO los tokens, nunca los componentes: un color declarado
+   dentro del bloque oscuro no existiria en claro, que es el fallo clasico de
+   texto de un tema sobre el fondo del otro.
+
+   Y no es una inversion automatica. Los fondos oscuros suben de luminosidad
+   para separarse; el acento se aclara, porque el azul de marca sobre negro no
+   se lee; y los semanticos conservan su significado con otra intensidad. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --papel:        #0f1419;
+    --superficie:   #171d26;
+    --superficie-2: #1f2733;
+    --borde:        #2a3340;
+    --borde-fuerte: #3a4654;
+
+    --tinta:        #e8edf4;
+    --tinta-media:  #a3b0c0;
+    --tinta-suave:  #7d8b9c;
+
+    --marca:        #5b8df5;
+    --marca-oscura: #7aa5fa;
+    --marca-suave:  #1b2a45;
+
+    --ok:        #4ec08a;  --ok-fondo:      #13291f;  --ok-borde:      #2a5a42;
+    --aviso:     #e0b155;  --aviso-fondo:   #2a2112;  --aviso-borde:   #5c4a22;
+    --riesgo:    #f08a7f;  --riesgo-fondo:  #2d1715;  --riesgo-borde:  #5e2f2a;
+    --inactivo:  #8b98a8;  --inactivo-fondo:#1c232d;  --inactivo-borde:#2f3947;
+
+    --sombra:      0 1px 2px rgba(0, 0, 0, .4);
+    --sombra-alta: 0 8px 24px rgba(0, 0, 0, .45);
+
+    color-scheme: dark;
+  }
+}
+
 /* =============================================================================
    Base
    ========================================================================== */

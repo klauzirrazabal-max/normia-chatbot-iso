@@ -6,19 +6,20 @@
 <title>NormIA · Material visual del SGC</title>
 <link rel="stylesheet" href="normia.css" />
 <style>
-  :root{
-    --papel:#F3F5F3; --superficie:#fff; --tinta:#15191A; --grafito:#5D6663;
-    --linea:#D4DAD5; --marca:#1050D0; --marca-clara:#2090E0;
-    --sombra:0 1px 2px rgba(20,28,22,.05), 0 10px 30px rgba(20,28,22,.06);
-  }
-  @media (prefers-color-scheme: dark){
+    /* Los colores vienen de normia.css, modo oscuro incluido. Aqui solo
+       quedan los alias que usa esta pagina.
+
+       `--papel:var(--papel)` era una referencia circular: la variable se
+       apuntaba a si misma dentro del mismo :root y quedaba sin valor. Y el
+       bloque de modo oscuro de aqui era el UNICO del producto: con el sistema
+       en oscuro, esta pagina se oscurecia y el panel, el chat y el acceso
+       seguian claros. */
     :root{
-      --papel:#101410; --superficie:#181D19; --tinta:#E7ECE8; --grafito:#96A09B;
-      --linea:#28312B; --marca:#5C9BF5; --marca-clara:#2090E0;
-      --sombra:0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+      --grafito: var(--tinta-suave);
+      --linea: var(--borde);
+      --marca-clara: var(--marca-suave);
+      --sombra: 0 1px 2px rgba(15,23,42,.06), 0 10px 30px rgba(15,23,42,.06);
     }
-    :root{color-scheme:dark}
-  }
   *{box-sizing:border-box}
   body{
     margin:0; background:var(--papel); color:var(--tinta);
