@@ -23,6 +23,7 @@ from __future__ import annotations
 import base64
 import io
 import logging
+import re
 import threading
 from typing import Any
 
@@ -30,6 +31,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.db.session import get_db
 from app.models.db_models import Document, DocumentChunk
 from app.security import (
@@ -116,11 +118,11 @@ _VOCABULARIO = {
     "calidad", "auditoria", "auditorias", "proceso", "procesos",
     "procedimiento", "procedimientos", "lista", "verificacion", "documento",
     "documentos", "carpeta", "archivo", "formato", "formatos", "registro",
-    "registros", "inspeccion", "cumplimiento", "norma", "iso", "certificado",
+    "registros", "inspeccion", "cumplimiento", "norma", "certificado",
     "etiqueta", "rotulo", "capacitacion", "induccion", "formacion", "charla",
     "reunion", "presentacion", "diagrama", "flujograma", "cartel", "afiche",
     "lamina", "trabajador", "trabajadores", "empleado", "empleados",
-    "supervisor", "equipo", "jefe", "calibracion", "medicion", "mantenimiento",
+    "equipo", "jefe", "calibracion", "medicion", "mantenimiento",
     "limpieza", "orden", "temperatura", "conformidad",
 }
 
@@ -221,6 +223,76 @@ def pide_texto(descripcion: str) -> list[str]:
     })
 
 
+# El modelo de difusion entiende ingles. Su codificador de texto se entreno en
+# ingles, y una escena descrita en castellano sale peor: menos detalle, objetos
+# que faltan, a veces nada parecido a lo pedido.
+#
+# La solucion NO es pedirle al usuario que escriba en ingles. Quien usa esto es
+# un jefe de almacen en Lima, y la pista "En ingles funciona mejor" convertia la
+# herramienta en algo para quien sabe ingles. Traduce el sistema, que para eso
+# tiene un modelo de lenguaje corriendo al lado.
+_INDICIOS_CASTELLANO = frozenset({
+    "el", "la", "los", "las", "un", "una", "unos", "unas", "de", "del", "en",
+    "con", "sin", "sobre", "para", "por", "que", "y", "o", "su", "sus", "al",
+    "este", "esta", "junto", "mientras", "donde", "dos", "tres",
+})
+
+
+def _parece_castellano(texto: str) -> bool:
+    """
+    Heuristica barata: tildes, enes, o varias palabras funcionales castellanas.
+
+    Una sola coincidencia no basta -- "a" y "o" existen en los dos idiomas --
+    asi que se exigen dos. Equivocarse hacia el lado de NO traducir es el lado
+    barato del error: la descripcion llega tal cual, como antes.
+    """
+    bajo = texto.lower()
+    if any(c in bajo for c in "áéíóúñ¿¡"):
+        return True
+    palabras = set(re.findall(r"[a-záéíóúñ]+", bajo))
+    return len(palabras & _INDICIOS_CASTELLANO) >= 2
+
+
+def _a_ingles(descripcion: str) -> str:
+    """
+    Traduce la escena al ingles para el modelo de difusion.
+
+    Si la traduccion falla por lo que sea -- modelo caido, respuesta rara --
+    se devuelve el original: una pieza peor es mejor que ninguna pieza, y el
+    usuario no tiene por que enterarse de que hay un paso intermedio.
+    """
+    if not _parece_castellano(descripcion):
+        return descripcion
+
+    from app.services.llm_client import get_llm_client
+
+    try:
+        respuesta = get_llm_client().generate([
+            {
+                "role": "system",
+                "content": (
+                    "Traduce al ingles la descripcion de una escena para un generador "
+                    "de imagenes. Devuelve SOLO la traduccion, en una linea, sin "
+                    "comillas, sin explicaciones y sin anadir nada que no este en el "
+                    "original. Conserva el estilo telegrafico de un prompt."
+                ),
+            },
+            {"role": "user", "content": descripcion},
+        ])
+        traducida = (respuesta.get("content") or "").strip().strip('"').split("\n")[0]
+    except Exception:  # noqa: BLE001 - traducir es una mejora, no un requisito
+        logger.warning("imagenes.traduccion_fallida", exc_info=True)
+        return descripcion
+
+    # Una respuesta vacia o absurdamente larga es el modelo divagando.
+    if not traducida or len(traducida) > len(descripcion) * 3 + 60:
+        logger.warning("imagenes.traduccion_descartada", extra={"largo": len(traducida)})
+        return descripcion
+
+    logger.info("imagenes.traducida", extra={"de": descripcion[:60], "a": traducida[:60]})
+    return traducida
+
+
 def _clausula_existe(db: Session, referencia: str) -> bool:
     """
     La referencia tiene que corresponder a un documento VIGENTE de la base.
@@ -229,7 +301,6 @@ def _clausula_existe(db: Session, referencia: str) -> bool:
     escribir cualquier cosa, y una pieza que cita un documento inexistente es
     exactamente el fallo que este proyecto existe para evitar.
     """
-    from app.config import settings
     from app.core.guardrails.grounding_check import extract_cited_codes
 
     codigos = extract_cited_codes(referencia)
@@ -254,6 +325,10 @@ class PeticionImagen(BaseModel):
     clausula: str = Field(min_length=3, max_length=120)
     vertical: bool = True
     pasos: int = Field(default=30, ge=8, le=50)
+    # La escena ya traducida al ingles, si el navegador la pidio mientras el
+    # usuario elegia la clausula. Es solo un ahorro de tiempo: el servidor la
+    # vuelve a validar y, si no viene, traduce el mismo.
+    escena_en: str | None = Field(default=None, max_length=600)
 
 
 class RespuestaImagen(BaseModel):
@@ -303,8 +378,6 @@ def clausulas_disponibles(
     Se sirve desde la base y no se deja escribir a mano: es el mismo criterio
     que en el chat -- el sistema nunca cita un documento que no existe.
     """
-    from app.config import settings
-
     # El MISMO criterio que el chat: con tenant publico configurado se sirve ese
     # y ninguno otro. Antes se servia siempre `default_tenant_id`, el SGC real
     # del cliente, y por eso hacia falta la clave.
@@ -334,6 +407,70 @@ def clausulas_disponibles(
 # La proteccion real son los dos guardrails de abajo -- tema dentro del sistema y
 # clausula que existe -- mas el limite de peticiones. Exigir la clave aqui
 # obligaria a pegarla en el chat de cualquier usuario, que es absurdo.
+class PeticionPreparar(BaseModel):
+    descripcion: str = Field(min_length=8, max_length=400)
+    # El titular es el MENSAJE de la pieza, y es mejor pista que la escena para
+    # encontrar la clausula: "El equipo de proteccion no es opcional" apunta al
+    # procedimiento; "un operario con casco en un pasillo" describe un dibujo.
+    titular: str = Field(default="", max_length=120)
+
+
+@router.post("/preparar")
+def preparar(
+    peticion: PeticionPreparar, request: Request, db: Session = Depends(get_db)
+) -> dict[str, str | None]:
+    """
+    Prepara la pieza mientras el usuario sigue rellenando: traduce y busca el
+    respaldo.
+
+    Resuelve dos problemas de una sola llamada.
+
+    El primero es de TIEMPO. Traducir tarda unos 30 s con el modelo que corre
+    en esta maquina y generar otros 27: encadenados son casi un minuto mirando
+    un recuadro vacio. Pidiendolo en cuanto el usuario sale del campo de la
+    escena, ocurre mientras elige la orientacion, y al pulsar Generar solo
+    queda la difusion.
+
+    El segundo es de CARGA MENTAL. Toda pieza tiene que citar una clausula --
+    un cartel sin respaldo es propaganda -- pero elegirla de una lista de 60 en
+    un desplegable obliga a saber que el EPP es "SST-PR-02 v2, seccion 5.1".
+    Quien va a usar esto es un jefe de almacen. El requisito se queda; el
+    trabajo lo hace el buscador, que para eso esta. El usuario confirma o
+    cambia, que es una decision de un segundo en vez de una busqueda.
+    """
+    check_rate_limit(request)
+    descripcion = peticion.descripcion.strip()
+
+    motivo = _fuera_de_alcance(descripcion)
+    if motivo:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, motivo)
+
+    sugerida: str | None = None
+    titulo: str | None = None
+    try:
+        from app.core.rag.retriever import retrieve
+
+        consulta = f"{peticion.titular.strip()}. {descripcion}".strip(". ")
+        resultado = retrieve(db, resolve_tenant(settings.default_tenant_id), consulta)
+        if resultado.accepted:
+            mejor = resultado.accepted[0]
+            sugerida = mejor.citation_label.replace("seccion", "sección")
+            # El TITULO es lo que permite ver si la propuesta tiene sentido.
+            # Con solo el codigo, confirmar es un sello: nadie distingue si
+            # "SST-PR-02 v2, seccion 7.1" respalda un cartel sobre documentos
+            # en oficina. Con "Uso de Equipos de Proteccion Personal" delante,
+            # el error salta a la vista.
+            titulo = mejor.title
+    except Exception:  # noqa: BLE001 - sugerir es una ayuda, no un requisito
+        logger.warning("imagenes.sugerencia_fallida", exc_info=True)
+
+    return {
+        "escena_en": _a_ingles(descripcion),
+        "clausula_sugerida": sugerida,
+        "titulo_documento": titulo,
+    }
+
+
 @router.post("/generar", response_model=RespuestaImagen)
 def generar(
     peticion: PeticionImagen,
@@ -375,7 +512,16 @@ def generar(
             "que hace y donde. El titular ya va aparte, como texto real.",
         )
 
-    prompt = f"{peticion.descripcion.strip()}, {MARCA}"
+    # Si el navegador ya la tradujo, se aprovecha -- pero se valida con el mismo
+    # criterio que la original. Lo que llega del cliente no se cree: sin esto,
+    # bastaria mandar una descripcion inocente en castellano y la escena que se
+    # quisiera en ingles.
+    adelantada = (peticion.escena_en or "").strip()
+    if adelantada and not _fuera_de_alcance(adelantada) and not pide_texto(adelantada):
+        escena = adelantada
+    else:
+        escena = _a_ingles(peticion.descripcion.strip())
+    prompt = f"{escena}, {MARCA}"
     logger.info("imagenes.generando", extra={"titular": peticion.titular[:60]})
 
     if not _generando.acquire(blocking=False):

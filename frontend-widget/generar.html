@@ -70,6 +70,18 @@
   .licencia summary { cursor: pointer; font-weight: 600; color: #2a3038; }
   .licencia ul, .licencia ol { margin: 8px 0 14px 20px; }
   .licencia li { margin-bottom: 5px; line-height: 1.45; }
+  .respaldo {
+    background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px;
+    padding: 10px 12px; font-size: 13.5px; color: #1e3a8a;
+  }
+  .enlace {
+    background: none; border: none; padding: 4px 0; margin-top: 4px;
+    color: #2563eb; font-size: 13px; cursor: pointer; text-decoration: underline;
+  }
+  .escena-en {
+    font-size: 12.5px; color: #64748b; margin-top: 6px; line-height: 1.45;
+  }
+  .escena-en b { color: #334155; }
   /* Barra de vistas. Las tres paginas vivian sueltas: para pasar de la gestion
      documental al chat o al generador habia que escribir la URL a mano, que en
      una demostracion delante de alguien es media presentacion perdida.
@@ -137,12 +149,25 @@
              value="El equipo de protección no es opcional">
 
       <label for="descripcion">Qué debe mostrar la imagen</label>
-      <textarea id="descripcion" required maxlength="400">Warehouse worker in hard hat and high-visibility vest beside stacked pallets, full figure centered</textarea>
-      <p class="pista">En inglés funciona mejor. No pidas texto: el modelo lo escribe mal, y el titular ya va aparte.</p>
+      <textarea id="descripcion" required maxlength="400">Un operario de almacén con casco y chaleco reflectivo, de cuerpo entero, de pie en un pasillo entre estanterías con pallets</textarea>
+      <p class="pista">Escríbelo en castellano, como se lo contarías a alguien. Describe una
+        escena: quién aparece, qué hace y dónde. No pidas carteles ni rótulos dentro de la
+        imagen: el modelo escribe letras ilegibles, y el titular ya va aparte como texto real.</p>
+      <p class="escena-en" id="escena-en" hidden></p>
 
       <label for="clausula">Cláusula que lo respalda</label>
-      <select id="clausula"><option value="">— sin respaldo documental —</option></select>
-      <p class="pista" id="pista-clausulas">Cargando el catálogo…</p>
+      <!-- El respaldo lo propone el buscador a partir de la escena. Elegirlo a
+           mano en una lista de 60 obliga a saber que el EPP es "SST-PR-02 v2,
+           sección 5.1", y quien usa esto es un jefe de almacén. El requisito se
+           queda; el trabajo lo hace el sistema. -->
+      <div id="respaldo-propuesto" hidden>
+        <div class="respaldo"><b id="respaldo-texto"></b></div>
+        <button type="button" class="enlace" id="cambiar-respaldo">Elegir otra</button>
+      </div>
+      <div id="respaldo-manual">
+        <select id="clausula"><option value="">— sin respaldo documental —</option></select>
+        <p class="pista" id="pista-clausulas">Cargando el catálogo…</p>
+      </div>
 
       <label for="orientacion">Orientación</label>
       <select id="orientacion">
@@ -236,6 +261,79 @@ fetch(`${API}/api/imagenes/clausulas`)
 
 let reloj = null;
 
+// --- Preparar la pieza mientras el usuario sigue escribiendo ----------------
+//
+// Al salir del campo de la escena se pide /preparar, que hace dos cosas: la
+// traduce al inglés (el modelo de difusión entiende inglés, y pedirle al
+// usuario que escriba en inglés convertía esto en una herramienta para quien
+// sabe inglés) y busca en el SGC la cláusula que la respalda.
+//
+// Ocurre mientras elige la orientación, así que al pulsar Generar solo queda
+// la difusión. Encadenarlo todo eran casi 60 segundos mirando un hueco.
+
+let escenaPreparada = null;
+let ultimaPreparada = "";
+let respaldoSugerido = null;
+
+function respaldoElegido() {
+  // Lo propuesto manda, salvo que el usuario haya abierto la lista para
+  // cambiarlo.
+  if (!$("respaldo-propuesto").hidden && respaldoSugerido) return respaldoSugerido;
+  return $("clausula").value;
+}
+
+function mostrarPropuesta(clausula, titulo) {
+  respaldoSugerido = clausula;
+  // El título va junto al código a propósito: sin él, confirmar es un sello.
+  // Nadie puede juzgar si "SST-PR-02 v2, sección 7.1" respalda lo que acaba de
+  // escribir; con "Uso de Equipos de Protección Personal" al lado, sí.
+  $("respaldo-texto").textContent = titulo ? `${clausula} — ${titulo}` : clausula;
+  $("respaldo-propuesto").hidden = false;
+  $("respaldo-manual").hidden = true;
+}
+
+$("cambiar-respaldo").addEventListener("click", () => {
+  $("respaldo-propuesto").hidden = true;
+  $("respaldo-manual").hidden = false;
+  respaldoSugerido = null;
+});
+
+async function prepararEscena() {
+  const texto = $("descripcion").value.trim();
+  if (texto.length < 8 || texto === ultimaPreparada) return;
+  ultimaPreparada = texto;
+  escenaPreparada = null;
+  $("escena-en").hidden = false;
+  $("escena-en").textContent = "Preparando la escena y buscando el respaldo…";
+  try {
+    const r = await fetch(`${API}/api/imagenes/preparar`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ descripcion: texto, titular: $("titular").value }),
+    });
+    if (!r.ok) {
+      const cuerpo = await r.json().catch(() => ({}));
+      // Un 422 aquí es el guardrail de alcance: conviene verlo ANTES de
+      // esperar medio minuto a una pieza que se va a rechazar igual.
+      $("escena-en").textContent = cuerpo.detail || "No se pudo preparar la escena.";
+      return;
+    }
+    const d = await r.json();
+    escenaPreparada = d.escena_en || null;
+    if (escenaPreparada && escenaPreparada !== texto) {
+      $("escena-en").innerHTML =
+        "<b>Se enviará al generador:</b> " + escenaPreparada;
+    } else {
+      $("escena-en").hidden = true;
+    }
+    if (d.clausula_sugerida) mostrarPropuesta(d.clausula_sugerida, d.titulo_documento);
+  } catch {
+    $("escena-en").hidden = true;
+  }
+}
+
+$("descripcion").addEventListener("blur", prepararEscena);
+
 $("formulario").addEventListener("submit", async (e) => {
   e.preventDefault();
   $("boton").disabled = true;
@@ -259,7 +357,8 @@ $("formulario").addEventListener("submit", async (e) => {
       body: JSON.stringify({
         titular: $("titular").value,
         descripcion: $("descripcion").value,
-        clausula: $("clausula").value,
+        clausula: respaldoElegido(),
+        escena_en: escenaPreparada,
         vertical: $("orientacion").value === "1",
       }),
     });

@@ -84,3 +84,72 @@ class TestTextoEnLaImagen:
 
     def test_una_escena_no_pide_texto(self):
         assert not pide_texto("operario de almacén con casco junto a pallets")
+
+
+class TestIdiomaDeLaEscena:
+    """
+    El usuario escribe en castellano; el modelo de difusion entiende ingles.
+
+    La pagina pedia la escena en ingles, y eso convertia la herramienta en algo
+    para quien sabe ingles. Quien la usa es un jefe de almacen en Lima. Traduce
+    el sistema, que para eso tiene un modelo de lenguaje corriendo al lado.
+    """
+
+    @pytest.mark.parametrize("texto", [
+        "Un operario de almacén con casco y chaleco reflectivo",
+        "operario de almacen con casco y chaleco junto a pallets",
+        "señalética de seguridad en el área de carga",
+        "dos trabajadores revisando documentos en una oficina",
+    ])
+    def test_reconoce_el_castellano(self, texto):
+        from app.channels.imagen_adapter import _parece_castellano
+        assert _parece_castellano(texto)
+
+    @pytest.mark.parametrize("texto", [
+        "Warehouse worker in hard hat beside stacked pallets",
+        "two employees reviewing quality documents in an office",
+        "forklift operator wearing a safety vest",
+    ])
+    def test_no_confunde_el_ingles(self, texto):
+        """
+        Traducir ingles a ingles gasta una llamada al modelo y puede estropear
+        un prompt que ya estaba bien.
+        """
+        from app.channels.imagen_adapter import _parece_castellano
+        assert not _parece_castellano(texto)
+
+    def test_una_sola_coincidencia_no_basta(self):
+        """
+        "a" y "o" existen en los dos idiomas. Con una sola palabra funcional se
+        traduciria ingles al ingles sin motivo.
+        """
+        from app.channels.imagen_adapter import _parece_castellano
+        assert not _parece_castellano("a worker in a warehouse")
+
+    def test_si_la_traduccion_falla_se_usa_el_original(self, monkeypatch):
+        """
+        Una pieza peor es mejor que ninguna pieza. El usuario no tiene por que
+        enterarse de que hay un paso intermedio.
+        """
+        import app.services.llm_client as cliente
+        from app.channels.imagen_adapter import _a_ingles
+
+        def revienta():
+            raise RuntimeError("modelo caido")
+
+        monkeypatch.setattr(cliente, "get_llm_client", revienta)
+        original = "Un operario de almacén con casco y chaleco"
+        assert _a_ingles(original) == original
+
+    def test_se_descarta_una_traduccion_desbocada(self, monkeypatch):
+        """Si el modelo divaga en vez de traducir, no se usa su respuesta."""
+        import app.services.llm_client as cliente
+        from app.channels.imagen_adapter import _a_ingles
+
+        class Divaga:
+            def generate(self, *a, **k):
+                return {"content": "Claro, aqui tienes la traduccion. " + "bla " * 200}
+
+        monkeypatch.setattr(cliente, "get_llm_client", lambda: Divaga())
+        original = "Un operario de almacén con casco"
+        assert _a_ingles(original) == original

@@ -47,9 +47,23 @@ GRAFITO = (0x30, 0x30, 0x30)
 # Medido: con la version larga se truncaba justo "no text, no letters", que es lo
 # que impide que el modelo garabatee letras falsas. Lo corto va primero; lo que
 # no cabe se repite en el negativo, que se evalua aparte.
+# El estilo manda mas que la escena, y este pedia literalmente que fuera
+# basico: "flat vector illustration, minimal". Salian figuras planas, sin
+# volumen y sin foco. Ahora se pide ilustracion editorial con sombreado y
+# profundidad, una paleta corporativa concreta -- azul profundo, blanco y
+# naranja de seguridad, que es la de la senaletica real -- y una composicion
+# con sujeto dominante y aire alrededor, que es lo que distingue un cartel de
+# un dibujo.
+#
+# Y se retira "no text" del prompt POSITIVO. CLIP no entiende negaciones: "no
+# text" empuja hacia el concepto "text" en vez de alejarlo. De eso se encarga
+# el negativo, que lo cubre por triplicado.
 MARCA = (
-    "flat vector illustration, corporate blue and white, minimal, clean, "
-    "single clear scene, no text"
+    "modern editorial illustration for a corporate safety campaign, "
+    "clean geometric shapes with soft shading and depth, "
+    "deep corporate blue, white and safety orange palette, "
+    "single dominant subject, centered, generous negative space, "
+    "balanced composition, crisp edges, professional, highly detailed"
 )
 
 # El negativo carga contra el texto por partida triple -- letras, y ademas las
