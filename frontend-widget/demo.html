@@ -30,6 +30,14 @@
   .avatar{width:28px; height:28px; border-radius:50%; background:var(--marca-clara); color:var(--marca);
           display:grid; place-items:center; font-weight:700; font-size:.76rem}
 
+  /* En estrecho, la intranet simulada desbordaba 257 px por la derecha: su menu
+     de cinco secciones y el bloque del usuario no caben. Son atrezzo -- el sitio
+     anfitrion donde vive el widget -- asi que se retiran en vez de amontonarse.
+     Lo que importa a ese ancho es el asistente. */
+  @media (max-width: 720px){
+    header.top nav, header.top .usuario{display:none}
+  }
+
   main{max-width:1140px; margin:0 auto; padding:32px 24px 72px}
   h1{font-size:1.6rem; margin:0 0 6px; letter-spacing:-.02em}
   .sub{color:var(--suave); margin:0 0 28px}

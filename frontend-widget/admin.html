@@ -144,6 +144,31 @@
      puede ganarle al atributo `hidden` y ensenar lo que deberia estar oculto. */
   [hidden] { display: none !important; }
 
+  /* --- Pantallas estrechas ------------------------------------------------
+     El panel desbordaba: 705 px de contenido en una ventana de 400, porque los
+     seis contadores de la cabecera iban en una fila que no se envolvia. Un
+     panel que se sale por la derecha no se puede usar desde un movil, y quien
+     recibe una escalacion a menudo la mira desde el movil. */
+  @media (max-width: 720px) {
+    header {
+      flex-direction: column; align-items: flex-start;
+      padding: 14px 18px; position: static;
+    }
+    .stats {
+      margin-left: 0; width: 100%;
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 12px 10px;
+    }
+    .stat b { font-size: 17px; }
+    .stat span { font-size: 10.5px; letter-spacing: .02em; }
+    main { padding: 20px 16px 60px; }
+    /* Una tabla no se puede estrechar mas alla de sus columnas: se desliza
+       dentro de su propia caja en vez de arrastrar la pagina entera. */
+    .tabla-ancha { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .tabla-ancha table { min-width: 560px; }
+    .actions { flex-wrap: wrap; }
+  }
+
   .filtros { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
   .filtros button.activo { background: var(--accent); border-color: var(--accent); color: #fff; }
 
@@ -563,7 +588,11 @@ async function refreshLibrary() {
     });
 
     table.appendChild(tbody);
-    box.appendChild(table);
+    // La tabla se desliza dentro de su caja en pantallas estrechas, en vez
+    // de arrastrar la pagina entera hacia la derecha.
+    const caja = el("div", "tabla-ancha");
+    caja.appendChild(table);
+    box.appendChild(caja);
     host.appendChild(box);
   });
 }
