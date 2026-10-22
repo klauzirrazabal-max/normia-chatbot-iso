@@ -645,6 +645,13 @@ _TEMAS: dict[str, tuple[str | None, list[str]]] = {
     "riesgo": (None, ["riesgo"]),
     "capacitacion": (None, ["capacitacion", "capacitación"]),
     "seguridad": (None, ["seguridad"]),
+    # EPP es como se dice en una planta; en el titulo del documento casi nunca
+    # aparece asi. Sin esta entrada, "creame un cartel de EPP" buscaba la
+    # cadena "epp" en los titulos, no la encontraba, y el asistente respondia
+    # que el SGC no cubria el tema teniendo el procedimiento delante.
+    "epp": (None, ["epp", "proteccion personal", "protección personal"]),
+    "sst": (None, ["seguridad", "salud"]),
+    "proteccion": (None, ["proteccion", "protección"]),
     "hallazgo": (None, ["no conforme", "correctiva"]),
     "reclamo": (None, ["reclamo"]),
     "reclamos": (None, ["reclamo"]),

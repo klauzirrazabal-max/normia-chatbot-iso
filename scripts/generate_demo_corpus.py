@@ -51,6 +51,71 @@ REVISION : {effective_date}
 
 
 DOCUMENTOS = [
+    # Seguridad y salud en el trabajo.
+    #
+    # El corpus publico no tenia NADA de seguridad, y se noto al probar la
+    # generacion de material visual: un cartel de EPP es la pieza mas natural
+    # que se le pide a este sistema, y no habia ninguna clausula vigente que lo
+    # respaldara. El guardrail hacia bien su trabajo -- un cartel sin respaldo
+    # es propaganda -- pero la demostracion quedaba sin su caso mas obvio.
+    DocumentoDemo(
+        code="SST-PR-02",
+        version="v2",
+        title="Uso de Equipos de Protección Personal",
+        area="PROCEDIMIENTOS",
+        effective_date="2026-03-10",
+        body="""1. OBJETIVO
+Establecer las condiciones de entrega, uso, inspeccion y reposicion de los equipos
+de proteccion personal, para controlar los riesgos a los que esta expuesto el
+personal en almacen, carga y trabajos en altura.
+
+2. ALCANCE
+Aplica a todo el personal propio y contratista que ingrese a zonas operativas:
+almacen, patio de maniobras, muelle de carga y areas de trabajo en altura.
+
+3. DOCUMENTOS DE REFERENCIA
+CAL-PR-03 No Conformidad y Acciones Correctivas
+CAL-MN-01 Manual de la Calidad
+
+4. RESPONSABILIDADES
+4.1. El Jefe de Almacen verifica, al inicio de cada turno, que el personal porte
+el equipo completo antes de autorizar el ingreso a la zona operativa.
+4.2. El Supervisor de Seguridad mantiene el stock minimo y registra las entregas.
+4.3. El trabajador es responsable de conservar su equipo y de reportar cualquier
+deterioro de inmediato.
+
+5. EQUIPO SEGUN ZONA
+5.1. Almacen y muelle de carga: casco, chaleco reflectivo, calzado de seguridad
+con puntera y guantes de manipulacion.
+5.2. Trabajos en altura, a partir de 1.80 metros sobre el nivel del piso: lo
+anterior mas arnes de cuerpo entero con doble linea de vida y barbiquejo.
+5.3. Operacion de montacargas: casco, chaleco reflectivo y calzado de seguridad.
+El acompanante no puede permanecer en el radio de giro.
+
+6. ENTREGA Y REPOSICION
+6.1. La entrega se registra con firma del trabajador, indicando fecha y talla.
+6.2. La reposicion por desgaste normal se solicita al Supervisor de Seguridad.
+6.3. La reposicion por perdida requiere informe del jefe inmediato.
+
+7. INSPECCION
+7.1. El trabajador inspecciona su equipo antes de cada jornada: casco sin
+fisuras, chaleco con cintas reflectivas visibles, calzado con suela y puntera en
+buen estado.
+7.2. El arnes se inspecciona ademas en sus costuras, hebillas y ganchos. Un
+arnes que haya detenido una caida se retira de servicio de forma definitiva, sin
+excepcion y sin evaluacion posterior.
+7.3. La inspeccion documentada del equipo de altura se realiza mensualmente.
+
+8. INCUMPLIMIENTO
+8.1. El ingreso a zona operativa sin el equipo correspondiente se registra como
+no conformidad y se trata segun CAL-PR-03.
+8.2. Reincidir en el incumplimiento faculta al Jefe de Almacen a retirar al
+trabajador de la zona operativa hasta su recapacitacion.
+
+9. REGISTROS
+Registro de entrega de EPP. Registro de inspeccion mensual de equipos de altura.
+""",
+    ),
     DocumentoDemo(
         code="STI-PR-01",
         version="v4",

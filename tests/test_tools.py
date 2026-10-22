@@ -388,6 +388,7 @@ def test_el_mensaje_de_material_no_generado_pide_lo_que_falta():
     from app.core.orchestrator import SIN_MATERIAL_MESSAGE
 
     # No basta con decir que no se pudo: hay que decir que hace falta, o el
-    # usuario no sabe como desbloquearse.
-    assert "que debe mostrar" in SIN_MATERIAL_MESSAGE
-    assert "documento" in SIN_MATERIAL_MESSAGE
+    # usuario no sabe como desbloquearse. Las tres preguntas de la escena y la
+    # del documento que respalda la pieza.
+    for pista in ("quién", "qué está haciendo", "dónde", "documento"):
+        assert pista in SIN_MATERIAL_MESSAGE, pista

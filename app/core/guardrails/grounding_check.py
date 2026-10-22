@@ -197,7 +197,7 @@ def classify_citations(
 
 
 PHANTOM_CITATION_MESSAGE = (
-    "No puedo darte una respuesta confiable a eso: al redactarla me referi a un documento "
+    "No puedo darte una respuesta confiable a eso: al redactarla me referí a un documento "
     "que no existe en el sistema documental. Prefiero no arriesgarme y derivarlo al "
     "Responsable de Calidad."
 )

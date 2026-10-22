@@ -77,9 +77,57 @@
 
   footer{border-top:1px solid var(--linea); margin-top:44px; padding-top:18px;
          color:var(--suave); font-size:.82rem; display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap}
+  /* Barra de vistas. Las tres paginas vivian sueltas: para pasar de la gestion
+     documental al chat o al generador habia que escribir la URL a mano, que en
+     una demostracion delante de alguien es media presentacion perdida.
+     El tenant viaja en el enlace para no volver al de por defecto al cambiar. */
+  .vistas {
+    display: flex; gap: 2px; align-items: center; flex-wrap: wrap;
+    background: #fff; border-bottom: 1px solid var(--border, #e2e8f0);
+    padding: 0 20px;
+  }
+  .vistas a {
+    padding: 11px 14px; font-size: 13.5px; font-weight: 600;
+    color: #64748b; text-decoration: none;
+    border-bottom: 2px solid transparent;
+  }
+  .vistas a:hover { color: #2563eb; }
+  .vistas a[aria-current="page"] { color: #2563eb; border-bottom-color: #2563eb; }
+  .vistas .marca {
+    font-weight: 700; color: #0f172a; margin-right: 14px; font-size: 14px;
+  }
 </style>
 </head>
 <body>
+<script>
+// El tenant se arrastra entre vistas: cambiar de pantalla no deberia
+// devolverte al cliente por defecto sin avisar.
+(function () {
+  const tenant = new URLSearchParams(location.search).get("tenant");
+  const aqui = location.pathname.split("/").pop() || "demo.html";
+  const vistas = [
+    ["demo.html", "Asistente"],
+    ["generar.html", "Material visual"],
+    ["admin.html", "Gestión documental"],
+  ];
+  const barra = document.createElement("nav");
+  barra.className = "vistas";
+  barra.setAttribute("aria-label", "Vistas de NormIA");
+  const marca = document.createElement("span");
+  marca.className = "marca";
+  marca.textContent = "NormIA";
+  barra.appendChild(marca);
+  vistas.forEach(([href, texto]) => {
+    const a = document.createElement("a");
+    a.href = tenant ? `${href}?tenant=${encodeURIComponent(tenant)}` : href;
+    a.textContent = texto;
+    if (href === aqui) a.setAttribute("aria-current", "page");
+    barra.appendChild(a);
+  });
+  document.body.insertBefore(barra, document.body.firstChild);
+})();
+</script>
+
 
 <header class="top">
   <div class="barra">

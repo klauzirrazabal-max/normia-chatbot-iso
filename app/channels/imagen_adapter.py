@@ -92,6 +92,36 @@ _VOCABULARIO = {
     "training", "induction", "meeting", "presentation", "diagram", "flowchart",
     "worker", "workers", "employee", "staff", "supervisor", "team", "manager",
     "calibration", "measurement", "maintenance", "cleaning", "temperature",
+    # --- y lo mismo en castellano ----------------------------------------
+    #
+    # Faltaba entero. La pagina del generador pide la escena en ingles porque
+    # el modelo de difusion rinde mejor asi, pero por el CHAT la gente escribe
+    # en castellano y el modelo redacta la descripcion en castellano. Medido:
+    # de cuatro peticiones legitimas, solo paso la que por casualidad llevaba
+    # la palabra "pallets". "Senaletica de seguridad para el area de carga" se
+    # rechazaba por estar fuera de alcance, siendo material del SGC de manual.
+    # entorno y operacion
+    "almacen", "almacenes", "deposito", "logistica", "paleta", "paletas",
+    "montacargas", "estanteria", "estanterias", "anaquel", "inventario",
+    "carga", "descarga", "muelle", "despacho", "envio", "camion", "camiones",
+    "oficina", "planta", "taller", "fabrica", "proveedor", "proveedores",
+    "entrega", "transporte", "ruta", "operario", "operarios", "personal",
+    # seguridad y salud
+    "seguridad", "casco", "chaleco", "reflectivo", "guantes", "gafas", "lentes",
+    "botas", "epp", "proteccion", "emergencia", "salida", "extintor",
+    "extintores", "peligro", "riesgo", "riesgos", "senaletica", "senal",
+    "senales", "botiquin", "primeros", "auxilios", "arnes", "escalera",
+    "derrame", "incendio", "evacuacion", "altura", "alturas",
+    # calidad, procesos y documentacion
+    "calidad", "auditoria", "auditorias", "proceso", "procesos",
+    "procedimiento", "procedimientos", "lista", "verificacion", "documento",
+    "documentos", "carpeta", "archivo", "formato", "formatos", "registro",
+    "registros", "inspeccion", "cumplimiento", "norma", "iso", "certificado",
+    "etiqueta", "rotulo", "capacitacion", "induccion", "formacion", "charla",
+    "reunion", "presentacion", "diagrama", "flujograma", "cartel", "afiche",
+    "lamina", "trabajador", "trabajadores", "empleado", "empleados",
+    "supervisor", "equipo", "jefe", "calibracion", "medicion", "mantenimiento",
+    "limpieza", "orden", "temperatura", "conformidad",
 }
 
 # Lo que no tiene sitio en material de un SGC, por muy inocente que suene.
@@ -99,13 +129,33 @@ _FUERA_DE_ALCANCE = {
     "party", "beach", "holiday", "vacation", "wedding", "birthday", "game",
     "cartoon", "anime", "superhero", "weapon", "gun", "politician", "celebrity",
     "religious", "nude", "portrait", "selfie", "pet", "landscape", "sunset",
+    # En castellano tambien. Al abrir el vocabulario al castellano esta lista
+    # pasa a ser la que sostiene el rechazo: antes bastaba con no reconocer
+    # ninguna palabra, y ahora "una invitacion para la fiesta de la oficina"
+    # reconoceria "oficina" y pasaria.
+    "fiesta", "cumpleanos", "boda", "matrimonio", "bautizo", "navidad",
+    "vacaciones", "feriado", "playa", "piscina", "videojuego", "juego",
+    "caricatura", "dibujo", "superheroe", "arma", "pistola", "politico",
+    "famoso", "famosa", "religioso", "religiosa", "desnudo", "desnuda",
+    "retrato", "selfi", "mascota", "perro", "gato", "paisaje", "atardecer",
+    "invitacion", "cumple",
 }
 
 
 def _palabras(texto: str) -> set[str]:
-    import re
+    """
+    Palabras normalizadas, sin acentos.
 
-    return set(re.findall(r"[a-z]+", texto.lower()))
+    `[a-z]+` sobre el texto crudo partia "senaletica" en "se" y "tica" y
+    "almacen" en "almac" y "n": ninguna de las dos coincidia con nada, y la
+    peticion se rechazaba por estar fuera de alcance.
+    """
+    import re
+    import unicodedata
+
+    plano = unicodedata.normalize("NFKD", texto.lower())
+    plano = "".join(c for c in plano if not unicodedata.combining(c))
+    return set(re.findall(r"[a-z]+", plano))
 
 
 def _fuera_de_alcance(descripcion: str) -> str | None:

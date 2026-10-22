@@ -78,12 +78,12 @@ DEFAULT_SYSTEM_PROMPT = (
 )
 
 SIN_RESPUESTA_MESSAGE = (
-    "No estoy seguro de a que te refieres. ¿Puedes concretarme un poco mas la consulta?"
+    "No estoy seguro de a qué te refieres. ¿Puedes concretarme un poco más la consulta?"
 )
 
 ESCALATED_MESSAGE = (
-    "Esa consulta esta fuera de mi alcance: no apruebo, autorizo ni modifico documentos "
-    "controlados. La derive al Responsable de Calidad para que la revise."
+    "Esa consulta está fuera de mi alcance: no apruebo, autorizo ni modifico documentos "
+    "controlados. La derivé al Responsable de Calidad para que la revise."
 )
 
 def rag_error_message(referencia: str) -> str:
@@ -95,9 +95,9 @@ def rag_error_message(referencia: str) -> str:
     plazo, y prometerlo hace que la persona reintente diez veces.
     """
     return (
-        "No pude consultar la documentacion en este momento por un problema "
-        f"tecnico. La incidencia quedo registrada como {referencia}; mencionala al "
-        "area de sistemas. Prefiero decirtelo a responderte sin haber podido "
+        "No pude consultar la documentación en este momento por un problema "
+        f"técnico. La incidencia quedó registrada como {referencia}; menciónala al "
+        "área de sistemas. Prefiero decírtelo a responderte sin haber podido "
         "comprobarlo en los documentos vigentes."
     )
 
@@ -110,9 +110,9 @@ def llm_error_message(referencia: str) -> str:
     reportar y al operador sin forma de correlacionar la queja con el log.
     """
     return (
-        "No pude procesar tu consulta por un problema tecnico. La incidencia quedo "
-        f"registrada como {referencia}; si vuelve a pasar, menciona ese codigo al "
-        "area de sistemas. Tambien puedes intentarlo de nuevo en unos segundos."
+        "No pude procesar tu consulta por un problema técnico. La incidencia quedó "
+        f"registrada como {referencia}; si vuelve a pasar, menciona ese código al "
+        "área de sistemas. También puedes intentarlo de nuevo en unos segundos."
     )
 
 # Cuantos turnos previos se reenvian al modelo. Acotado a proposito: el contexto
@@ -837,9 +837,11 @@ def _dominant_document(chunks: list[RetrievedChunk]) -> str | None:
 # material y no hay solicitud, la respuesta se sustituye. No hace falta adivinar
 # si el modelo prometio o no -- no habia nada que prometer.
 
+# Lo LEE una persona: con acentos y sin guiones dobles haciendo de raya.
 SIN_MATERIAL_MESSAGE = (
-    "No he llegado a preparar el material. Dime que debe mostrar la imagen -- quien "
-    "aparece, que hace y donde -- y sobre que documento del SGC quieres apoyarlo."
+    "Todavía no tengo suficiente para preparar la pieza. Descríbeme la escena: quién "
+    "aparece, qué está haciendo y dónde. Y dime sobre qué documento del sistema de "
+    "gestión quieres apoyarla, para que el cartel cite la cláusula que lo respalda."
 )
 
 
