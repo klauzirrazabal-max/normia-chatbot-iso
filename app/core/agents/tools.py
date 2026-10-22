@@ -282,8 +282,9 @@ TOOLS_SCHEMA: list[dict[str, Any]] = [
                     "clausula": {
                         "type": "string",
                         "description": (
-                            "Documento y seccion que respaldan el cartel, como "
-                            "'OPE-PR-02 v4, seccion 7.6'. Tiene que existir en el SGC."
+                            "Documento y seccion que respaldan el cartel, escrito tal "
+                            "como se IMPRIMIRA en la pieza, con tildes: "
+                            "'OPE-PR-02 v4, sección 7.6'. Tiene que existir en el SGC."
                         ),
                     },
                 },

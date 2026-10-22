@@ -140,6 +140,10 @@
   .capa-vencida { color: var(--err); font-weight: 600; }
   .sin-capa { color: var(--err); font-size: 12.5px; font-weight: 600; margin: 8px 0 0 4px; }
 
+  /* Seguro contra el mismo fallo que en generar.html: una regla de display
+     puede ganarle al atributo `hidden` y ensenar lo que deberia estar oculto. */
+  [hidden] { display: none !important; }
+
   .filtros { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
   .filtros button.activo { background: var(--accent); border-color: var(--accent); color: #fff; }
 

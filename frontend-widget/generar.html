@@ -51,7 +51,10 @@
   .lienzo img{max-width:100%;max-height:70vh;border-radius:3px;display:block}
   .estado{font-size:.88rem;color:var(--grafito);margin:12px 0 0;min-height:1.4em}
   .error{color:#9E2B21}
+  /* `display:flex` gana a `hidden`, asi que el boton de descarga se veia
+     antes de existir ninguna pieza: un boton que no hace nada. */
   .acciones{display:flex;gap:10px;margin-top:14px}
+  [hidden]{display:none !important}
   .acciones a{
     flex:1;text-align:center;padding:10px;border:1px solid var(--linea);
     border-radius:4px;text-decoration:none;color:var(--tinta);font-size:.9rem;

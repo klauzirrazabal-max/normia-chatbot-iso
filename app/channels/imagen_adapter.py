@@ -235,10 +235,14 @@ def _clausula_existe(db: Session, referencia: str) -> bool:
     codigos = extract_cited_codes(referencia)
     if not codigos:
         return False
+    # EL MISMO tenant que sirve el catalogo. Se quedo apuntando a
+    # `default_tenant_id` cuando el catalogo paso a respetar el tenant publico,
+    # y el resultado fue que el desplegable ofrecia clausulas que el validador
+    # rechazaba: la pieza era imposible de generar eligiendo cualquier opcion.
     reales = {
         c.split(" (")[0].upper()
         for (c,) in db.query(Document.code)
-        .filter_by(tenant_id=settings.default_tenant_id, status="vigente")
+        .filter_by(tenant_id=resolve_tenant(settings.default_tenant_id), status="vigente")
         .distinct()
     }
     return bool(codigos & reales)
@@ -316,8 +320,11 @@ def clausulas_disponibles(
     )
     return [
         {
-            "etiqueta": f"{c} {v}" + (f", seccion {s}" if s else "") + f" - {t}",
-            "referencia": f"{c} {v}" + (f", seccion {s}" if s else ""),
+            # La referencia se IMPRIME en la pieza, debajo del titular: ahi
+            # "seccion" sin tilde se ve, y lo que se reparte por la empresa no
+            # puede llevar una falta.
+            "etiqueta": f"{c} {v}" + (f", sección {s}" if s else "") + f" - {t}",
+            "referencia": f"{c} {v}" + (f", sección {s}" if s else ""),
         }
         for c, v, t, s in filas
     ]
