@@ -90,14 +90,38 @@ def _normalize(text: str) -> str:
     return re.sub(r"[\s_\-]+", "", text).upper()
 
 
+# El texto que LEE el usuario: con acentos, a diferencia de los comentarios.
+#
+# Antes decia "te voy a conectar con el Responsable de Calidad". Afirmaba. El
+# usuario no autorizaba nada y la escalacion ya estaba escrita, asi que la
+# bandeja de Calidad acumulo 306 consultas que nadie pidio derivar. Una bandeja
+# asi se deja de mirar, y entonces el canal de escalacion deja de existir.
+#
+# Ahora OFRECE. La derivacion solo se crea si el usuario dice que si.
 NO_CONTEXT_MESSAGE = (
-    "No tengo informacion suficiente en los documentos vigentes para responder eso "
-    "con certeza. Te voy a conectar con el Responsable de Calidad para que lo revise."
+    "No tengo información suficiente en los documentos vigentes para responder eso "
+    "con certeza, y prefiero no improvisar una respuesta sobre el sistema de gestión. "
+    "¿Quieres que lo derive al Responsable de Calidad para que lo revise?"
+)
+
+DERIVACION_ACEPTADA_MESSAGE = (
+    "Listo, queda derivado al Responsable de Calidad con tu consulta y el documento "
+    "que faltaba. Te responderán por el canal habitual."
+)
+
+DERIVACION_RECHAZADA_MESSAGE = (
+    "De acuerdo, no lo derivo. Si quieres, reformula la consulta y la busco de nuevo "
+    "en la documentación vigente."
 )
 
 OUT_OF_SCOPE_HINT = (
     "Recuerda: no apruebas, autorizas ni modificas documentos. Si te lo piden, "
-    "escala a Calidad con la herramienta escalate_to_quality."
+    "escala a Calidad con la herramienta escalate_to_quality.\n"
+    "Si el usuario reporta una desviacion o incumplimiento, registralo con "
+    "register_finding indicando la severidad, y despues pregunta quien se "
+    "encargara de corregirlo y para cuando, para registrarlo con "
+    "registrar_accion_correctiva. Un hallazgo sin accion correctiva deja el "
+    "ciclo a medias."
 )
 
 

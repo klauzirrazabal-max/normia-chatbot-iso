@@ -16,9 +16,11 @@ import json
 import logging
 import re
 import unicodedata
+from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import func, or_
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.guardrails.grounding_check import extract_cited_codes
@@ -42,9 +44,61 @@ TOOLS_SCHEMA: list[dict[str, Any]] = [
                     "description": {
                         "type": "string",
                         "description": "Descripcion del hallazgo, en las palabras del usuario",
-                    }
+                    },
+                    "severity": {
+                        "type": "string",
+                        "enum": ["observacion", "menor", "mayor"],
+                        "description": (
+                            "Gravedad. 'mayor' si compromete la conformidad del sistema o "
+                            "la seguridad; 'menor' si es un incumplimiento puntual; "
+                            "'observacion' si es una oportunidad de mejora. Ante la duda, "
+                            "'menor'."
+                        ),
+                    },
+                    "area": {
+                        "type": "string",
+                        "description": (
+                            "Area o proceso donde se detecto, si el usuario lo menciona "
+                            "(almacen, transporte, TI, administracion...)"
+                        ),
+                    },
                 },
                 "required": ["description"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "registrar_accion_correctiva",
+            "description": (
+                "Registra una accion correctiva sobre un hallazgo YA registrado, con su "
+                "responsable y su fecha limite. Usala cuando el usuario indique que se va "
+                "a hacer para corregir un hallazgo y quien se encarga. Requiere el ID "
+                "numerico del hallazgo: si no lo tienes, pidelo antes."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "finding_id": {
+                        "type": "integer",
+                        "description": "ID del hallazgo al que pertenece la accion",
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Que se va a hacer para corregir el hallazgo",
+                    },
+                    "responsible": {
+                        "type": "string",
+                        "description": "Nombre o cargo de quien se encarga, si se indica",
+                    },
+                    "due_date": {
+                        "type": "string",
+                        "description": "Fecha limite en formato AAAA-MM-DD, si se indica",
+                    },
+                },
+                "required": ["finding_id", "description"],
                 "additionalProperties": False,
             },
         },
@@ -262,19 +316,174 @@ TOOL_NAMES = {t["function"]["name"] for t in TOOLS_SCHEMA}
 ESCALATING_TOOLS = {"escalate_to_quality"}
 
 
+_SEVERIDADES = ("observacion", "menor", "mayor")
+
+# Dos relatos del mismo incidente separados por minutos son un reintento, no dos
+# no conformidades. En la base habia cinco copias de "extintores vencidos en el
+# almacen" por repetir la misma prueba, y un SGC que duplica hallazgos no se
+# puede auditar. La ventana es generosa a proposito: dentro del mismo dia, el
+# mismo texto y la misma area es el mismo hallazgo.
+_VENTANA_DUPLICADO = timedelta(hours=24)
+
+
+def _huella(texto: str) -> str:
+    """Normaliza para comparar: sin tildes, sin puntuacion, sin dobles espacios."""
+    plano = unicodedata.normalize("NFKD", texto.lower())
+    plano = "".join(c for c in plano if not unicodedata.combining(c))
+    # La puntuacion se vuelve espacio, y los espacios se colapsan: si no,
+    # "extintores vencidos!!" y "extintores  vencidos" quedaban distintos.
+    return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9ñ]+", " ", plano)).strip()
+
+
 def register_finding(
-    db: Session, tenant_id: str, conversation_id: int | None, description: str
+    db: Session,
+    tenant_id: str,
+    conversation_id: int | None,
+    description: str,
+    severity: str = "menor",
+    area: str | None = None,
 ) -> dict[str, Any]:
+    """
+    Registra una no conformidad con su naturaleza, no solo con su relato.
+
+    El modelo propone la severidad; si propone una que no existe se usa 'menor',
+    porque un hallazgo mal clasificado es recuperable y uno perdido no.
+    """
+    if severity not in _SEVERIDADES:
+        severity = "menor"
+    area = (area or "").strip() or None
+
+    desde = datetime.now(UTC) - _VENTANA_DUPLICADO
+    huella = _huella(description)
+    recientes = (
+        db.query(Finding)
+        .filter(Finding.tenant_id == tenant_id, Finding.created_at >= desde)
+        .order_by(Finding.id.desc())
+        .limit(50)
+        .all()
+    )
+    for previo in recientes:
+        if _huella(previo.description) == huella:
+            logger.info(
+                "finding.duplicado", extra={"finding_id": previo.id, "tenant_id": tenant_id}
+            )
+            return {
+                "finding_id": previo.id,
+                "status": previo.status,
+                "severity": previo.severity,
+                "duplicado": True,
+                "message": (
+                    f"Ese hallazgo ya estaba registrado con ID {previo.id} "
+                    f"(severidad {previo.severity}, estado {previo.status}). "
+                    f"No se duplico."
+                ),
+            }
+
     finding = Finding(
-        tenant_id=tenant_id, conversation_id=conversation_id, description=description
+        tenant_id=tenant_id,
+        conversation_id=conversation_id,
+        description=description,
+        severity=severity,
+        area=area,
     )
     db.add(finding)
     db.commit()
     db.refresh(finding)
+    logger.info(
+        "finding.registrado",
+        extra={"finding_id": finding.id, "severity": severity, "area": area},
+    )
     return {
         "finding_id": finding.id,
         "status": finding.status,
-        "message": f"Hallazgo registrado con ID {finding.id}.",
+        "severity": finding.severity,
+        "area": finding.area,
+        "message": (
+            f"Hallazgo registrado con ID {finding.id}, severidad {finding.severity}. "
+            f"Falta definir la accion correctiva: quien se encarga y para cuando."
+        ),
+    }
+
+
+def registrar_accion_correctiva(
+    db: Session,
+    tenant_id: str,
+    finding_id: int,
+    description: str,
+    responsible: str | None = None,
+    due_date: str | None = None,
+) -> dict[str, Any]:
+    """
+    Cierra la mitad que faltaba del ciclo: la accion que se toma sobre el hallazgo.
+
+    El filtro por tenant es el mismo de `get_capa_status` y por el mismo motivo:
+    sin el, cualquiera podria colgar acciones del hallazgo de otro cliente
+    probando identificadores, y de paso confirmar que ese hallazgo existe.
+    """
+    finding = (
+        db.query(Finding).filter_by(id=finding_id, tenant_id=tenant_id).one_or_none()
+    )
+    if finding is None:
+        return {
+            "finding_id": finding_id,
+            "error": "not_found",
+            "message": f"No existe un hallazgo con ID {finding_id}.",
+        }
+
+    limite = None
+    if due_date:
+        try:
+            limite = date.fromisoformat(due_date.strip()[:10])
+        except ValueError:
+            # Una fecha ilegible no puede tumbar el registro de la accion: se
+            # guarda sin plazo y se dice, que es peor que tener plazo pero mucho
+            # mejor que perder la accion entera.
+            logger.warning("capa.fecha_ilegible", extra={"due_date": due_date})
+
+    accion = CapaAction(
+        finding_id=finding_id,
+        description=description,
+        responsible=(responsible or "").strip() or None,
+        due_date=limite,
+    )
+    db.add(accion)
+    try:
+        db.commit()
+    except IntegrityError:
+        # El indice unico (finding_id, md5(description)) rebota el reintento.
+        db.rollback()
+        return {
+            "finding_id": finding_id,
+            "duplicado": True,
+            "message": "Esa accion correctiva ya estaba registrada para ese hallazgo.",
+        }
+    db.refresh(accion)
+
+    # Un hallazgo con accion asignada ya no esta solo abierto: esta en revision.
+    if finding.status == "abierto":
+        finding.status = "en_revision"
+        db.commit()
+
+    logger.info(
+        "capa.registrada",
+        extra={"capa_id": accion.id, "finding_id": finding_id, "responsible": responsible},
+    )
+    faltan = [
+        etiqueta
+        for etiqueta, valor in (("responsable", accion.responsible), ("fecha limite", limite))
+        if not valor
+    ]
+    return {
+        "capa_id": accion.id,
+        "finding_id": finding_id,
+        "finding_status": finding.status,
+        "responsible": accion.responsible,
+        "due_date": limite.isoformat() if limite else None,
+        "status": accion.status,
+        "message": (
+            f"Accion correctiva registrada sobre el hallazgo {finding_id}."
+            + (f" Falta indicar {' y '.join(faltan)}." if faltan else "")
+        ),
     }
 
 
@@ -306,13 +515,21 @@ def get_capa_status(db: Session, tenant_id: str, finding_id: int) -> dict[str, A
         return {
             "finding_id": finding_id,
             "finding_status": finding.status,
+            "severity": finding.severity,
+            "area": finding.area,
             "actions": [],
-            "message": "No hay acciones correctivas registradas todavia para ese hallazgo.",
+            "message": (
+                "No hay acciones correctivas registradas todavia para ese hallazgo. "
+                "Para cerrarlo hace falta definir que se va a hacer, quien se encarga "
+                "y para cuando."
+            ),
         }
 
     return {
         "finding_id": finding_id,
         "finding_status": finding.status,
+        "severity": finding.severity,
+        "area": finding.area,
         "actions": [
             {
                 "description": a.description,
@@ -1018,6 +1235,37 @@ def generar_material_visual(
     }
 
 
+def _pregunta_util(db: Session, conversation_id: int | None, question: str) -> str:
+    """
+    Lo que llega a Calidad tiene que ser la consulta, no la confirmacion.
+
+    Si el usuario escribe "si, por favor" y el modelo escala en ese turno, la
+    escalacion se guardaba con la pregunta "si, por favor", que no le dice nada
+    a quien la recibe. En ese caso se retrocede al ultimo mensaje del usuario
+    que si era una consulta.
+    """
+    from app.core.routing import leer_consentimiento
+    from app.models.db_models import Message
+
+    limpio = (question or "").strip()
+    if limpio and leer_consentimiento(limpio) is None:
+        return limpio
+    if conversation_id is None:
+        return limpio or "(sin registrar)"
+
+    previos = (
+        db.query(Message.content)
+        .filter_by(conversation_id=conversation_id, role="user")
+        .order_by(Message.id.desc())
+        .limit(6)
+        .all()
+    )
+    for (texto,) in previos:
+        if texto and texto.strip() != limpio and leer_consentimiento(texto) is None:
+            return texto.strip()
+    return limpio or "(sin registrar)"
+
+
 def escalate_to_quality(
     reason: str,
     db: Session | None = None,
@@ -1054,7 +1302,7 @@ def escalate_to_quality(
         tenant_id=tenant_id,
         conversation_id=conversation_id,
         channel=channel,
-        question=question or "(sin registrar)",
+        question=_pregunta_util(db, conversation_id, question),
         reason=reason,
         trigger=trigger,
     )
@@ -1137,7 +1385,34 @@ def execute_tool(
         description = str(arguments.get("description", "")).strip()
         if not description:
             return {"error": "invalid_arguments", "message": "Falta 'description'."}
-        return register_finding(db, tenant_id, conversation_id, description)
+        return register_finding(
+            db,
+            tenant_id,
+            conversation_id,
+            description,
+            severity=str(arguments.get("severity") or "menor"),
+            area=str(arguments.get("area") or "") or None,
+        )
+
+    if name == "registrar_accion_correctiva":
+        description = str(arguments.get("description", "")).strip()
+        try:
+            finding_id = int(arguments["finding_id"])
+        except (KeyError, TypeError, ValueError):
+            return {
+                "error": "invalid_arguments",
+                "message": "Falta 'finding_id' o no es un numero entero.",
+            }
+        if not description:
+            return {"error": "invalid_arguments", "message": "Falta 'description'."}
+        return registrar_accion_correctiva(
+            db,
+            tenant_id,
+            finding_id,
+            description,
+            responsible=str(arguments.get("responsible") or "") or None,
+            due_date=str(arguments.get("due_date") or "") or None,
+        )
 
     if name == "get_capa_status":
         try:

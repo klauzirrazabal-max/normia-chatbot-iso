@@ -86,6 +86,7 @@ class TestExecuteTool:
 def test_los_nombres_declarados():
     assert {
         "register_finding",
+        "registrar_accion_correctiva",
         "get_capa_status",
         "escalate_to_quality",
         "buscar_documentos",

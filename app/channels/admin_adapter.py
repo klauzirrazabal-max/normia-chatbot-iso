@@ -42,9 +42,11 @@ from app.core.docs.pipeline import apply_advice_action, process_job
 from app.db.session import get_db
 from app.security import require_admin_key
 from app.models.db_models import (
+    CapaAction,
     Document,
     DocumentChunk,
     Escalation,
+    Finding,
     Incident,
     UploadJob,
 )
@@ -356,6 +358,14 @@ def delete_document(document_id: int, db: Session = Depends(get_db)) -> None:
 
 ESCALATION_STATUSES = ("pendiente", "en_revision", "resuelta", "descartada")
 
+# 'propuesta' es el estado de lo OFRECIDO y no aceptado. Se conserva porque es
+# el inventario de preguntas que el SGC no sabe responder, pero no es trabajo
+# para nadie: fuera de la bandeja salvo que se pida explicitamente.
+ESTADO_OFRECIDA = "propuesta"
+
+FINDING_STATUSES = ("abierto", "en_revision", "cerrado")
+FINDING_SEVERITIES = ("observacion", "menor", "mayor")
+
 TRIGGER_LABELS = {
     "sin_contexto": "Sin respaldo documental",
     "fuera_de_alcance": "Fuera de alcance",
@@ -376,6 +386,8 @@ def list_escalations(
     consulta = db.query(Escalation).filter(Escalation.tenant_id == tenant)
     if status:
         consulta = consulta.filter(Escalation.status == status)
+    else:
+        consulta = consulta.filter(Escalation.status != ESTADO_OFRECIDA)
 
     filas = (
         consulta.order_by(Escalation.created_at.desc(), Escalation.id.desc())
@@ -411,6 +423,9 @@ def list_escalations(
         ],
         "counts": {estado: por_estado.get(estado, 0) for estado in ESCALATION_STATUSES},
         "pending": por_estado.get("pendiente", 0),
+        # Cuantas veces se ofrecio derivar y el usuario no acepto. Es la medida
+        # de los huecos del SGC sin el ruido de la bandeja.
+        "ofrecidas_sin_aceptar": por_estado.get(ESTADO_OFRECIDA, 0),
     }
 
 
@@ -423,7 +438,7 @@ def patch_escalation(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Escalacion no encontrada.")
 
     if payload.status is not None:
-        if payload.status not in ESCALATION_STATUSES:
+        if payload.status not in ESCALATION_STATUSES:  # 'propuesta' no se asigna a mano
             raise HTTPException(
                 status.HTTP_422_UNPROCESSABLE_ENTITY,
                 f"Estado invalido. Se acepta: {list(ESCALATION_STATUSES)}",
@@ -445,6 +460,93 @@ def patch_escalation(
         extra={"escalation_id": escalation_id, "status": escalation.status},
     )
     return {"id": escalation.id, "status": escalation.status}
+
+
+@router.get("/findings")
+def list_findings(
+    tenant_id: str = "",
+    status: str = "",
+    limit: int = 100,
+    db: Session = Depends(get_db),
+) -> dict:
+    """
+    No conformidades registradas, cada una con sus acciones correctivas.
+
+    Sin esto, un hallazgo registrado por el chat solo se recuperaba sabiendo su
+    ID numerico y volviendo a preguntarle al asistente. Un SGC necesita la lista.
+    """
+    tenant = tenant_id or settings.default_tenant_id
+
+    consulta = db.query(Finding).filter(Finding.tenant_id == tenant)
+    if status:
+        consulta = consulta.filter(Finding.status == status)
+    filas = (
+        consulta.order_by(Finding.created_at.desc(), Finding.id.desc()).limit(limit).all()
+    )
+
+    acciones: dict[int, list[CapaAction]] = {}
+    if filas:
+        for accion in (
+            db.query(CapaAction)
+            .filter(CapaAction.finding_id.in_([f.id for f in filas]))
+            .order_by(CapaAction.id)
+            .all()
+        ):
+            acciones.setdefault(accion.finding_id, []).append(accion)
+
+    por_estado: dict[str, int] = dict(
+        db.query(Finding.status, func.count(Finding.id))
+        .filter(Finding.tenant_id == tenant)
+        .group_by(Finding.status)
+        .all()
+    )
+    por_severidad: dict[str, int] = dict(
+        db.query(Finding.severity, func.count(Finding.id))
+        .filter(Finding.tenant_id == tenant)
+        .group_by(Finding.severity)
+        .all()
+    )
+
+    return {
+        "findings": [
+            {
+                "id": f.id,
+                "description": f.description,
+                "severity": f.severity,
+                "area": f.area,
+                "status": f.status,
+                "conversation_id": f.conversation_id,
+                "created_at": f.created_at.isoformat() if f.created_at else None,
+                "actions": [
+                    {
+                        "id": a.id,
+                        "description": a.description,
+                        "responsible": a.responsible,
+                        "due_date": a.due_date.isoformat() if a.due_date else None,
+                        "status": a.status,
+                    }
+                    for a in acciones.get(f.id, [])
+                ],
+            }
+            for f in filas
+        ],
+        "counts": {e: por_estado.get(e, 0) for e in FINDING_STATUSES},
+        "by_severity": {sev: por_severidad.get(sev, 0) for sev in FINDING_SEVERITIES},
+        # Un hallazgo abierto sin ninguna accion correctiva es el ciclo CAPA a
+        # medias. Es el numero que mira un auditor, asi que se cuenta sobre TODO
+        # el tenant: calcularlo sobre la pagina devuelta daba una cifra que
+        # cambiaba con el parametro `limit`.
+        "sin_accion": (
+            db.query(func.count(Finding.id))
+            .filter(
+                Finding.tenant_id == tenant,
+                Finding.status != "cerrado",
+                ~Finding.id.in_(db.query(CapaAction.finding_id)),
+            )
+            .scalar()
+            or 0
+        ),
+    }
 
 
 @router.get("/incidents")

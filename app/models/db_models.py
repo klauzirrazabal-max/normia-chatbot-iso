@@ -119,6 +119,10 @@ class Finding(Base):
         CheckConstraint(
             "status IN ('abierto', 'en_revision', 'cerrado')", name="findings_status_check"
         ),
+        CheckConstraint(
+            "severity IN ('observacion', 'menor', 'mayor')", name="findings_severity_check"
+        ),
+        Index("idx_findings_tenant_status", "tenant_id", "status", "created_at"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -127,6 +131,10 @@ class Finding(Base):
         Integer, ForeignKey("conversations.id")
     )
     description: Mapped[str] = mapped_column(Text, nullable=False)
+    # La clausula 10.2 pide la naturaleza de la no conformidad, no solo el
+    # relato. Sin severidad no se prioriza y sin area no se asigna.
+    severity: Mapped[str] = mapped_column(String, nullable=False, default="menor")
+    area: Mapped[str | None] = mapped_column(String)
     status: Mapped[str] = mapped_column(String, nullable=False, default="abierto")
     created_at: Mapped[object] = mapped_column(
         TIMESTAMP(timezone=True), server_default=func.now()
@@ -208,14 +216,14 @@ class Escalation(Base):
     __tablename__ = "escalations"
     __table_args__ = (
         CheckConstraint(
-            "status IN ('pendiente', 'en_revision', 'resuelta', 'descartada')",
+            "status IN ('propuesta', 'pendiente', 'en_revision', 'resuelta', 'descartada')",
             name="escalations_status_check",
         ),
         CheckConstraint(
             "trigger IN ('sin_contexto', 'fuera_de_alcance', 'error')",
             name="escalations_trigger_check",
         ),
-        Index("idx_escalations_pendientes", "tenant_id", "status"),
+        Index("idx_escalations_bandeja", "tenant_id", "created_at"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)

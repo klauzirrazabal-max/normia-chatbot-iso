@@ -297,3 +297,57 @@ def respuesta_social(texto: str) -> str | None:
     """Respuesta a una formula social, o None si el mensaje no lo es."""
     clase = clasificar_social(texto)
     return _RESPUESTAS.get(clase) if clase else None
+
+
+# --- Consentimiento para derivar ---------------------------------------------
+#
+# Cuando el asistente OFRECE derivar a Calidad, el turno siguiente es un si o un
+# no. Resolverlo con reglas y no con el modelo es deliberado: de esta decision
+# depende que se cree trabajo para una persona real, y un "no" interpretado como
+# "si" llena la bandeja de Calidad con consultas que nadie pidio derivar.
+#
+# Ante la duda NO se asume nada. `None` deja seguir el flujo normal y la
+# propuesta se queda sin aceptar, que es el lado seguro del error.
+
+_AFIRMA = re.compile(r"""^(
+    s[ií]+|sip|sipi|claro|dale|ok|oka|okey|vale|bueno|listo|correcto|exacto|
+    afirmativo|dalee|porfa|please|yes|ya|dalo|hazlo|hagalo|adelante|dele|
+    de\s?acuerdo|me\s+parece|esta\s+bien|asi\s+es|por\s+favor|
+    (si|claro|ok|dale|bueno)\s+(por\s+favor|porfa|gracias|hazlo|dale|derivalo|escalalo)|
+    (derivalo|escalalo|derivala|escalala|mandalo|envialo|pasalo|consultalo|reportalo)|
+    (quiero|deseo|necesito|prefiero)\s+que\s+(lo|la|me\s+lo|me\s+la)\s*\w*
+)$""", re.X)
+
+_NIEGA = re.compile(r"""^(
+    no+|nop|nope|negativo|paso|
+    no\s+(gracias|hace\s+falta|es\s+necesario|por\s+ahora|todavia|aun|importa|
+          hace\s+falta\s+gracias)|
+    (mejor\s+)?no(\s+gracias)?|
+    (dejalo|olvidalo|cancela|cancelalo|anulalo|ya\s+no|despues|luego|
+     mas\s+tarde|otro\s+dia|no\s+lo\s+derives|no\s+lo\s+escales)(\s+\w+)?
+)$""", re.X)
+
+# Un si o un no son cortos. Si el usuario escribe un parrafo, no esta
+# contestando la pregunta: esta preguntando otra cosa, y tratarlo como respuesta
+# secuestraria su turno.
+LARGO_MAXIMO_RESPUESTA = 64
+
+
+def leer_consentimiento(texto: str) -> bool | None:
+    """
+    True si acepta la derivacion, False si la rechaza, None si no contesto.
+
+    None es el caso frecuente y no es un fallo: el usuario cambio de tema o
+    reformulo la pregunta, y eso se atiende como un turno cualquiera.
+    """
+    limpio = _normalizar(texto)
+    if not limpio or len(limpio) > LARGO_MAXIMO_RESPUESTA:
+        return None
+    # "si, por favor" y "si por favor" son la misma respuesta. La coma interna
+    # sobrevive a _normalizar, que solo recorta los extremos.
+    limpio = re.sub(r"\s+", " ", re.sub(r"[,;.!?]+", " ", limpio)).strip()
+    if _AFIRMA.match(limpio):
+        return True
+    if _NIEGA.match(limpio):
+        return False
+    return None

@@ -32,6 +32,8 @@ from app.core.agents.tools import (
     strip_tool_name_prefix,
 )
 from app.core.guardrails.grounding_check import (
+    DERIVACION_ACEPTADA_MESSAGE,
+    DERIVACION_RECHAZADA_MESSAGE,
     NO_CONTEXT_MESSAGE,
     OUT_OF_SCOPE_HINT,
     PHANTOM_CITATION_MESSAGE,
@@ -41,7 +43,12 @@ from app.core.guardrails.grounding_check import (
     repair_cited_versions,
     response_cites_source,
 )
-from app.core.routing import TipoTurno, clasificar_turno, respuesta_social
+from app.core.routing import (
+    TipoTurno,
+    clasificar_turno,
+    leer_consentimiento,
+    respuesta_social,
+)
 from app.core.rag.retriever import (
     RetrievalResult,
     RetrievedChunk,
@@ -173,7 +180,8 @@ def _build_messages(
                     "Fragmentos de documentos ISO VIGENTES recuperados para esta consulta. "
                     "Responde unicamente con base en ellos y cita el codigo y version exactos "
                     "del documento que uses. Si estos fragmentos no contienen la respuesta, "
-                    "dilo y escala a Calidad; no completes con conocimiento general.\n\n"
+                    "dilo y ofrece derivarlo a Calidad; no completes con conocimiento "
+                    "general.\n\n"
                     f"{context}\n\n{OUT_OF_SCOPE_HINT}"
                 ),
             }
@@ -185,7 +193,9 @@ def _build_messages(
                 "content": (
                     "No se recupero ningun fragmento de documento vigente relevante para esta "
                     "consulta. No inventes procedimientos ni cites documentos. Indica que no "
-                    "tienes informacion suficiente y escala a Calidad con escalate_to_quality."
+                    "tienes informacion suficiente y PREGUNTA si quiere que lo derives al "
+                    "Responsable de Calidad. No afirmes que ya lo derivaste: la derivacion "
+                    "solo ocurre si el usuario la acepta."
                     f"\n\n{OUT_OF_SCOPE_HINT}"
                 ),
             }
@@ -285,7 +295,8 @@ def _json_dump(value: Any) -> str:
 _INSTRUCTION_FINGERPRINTS = (
     "no inventes procedimientos",
     "no se recupero ningun fragmento",
-    "escala a calidad con escalate_to_quality",
+    "y pregunta si quiere que lo derives",
+    "la derivacion solo ocurre si el usuario la acepta",
     "responde unicamente con base en ellos",
     "fragmentos de documentos iso vigentes recuperados",
 )
@@ -605,6 +616,11 @@ def _record_escalation(
         question=msg.text,
         reason=reason,
         trigger=trigger,
+        # Nace OFRECIDA, no pendiente. El guardrail detecta el hueco documental y
+        # lo deja anotado -- esa lista es el inventario de lo que el SGC no cubre
+        # y vale aunque nadie derive -- pero no entra en la bandeja de Calidad
+        # hasta que el usuario conteste que si. Ver `_resolver_consentimiento`.
+        status="propuesta",
     )
     db.add(escalation)
     db.flush()
@@ -639,7 +655,64 @@ def _retag_escalation(
         if escalation is not None and escalation.trigger != trigger:
             escalation.trigger = trigger
             escalation.reason = "Sin documentos vigentes que respalden la respuesta."
+            # El usuario esta leyendo una PREGUNTA, no un aviso: la herramienta
+            # la creo como pendiente, pero mientras no conteste no es un encargo.
+            escalation.status = "propuesta"
             db.flush()
+
+
+def _resolver_consentimiento(
+    db: Session, msg: IncomingMessage, conversation_id: int
+) -> BotResponse | None:
+    """
+    Atiende el turno siguiente a un ofrecimiento de derivar.
+
+    Devuelve None si no habia nada que contestar o si el usuario no contesto,
+    y entonces el mensaje sigue el flujo normal. Esto ultimo importa: si alguien
+    reformula la pregunta en vez de decir si o no, la reformulacion se atiende
+    como consulta, que es lo que el usuario quiere.
+    """
+    from app.models.db_models import Escalation
+
+    # La condicion de verdad no es que exista una propuesta: es que el turno
+    # ANTERIOR haya hecho la pregunta. El guardrail tambien anota propuestas
+    # cuando responde bien desde el catalogo pero detecta un hueco del SGC, y
+    # sin esta comprobacion un "si" dicho a cualquier otra cosa derivaba una
+    # consulta que nunca se ofrecio derivar. Pasó en la primera prueba.
+    ultimo_bot = (
+        db.query(Message.content)
+        .filter_by(conversation_id=conversation_id, role="assistant")
+        .order_by(Message.id.desc())
+        .first()
+    )
+    if ultimo_bot is None or ultimo_bot[0] != NO_CONTEXT_MESSAGE:
+        return None
+
+    propuesta = (
+        db.query(Escalation)
+        .filter_by(conversation_id=conversation_id, status="propuesta")
+        .order_by(Escalation.id.desc())
+        .first()
+    )
+    if propuesta is None:
+        return None
+
+    respuesta = leer_consentimiento(msg.text)
+    if respuesta is None:
+        return None
+
+    propuesta.status = "pendiente" if respuesta else "descartada"
+    db.flush()
+    logger.info(
+        "escalation.consentimiento",
+        extra={
+            "escalation_id": propuesta.id,
+            "acepta": respuesta,
+            "tenant_id": msg.tenant_id,
+        },
+    )
+    texto = DERIVACION_ACEPTADA_MESSAGE if respuesta else DERIVACION_RECHAZADA_MESSAGE
+    return BotResponse(text=texto, escalate=respuesta, grounded=True)
 
 
 def _record_incident(
@@ -925,6 +998,22 @@ def handle_message(db: Session, msg: IncomingMessage) -> BotResponse:
             started,
         )
 
+    # Si el turno anterior OFRECIO derivar a Calidad, este turno puede ser el si
+    # o el no. Se resuelve antes de recuperar: un "si" suelto no tiene nada que
+    # buscar en la documentacion, y pasarlo por el RAG terminaba en otra oferta
+    # de derivacion sobre la respuesta a la oferta anterior.
+    consentimiento = _resolver_consentimiento(db, msg, conversation.id)
+    if consentimiento is not None:
+        logger.info("orchestrator.consentimiento", extra={"tenant_id": msg.tenant_id})
+        return _persist_and_return(
+            db,
+            conversation.id,
+            consentimiento,
+            RetrievalResult(accepted=[], rejected=[], max_distance=0.0),
+            [],
+            started,
+        )
+
     history = _load_history(db, conversation.id, HISTORY_TURNS)[:-1]  # sin el turno actual
 
     # Una peticion explicita de clausula se sirve directa; el resto va al RAG.
@@ -943,6 +1032,10 @@ def handle_message(db: Session, msg: IncomingMessage) -> BotResponse:
     client = get_llm_client()
     executed_tools: list[str] = []
     tool_results: list[tuple[str, dict[str, Any]]] = []
+    # `escalate` significa "esto ya quedo derivado", y el turno de la oferta no
+    # lo esta. Hace falta una marca aparte para no volver a registrar el hueco
+    # mas abajo: la propuesta de este turno ya lo dejo anotado.
+    ofrecio_derivar = False
     mentioned_tools: set[str] = set()
 
     try:
@@ -1160,11 +1253,13 @@ def handle_message(db: Session, msg: IncomingMessage) -> BotResponse:
                 "Sin documentos vigentes que respalden la respuesta.",
                 "sin_contexto",
             )
-        response = BotResponse(text=NO_CONTEXT_MESSAGE, escalate=True, grounded=False)
+        ofrecio_derivar = True
+        response = BotResponse(text=NO_CONTEXT_MESSAGE, escalate=False, grounded=False)
     elif not answer and escalated_by_tool:
         response = BotResponse(text=ESCALATED_MESSAGE, escalate=True, grounded=False)
     elif not answer and exige_respaldo:
-        response = BotResponse(text=NO_CONTEXT_MESSAGE, escalate=True, grounded=False)
+        ofrecio_derivar = True
+        response = BotResponse(text=NO_CONTEXT_MESSAGE, escalate=False, grounded=False)
     elif not answer:
         # Turno no documental en el que el modelo no escribio nada. Pedir que se
         # concrete es correcto; derivarlo a Calidad, no.
@@ -1243,7 +1338,7 @@ def handle_message(db: Session, msg: IncomingMessage) -> BotResponse:
     # El SGC no cubre el tema, aunque la respuesta haya sido util. La cola de
     # Calidad es la lista de huecos de la documentacion, y un hueco que nadie
     # registra no se corrige nunca. Se registra sin tocar la respuesta.
-    if exige_respaldo and not response.escalate:
+    if exige_respaldo and not response.escalate and not ofrecio_derivar:
         faltantes = _terminos_sin_coincidencia(tool_results)
         if faltantes and not retrieval.accepted:
             _record_escalation(

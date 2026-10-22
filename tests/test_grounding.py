@@ -122,7 +122,21 @@ class TestEtiquetaDeCita:
 
 def test_mensaje_sin_contexto_ofrece_escalar():
     assert "Calidad" in NO_CONTEXT_MESSAGE
-    assert "no tengo informacion suficiente" in NO_CONTEXT_MESSAGE.lower()
+    assert "no tengo información suficiente" in NO_CONTEXT_MESSAGE.lower()
+
+
+def test_mensaje_sin_contexto_pregunta_no_afirma():
+    """
+    El mensaje tiene que ser una PREGUNTA.
+
+    Cuando afirmaba ("te voy a conectar con el Responsable de Calidad") la
+    derivacion ocurria sin que el usuario la pidiera, y la bandeja de Calidad
+    acumulo 306 consultas que nadie encargo. Este test es el que impide que
+    alguien lo devuelva a la forma afirmativa sin darse cuenta.
+    """
+    assert "?" in NO_CONTEXT_MESSAGE
+    assert "voy a conectar" not in NO_CONTEXT_MESSAGE.lower()
+    assert "te conecto" not in NO_CONTEXT_MESSAGE.lower()
 
 
 # --- Correr una herramienta no es lo mismo que encontrar algo ---
