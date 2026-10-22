@@ -11,7 +11,13 @@ from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 from sqlalchemy import text
 
-from app.channels import admin_adapter, auth_adapter, imagen_adapter, web_adapter
+from app.channels import (
+    admin_adapter,
+    auth_adapter,
+    estado_adapter,
+    imagen_adapter,
+    web_adapter,
+)
 from app.core.licencias import inventario
 from app.config import settings
 from app.core.rag.embeddings import warmup
@@ -65,6 +71,7 @@ app.add_middleware(
 )
 
 app.include_router(auth_adapter.router)
+app.include_router(estado_adapter.router)
 app.include_router(web_adapter.router)
 app.include_router(admin_adapter.router)
 # Generacion de material visual. Va en su propio flujo y no como
@@ -125,7 +132,7 @@ def raiz() -> RedirectResponse:
     montaje estatico busca un index.html que no existe. Y entrar al dominio
     pelado es lo primero que hace cualquiera a quien le pasas el enlace.
     """
-    return RedirectResponse(url="/demo.html")
+    return RedirectResponse(url="/inicio.html")
 
 
 class EstaticosSinCache(StaticFiles):

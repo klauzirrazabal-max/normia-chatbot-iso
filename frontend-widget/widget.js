@@ -86,6 +86,18 @@
     }
     .panel[data-open="true"] { display: flex; }
 
+    /* MODO PAGINA. El widget nacio como burbuja flotante para incrustarse en
+       la intranet de un cliente, y esa sigue siendo su forma por defecto. En
+       su propia pagina no tiene sentido una burbuja: ocupa el hueco que le
+       den, sin lanzador y sin sombra de ventana flotante. */
+    :host([modo="pagina"]) { position: static; display: flex; min-height: 0; }
+    :host([modo="pagina"]) .panel {
+      position: static; display: flex; width: 100%; max-width: none;
+      height: auto; max-height: none; flex: 1; min-height: 0;
+      box-shadow: var(--sombra, 0 1px 2px rgba(15,23,42,.06));
+    }
+    :host([modo="pagina"]) .launcher { display: none; }
+
     .header {
       padding: 14px 16px;
       border-bottom: 1px solid var(--n-border);
@@ -271,7 +283,10 @@
 
       const panel = document.createElement("div");
       panel.className = "panel";
-      panel.setAttribute("data-open", "false");
+      // En su propia pagina arranca abierto: no hay lanzador que lo abra.
+      panel.setAttribute(
+        "data-open", this.getAttribute("modo") === "pagina" ? "true" : "false"
+      );
       panel.innerHTML =
         '<div class="header">' +
         '<span class="dot" data-status="online"></span>' +

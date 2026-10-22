@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Asistente · NormIA</title>
+<link rel="stylesheet" href="normia.css" />
+<style>
+  /* El asistente con una pagina propia.
+     Vivia solo como burbuja dentro de una intranet simulada, asi que para
+     usarlo habia que entrar en el sitio de otro. Aqui ocupa la pantalla, que
+     es como se usa cuando se consulta en serio. */
+  html, body { height: 100%; }
+  body { display: flex; flex-direction: column; }
+
+  .encabezado {
+    padding: var(--e5) var(--e4) var(--e3);
+    max-width: 820px; width: 100%; margin: 0 auto;
+  }
+  .encabezado h1 { font-size: 19px; }
+  .encabezado p { margin: var(--e2) 0 0; color: var(--tinta-suave); font-size: 13.5px; }
+
+  .marco {
+    flex: 1; min-height: 0; max-width: 820px; width: 100%;
+    margin: 0 auto var(--e5); padding: 0 var(--e4);
+    display: flex;
+  }
+  .marco normia-chat-widget { flex: 1; min-height: 0; }
+</style>
+</head>
+<body>
+
+<div class="encabezado">
+  <h1>Asistente del sistema de gestión</h1>
+  <p>Responde solo con la documentación vigente, citando el documento y la sección.
+     Lo que no está documentado no se improvisa: se deriva al Responsable de Calidad.</p>
+</div>
+
+<div class="marco">
+  <normia-chat-widget api-url="" tenant-id="demo-publica" modo="pagina"></normia-chat-widget>
+</div>
+
+<script src="widget.js"></script>
+<script src="shell.js"></script>
+</body>
+</html>

@@ -7,8 +7,14 @@
  * `window.NORMIA.usuario` para quien lo necesite.
  */
 (function () {
+  // La navegacion del PRODUCTO. `demo.html` no esta aqui a proposito: es la
+  // intranet simulada donde se ensena el asistente incrustado, un argumento
+  // de venta y no una parte del sistema. Tenerla como "Asistente" hacia que
+  // el producto no tuviera casa propia y que no se distinguiera lo que es
+  // NormIA de lo que es decorado.
   const VISTAS = [
-    { href: "demo.html", texto: "Asistente", rol: null },
+    { href: "inicio.html", texto: "Inicio", rol: null },
+    { href: "asistente.html", texto: "Asistente", rol: null },
     { href: "generar.html", texto: "Material visual", rol: null },
     { href: "admin.html", texto: "Gestión documental", rol: "gestionar" },
   ];
@@ -57,7 +63,7 @@
 
   function pintar(usuario) {
     const tenant = new URLSearchParams(location.search).get("tenant");
-    const aqui = location.pathname.split("/").pop() || "demo.html";
+    const aqui = location.pathname.split("/").pop() || "inicio.html";
 
     const estilo = document.createElement("style");
     estilo.textContent = ESTILOS;

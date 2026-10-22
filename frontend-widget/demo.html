@@ -26,7 +26,13 @@
     display:grid; place-items:center; font-size:.82rem; font-weight:700;
   }
   nav{display:flex; gap:22px; font-size:.92rem}
-  nav a{color:var(--suave)} nav a.activo{color:var(--tinta); font-weight:600}
+  /* Decorado: ni cursor de mano ni subrayado. Lo que no lleva a ninguna parte
+     no debe parecer que lleva. */
+  nav span{color:var(--suave); cursor:default; user-select:none}
+  nav span.activo{color:var(--tinta); font-weight:600}
+
+  /* El unico acceso que no es nuestro se ve apagado y no responde. */
+  .atajo-decorado{opacity:.55; cursor:default; pointer-events:none}
   .usuario{margin-left:auto; display:flex; align-items:center; gap:9px; font-size:.88rem; color:var(--suave)}
   .avatar{width:28px; height:28px; border-radius:50%; background:var(--marca-clara); color:var(--marca);
           display:grid; place-items:center; font-weight:700; font-size:.76rem}
@@ -94,13 +100,17 @@
 <header class="top">
   <div class="barra">
     <div class="logo"><span class="cuadro">S</span> Servicorp</div>
-    <nav>
-      <a href="#" class="activo">Inicio</a>
-      <a href="#">Documentos</a>
-      <a href="#">Personas</a>
-      <a href="#">Calidad</a>
-      <a href="#">Soporte TI</a>
-    </nav>
+          <!-- El menu de la intranet es DECORADO. Esta pagina simula el sitio
+           anfitrion donde vive el widget, y esos enlaces no son de NormIA.
+           Antes parecian pulsables y no hacian nada: ahora se ven como lo que
+           son, y la navegacion de verdad es la barra de NormIA de arriba. -->
+      <nav aria-label="Menú de la intranet simulada">
+        <span class="activo">Inicio</span>
+        <span>Documentos</span>
+        <span>Personas</span>
+        <span>Calidad</span>
+        <span>Soporte TI</span>
+      </nav>
     <div class="usuario"><span class="avatar">KE</span> Klauz España</div>
   </div>
 </header>
@@ -156,10 +166,17 @@
       <section class="tarjeta">
         <h2>Accesos directos</h2>
         <div class="accesos">
-          <a href="#">Reportar una no conformidad<span>Registra una desviación detectada</span></a>
-          <a href="#">Solicitud a TI<span>Soporte, accesos y equipos</span></a>
-          <a href="#">Lista maestra de documentos<span>Qué está vigente y en qué versión</span></a>
-          <a href="#">Acciones correctivas<span>Seguimiento de CAPA abiertas</span></a>
+          <!-- Tres de estos cuatro los hace NormIA de verdad, asi que llevan a
+               alguna parte. El cuarto es de la empresa anfitriona y se queda
+               como lo que es: parte del decorado. -->
+          <a href="#" data-abre-chat="Quiero reportar una no conformidad: ">
+            Reportar una no conformidad<span>Registra una desviación detectada</span></a>
+          <a href="#" class="atajo-decorado" aria-disabled="true">
+            Solicitud a TI<span>Soporte, accesos y equipos</span></a>
+          <a href="admin.html#biblioteca" data-solo-calidad>
+            Lista maestra de documentos<span>Qué está vigente y en qué versión</span></a>
+          <a href="admin.html#hallazgos" data-solo-calidad>
+            Acciones correctivas<span>Seguimiento de CAPA abiertas</span></a>
         </div>
       </section>
     </div>
@@ -191,6 +208,43 @@
   // ?tenant=otro para probar contra otro SGC sin tocar el archivo
   const t = new URLSearchParams(location.search).get("tenant");
   if (t) document.querySelector("normia-chat-widget").setAttribute("tenant-id", t);
+</script>
+<script>
+// Los accesos directos que SI son de NormIA.
+//
+// "Reportar una no conformidad" abre el asistente con la frase empezada: el
+// usuario llega al sitio donde se registra, no a una pantalla que le pida
+// averiguar como se hace. Los otros dos llevan al panel, y solo se ensenan a
+// quien puede entrar en el.
+document.addEventListener("normia:sesion", (e) => {
+  const usuario = e.detail;
+  document.querySelectorAll("[data-solo-calidad]").forEach((a) => {
+    if (!usuario || !usuario.puede_gestionar) {
+      a.classList.add("atajo-decorado");
+      a.removeAttribute("href");
+      a.setAttribute("aria-disabled", "true");
+    }
+  });
+});
+
+document.querySelectorAll("[data-abre-chat]").forEach((a) => {
+  a.addEventListener("click", (e) => {
+    e.preventDefault();
+    const widget = document.querySelector("normia-chat-widget");
+    const lanzador = widget && widget.querySelector(".launcher");
+    const panel = widget && widget.querySelector(".panel");
+    if (panel && panel.getAttribute("data-open") !== "true" && lanzador) {
+      lanzador.click();
+    }
+    const caja = widget && widget.querySelector("textarea");
+    if (caja) {
+      caja.value = a.dataset.abreChat;
+      caja.focus();
+      // El cursor al final, para seguir escribiendo donde toca.
+      caja.setSelectionRange(caja.value.length, caja.value.length);
+    }
+  });
+});
 </script>
 <script src="shell.js"></script>
 </body>

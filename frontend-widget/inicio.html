@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NormIA</title>
+<link rel="stylesheet" href="normia.css" />
+<style>
+  /* La portada contesta una pregunta: que pide atencion hoy. Por eso el
+     resumen va ANTES que cualquier otra cosa, y lo urgente se distingue por
+     forma ademas de por color. */
+  main { max-width: 1000px; margin: 0 auto; padding: var(--e6) var(--e4) var(--e8); }
+
+  .saludo { margin-bottom: var(--e2); }
+  .contexto {
+    color: var(--tinta-suave); font-size: 13.5px; margin: 0 0 var(--e6);
+    display: flex; gap: var(--e2); align-items: center; flex-wrap: wrap;
+  }
+  .contexto .codigo { font-size: 12px; }
+
+  .rejilla {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: var(--e3); margin-bottom: var(--e6);
+  }
+
+  /* Un indicador no es una tarjeta cualquiera: cuando pide accion se le pone
+     una franja de color a la izquierda. Es la forma, no solo el tono. */
+  .dato {
+    background: var(--superficie); border: 1px solid var(--borde);
+    border-left: 3px solid var(--borde); border-radius: var(--radio);
+    padding: var(--e4);
+  }
+  .dato b {
+    display: block; font-size: 30px; font-weight: 650; line-height: 1.1;
+    font-variant-numeric: tabular-nums; letter-spacing: -.02em;
+  }
+  .dato span {
+    display: block; font-size: 12px; color: var(--tinta-suave); margin-top: var(--e1);
+    text-transform: uppercase; letter-spacing: .04em;
+  }
+  .dato small { display: block; font-size: 12.5px; color: var(--tinta-suave); margin-top: var(--e2); }
+  .dato-ok     { border-left-color: var(--ok); }
+  .dato-ok b   { color: var(--ok); }
+  .dato-aviso  { border-left-color: var(--aviso); }
+  .dato-aviso b{ color: var(--aviso); }
+  .dato-riesgo { border-left-color: var(--riesgo); background: var(--riesgo-fondo); }
+  .dato-riesgo b { color: var(--riesgo); }
+
+  h2 { margin: 0 0 var(--e3); }
+  .seccion { margin-bottom: var(--e6); }
+
+  .puertas { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--e3); }
+  .puerta {
+    display: block; text-decoration: none; color: inherit;
+    background: var(--superficie); border: 1px solid var(--borde);
+    border-radius: var(--radio); padding: var(--e4);
+    transition: border-color .12s, box-shadow .12s;
+  }
+  .puerta:hover { border-color: var(--marca); box-shadow: var(--sombra); }
+  .puerta b { display: block; font-size: 15px; font-weight: 650; margin-bottom: var(--e1); }
+  .puerta span { font-size: 13px; color: var(--tinta-suave); line-height: 1.45; }
+
+  .cargando { color: var(--tinta-suave); font-size: 13.5px; }
+</style>
+</head>
+<body>
+
+<main>
+  <h1 class="saludo" id="saludo">NormIA</h1>
+  <p class="contexto" id="contexto"><span class="cargando">Cargando el estado del sistema…</span></p>
+
+  <section class="seccion" id="seccion-estado" hidden>
+    <h2 id="titulo-estado">Estado del sistema de gestión</h2>
+    <div class="rejilla" id="indicadores"></div>
+  </section>
+
+  <section class="seccion">
+    <h2>Qué puedes hacer</h2>
+    <div class="puertas" id="puertas"></div>
+  </section>
+</main>
+
+<script>
+const API = "";
+const $ = (id) => document.getElementById(id);
+
+function dato(valor, etiqueta, nota, tono) {
+  const d = document.createElement("div");
+  d.className = "dato" + (tono ? ` dato-${tono}` : "");
+  const b = document.createElement("b");
+  b.textContent = valor;
+  const s = document.createElement("span");
+  s.textContent = etiqueta;
+  d.append(b, s);
+  if (nota) {
+    const n = document.createElement("small");
+    n.textContent = nota;
+    d.appendChild(n);
+  }
+  return d;
+}
+
+function puerta(href, titulo, descripcion) {
+  const a = document.createElement("a");
+  a.className = "puerta";
+  a.href = href;
+  const b = document.createElement("b");
+  b.textContent = titulo;
+  const s = document.createElement("span");
+  s.textContent = descripcion;
+  a.append(b, s);
+  return a;
+}
+
+async function pintar() {
+  let d;
+  try {
+    const r = await fetch(`${API}/api/estado`, { credentials: "same-origin" });
+    if (r.status === 401) { location.replace("acceso.html?volver=inicio.html"); return; }
+    d = await r.json();
+  } catch {
+    $("contexto").textContent = "No se pudo cargar el estado del sistema.";
+    return;
+  }
+
+  $("saludo").textContent = `Hola, ${d.usuario.nombre.split(" ")[0]}`;
+  $("contexto").innerHTML = "";
+  const org = document.createElement("span");
+  org.textContent = "Sistema de gestión de";
+  const cod = document.createElement("span");
+  cod.className = "codigo";
+  cod.textContent = d.tenant;
+  $("contexto").append(org, cod);
+
+  const caja = $("indicadores");
+  caja.append(
+    dato(d.documentos.vigentes, "Documentos vigentes", null, "ok"),
+    dato(d.documentos.obsoletos, "Obsoletos", "El asistente no los cita")
+  );
+
+  if (d.calidad) {
+    const c = d.calidad;
+    // El orden es el de la urgencia, no el del esquema de la base.
+    caja.append(
+      dato(c.acciones_vencidas, "Acciones vencidas",
+           c.acciones_vencidas ? "El plazo se comprometió y pasó" : "Ninguna fuera de plazo",
+           c.acciones_vencidas ? "riesgo" : "ok"),
+      dato(c.hallazgos_sin_accion, "No conformidades sin acción",
+           c.hallazgos_sin_accion ? "El ciclo CAPA está a medias" : "Todas con acción asignada",
+           c.hallazgos_sin_accion ? "aviso" : "ok"),
+      dato(c.escalaciones_pendientes, "Consultas derivadas",
+           "Esperan al Responsable de Calidad",
+           c.escalaciones_pendientes ? "aviso" : "ok"),
+      dato(c.huecos_detectados, "Huecos del SGC",
+           "Preguntas que la documentación no cubre")
+    );
+  } else {
+    caja.append(dato(d.mios.hallazgos, "Hallazgos que reportaste"));
+    $("titulo-estado").textContent = "Documentación vigente";
+  }
+  $("seccion-estado").hidden = false;
+
+  const p = $("puertas");
+  p.append(
+    puerta("asistente.html", "Preguntar al asistente",
+           "Consulta la documentación vigente. Cada respuesta cita el documento y la sección."),
+    puerta("generar.html", "Material visual",
+           "Carteles y señalética que citan la cláusula que los respalda.")
+  );
+  if (d.calidad) {
+    p.append(
+      puerta("admin.html", "Gestión documental",
+             "Subir documentos, controlar versiones, atender derivaciones y no conformidades.")
+    );
+  }
+  p.append(
+    puerta("demo.html", "Ver incrustado en una intranet",
+           "Ejemplo de cómo queda el asistente dentro del sitio interno de una empresa.")
+  );
+}
+
+pintar();
+</script>
+<script src="shell.js"></script>
+</body>
+</html>
