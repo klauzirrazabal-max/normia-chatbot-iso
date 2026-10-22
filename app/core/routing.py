@@ -293,10 +293,28 @@ _RESPUESTAS = {
 }
 
 
-def respuesta_social(texto: str) -> str | None:
-    """Respuesta a una formula social, o None si el mensaje no lo es."""
+# El saludo, cuando ya se saludo antes.
+#
+# Contestar la misma presentacion dos veces seguidas deja claro que no hay
+# nadie al otro lado. La segunda vez se responde como responderia una persona
+# a la que acaban de saludar y ya se presento.
+RESPUESTA_SALUDO_REPETIDO = (
+    "Aquí sigo. Dime qué necesitas consultar de la documentación."
+)
+
+
+def respuesta_social(texto: str, ya_saludo: bool = False) -> str | None:
+    """
+    Respuesta a una formula social, o None si el mensaje no lo es.
+
+    `ya_saludo` evita repetir la presentacion entera en el mismo hilo.
+    """
     clase = clasificar_social(texto)
-    return _RESPUESTAS.get(clase) if clase else None
+    if not clase:
+        return None
+    if clase == "saludo" and ya_saludo:
+        return RESPUESTA_SALUDO_REPETIDO
+    return _RESPUESTAS.get(clase)
 
 
 # --- Consentimiento para derivar ---------------------------------------------

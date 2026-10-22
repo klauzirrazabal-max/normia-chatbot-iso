@@ -28,7 +28,16 @@ class Settings(BaseSettings):
     # Medido: el modelo responde en 9-20 s. Un timeout de 120 s con 2 reintentos
     # hacia que, ante un cuelgue, el usuario esperara hasta 12 minutos (el
     # orquestador hace dos llamadas) antes de ver el mensaje de error.
-    llm_timeout_seconds: float = 45.0
+    # 60 y no 45. Con el modelo ya en memoria una respuesta tarda 3 s, pero si
+    # el sistema lo expulso -- pasa al generar una imagen, que ocupa 12 GB de
+    # la misma memoria unificada -- recargarlo cuesta unos 30. Medido: una
+    # consulta normal 2,7 s, y justo despues de una imagen 29,6 s. A 45 s eso
+    # le daba al usuario un error tecnico en vez de una respuesta lenta.
+    #
+    # Y no mas: el peor caso son DOS llamadas por turno, asi que 60 son dos
+    # minutos de espera si el modelo se cuelga. Subirlo a 120 serian cuatro, y
+    # a los cuatro minutos ya nadie esta mirando la pantalla.
+    llm_timeout_seconds: float = 60.0
     llm_max_retries: int = 1
     # Cortacircuitos: tras N fallos consecutivos se falla de inmediato durante
     # el enfriamiento, en vez de que CADA usuario pague el timeout completo.
@@ -94,6 +103,19 @@ class Settings(BaseSettings):
     # maquina concreta devuelve imagenes negras -- el VAE en fp16 desborda sin
     # avisar -- es mejor una pieza peor que ninguna pieza.
     imagen_refinar: bool = True
+
+    # Soltar los modelos de difusion en cuanto termina la pieza.
+    #
+    # El chat se usa todo el rato y la generacion de imagenes de vez en cuando.
+    # Dejar 12 GB de difusion residentes hace que el sistema expulse el modelo
+    # de lenguaje, y entonces la siguiente pregunta tiene que recargar 17,5 GB
+    # desde disco y se pasa del tiempo limite. Medido: una consulta normal
+    # tarda 11 s, y despues de generar una imagen tardo 45,6 y fallo.
+    #
+    # El coste de soltarlos es que la siguiente pieza vuelve a cargarlos, unos
+    # segundos sobre los cuarenta que ya tarda. Es un cambio barato por no
+    # romper lo que mas se usa.
+    imagen_soltar_al_terminar: bool = True
 
     @property
     def allowed_origins_list(self) -> list[str]:

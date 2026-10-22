@@ -477,6 +477,66 @@ def _cargar_pipeline():
     return _pipeline
 
 
+def recalentar_llm() -> None:
+    """
+    Vuelve a traer el modelo de lenguaje a memoria, en segundo plano.
+
+    Soltar la difusion deja sitio, pero no deshace el dano: mientras se genera
+    la pieza el sistema ya expulso el modelo de lenguaje, y la siguiente
+    pregunta paga la recarga. Medido: 2,7 s en condiciones normales y 29,6 s
+    justo despues de generar una imagen.
+
+    Asi que se le pide algo minimo nada mas soltar la difusion. El hilo es
+    demonio y no bloquea la respuesta: quien pidio la imagen la recibe igual
+    de rapido, y para cuando vuelve al chat el modelo ya esta puesto.
+
+    No siempre llega a tiempo -- en una maquina saturada no hay sitio para
+    nadie -- y por eso no se espera a que termine ni se informa de ello: es
+    una cortesia, no una garantia.
+    """
+
+    def tirar_del_modelo() -> None:
+        try:
+            from app.services.llm_client import get_llm_client
+
+            get_llm_client().generate([{"role": "user", "content": "ok"}])
+            logger.info("imagenes.llm_recalentado")
+        except Exception:  # noqa: BLE001 - calentar es una cortesia, no un requisito
+            logger.warning("imagenes.recalentado_fallido", exc_info=True)
+
+    threading.Thread(target=tirar_del_modelo, daemon=True).start()
+
+
+def soltar_modelos() -> None:
+    """
+    Libera la difusion de la memoria.
+
+    En una Mac la memoria es unificada: lo que ocupa el generador de imagenes
+    se lo quita al modelo de lenguaje, y el sistema decide a quien expulsa.
+    Decidirlo nosotros es mejor que dejar que lo decida bajo presion, porque
+    entonces expulsa al que mas se usa.
+
+    Vaciar la cache de Metal ademas es necesario: sin eso, soltar las
+    referencias de Python no devuelve la memoria que reservo la GPU.
+    """
+    global _pipeline, _refinador
+    if _pipeline is None and _refinador is None:
+        return
+    _pipeline = None
+    _refinador = None
+    try:
+        import gc
+
+        import torch
+
+        gc.collect()
+        if torch.backends.mps.is_available():
+            torch.mps.empty_cache()
+    except Exception:  # noqa: BLE001 - soltar memoria nunca debe tumbar nada
+        logger.warning("imagenes.soltar_fallido", exc_info=True)
+    logger.info("imagenes.modelos_soltados")
+
+
 def _tiene_luz(imagen) -> bool:
     """
     ¿La imagen tiene algo dibujado, o el VAE desbordo y devolvio negro?
@@ -816,6 +876,13 @@ def generar(
         datos = final.read_bytes()
 
     buffer = io.BytesIO(datos)
+    # La pieza ya esta compuesta: se suelta la difusion antes de responder,
+    # para que el chat vuelva a tener sitio de inmediato.
+    if settings.imagen_soltar_al_terminar:
+        soltar_modelos()
+        # Y se vuelve a traer el modelo de lenguaje, sin hacer esperar a nadie.
+        recalentar_llm()
+
     return RespuestaImagen(
         imagen="data:image/png;base64," + base64.b64encode(buffer.getvalue()).decode(),
         titular=peticion.titular,

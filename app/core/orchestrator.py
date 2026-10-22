@@ -1025,7 +1025,21 @@ def handle_message(db: Session, msg: IncomingMessage) -> BotResponse:
     )
     tipo_turno = clasificar_turno(msg.text, hay_turno_previo=hay_turno_previo)
 
-    social = respuesta_social(msg.text) if tipo_turno is TipoTurno.SOCIAL else None
+    social = None
+    if tipo_turno is TipoTurno.SOCIAL:
+        # Si ya se presento en este hilo, no vuelve a hacerlo: contestar la
+        # misma presentacion dos veces seguidas deja claro que no hay nadie al
+        # otro lado.
+        ya_saludo = bool(
+            db.query(Message.id)
+            .filter(
+                Message.conversation_id == conversation.id,
+                Message.role == "assistant",
+                Message.content.like("%Soy NormIA%"),
+            )
+            .first()
+        )
+        social = respuesta_social(msg.text, ya_saludo=ya_saludo)
     if social is not None:
         logger.info("orchestrator.social", extra={"tenant_id": msg.tenant_id, "tipo": tipo_turno.value})
         return _persist_and_return(
