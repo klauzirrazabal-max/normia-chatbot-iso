@@ -33,7 +33,9 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.config import settings
+from app.channels.auth_adapter import usuario_actual
 from app.db.session import get_db
+from app.models.db_models import User
 from app.models.db_models import Document, DocumentChunk
 from app.security import (
     check_rate_limit,
@@ -322,7 +324,23 @@ def _a_ingles(descripcion: str) -> str:
     return traducida
 
 
-def _clausula_existe(db: Session, referencia: str) -> bool:
+def tenant_visible(usuario) -> str:
+    """
+    De que cliente son las clausulas que se pueden citar.
+
+    Con sesion, las del cliente de quien entro: ofrecerle a alguien de ABISERVI
+    el catalogo del corpus publico seria darle clausulas que no son suyas, y
+    una pieza respaldada por un documento ajeno no respalda nada.
+
+    Sin sesion queda la demostracion abierta, que es para lo que existe
+    `resolve_tenant`.
+    """
+    if usuario is not None:
+        return usuario.tenant_id
+    return resolve_tenant(settings.default_tenant_id)
+
+
+def _clausula_existe(db: Session, referencia: str, tenant: str) -> bool:
     """
     La referencia tiene que corresponder a un documento VIGENTE de la base.
 
@@ -342,7 +360,7 @@ def _clausula_existe(db: Session, referencia: str) -> bool:
     reales = {
         c.split(" (")[0].upper()
         for (c,) in db.query(Document.code)
-        .filter_by(tenant_id=resolve_tenant(settings.default_tenant_id), status="vigente")
+        .filter_by(tenant_id=tenant, status="vigente")
         .distinct()
     }
     return bool(codigos & reales)
@@ -448,6 +466,7 @@ def _cargar_refinador():
 @router.get("/clausulas")
 def clausulas_disponibles(
     db: Session = Depends(get_db),
+    usuario: User | None = Depends(usuario_actual),
     _: None = Depends(require_admin_key_salvo_demo),
 ) -> list[dict[str, str]]:
     """
@@ -459,7 +478,7 @@ def clausulas_disponibles(
     # El MISMO criterio que el chat: con tenant publico configurado se sirve ese
     # y ninguno otro. Antes se servia siempre `default_tenant_id`, el SGC real
     # del cliente, y por eso hacia falta la clave.
-    tenant = resolve_tenant(settings.default_tenant_id)
+    tenant = tenant_visible(usuario)
 
     filas = (
         db.query(Document.code, Document.version, Document.title, DocumentChunk.section)
@@ -495,7 +514,10 @@ class PeticionPreparar(BaseModel):
 
 @router.post("/preparar")
 def preparar(
-    peticion: PeticionPreparar, request: Request, db: Session = Depends(get_db)
+    peticion: PeticionPreparar,
+    request: Request,
+    db: Session = Depends(get_db),
+    usuario: User | None = Depends(usuario_actual),
 ) -> dict[str, str | None]:
     """
     Prepara la pieza mientras el usuario sigue rellenando: traduce y busca el
@@ -529,7 +551,7 @@ def preparar(
         from app.core.rag.retriever import retrieve
 
         consulta = f"{peticion.titular.strip()}. {descripcion}".strip(". ")
-        resultado = retrieve(db, resolve_tenant(settings.default_tenant_id), consulta)
+        resultado = retrieve(db, tenant_visible(usuario), consulta)
         if resultado.accepted:
             mejor = resultado.accepted[0]
             sugerida = mejor.citation_label.replace("seccion", "sección")
@@ -554,6 +576,7 @@ def generar(
     peticion: PeticionImagen,
     request: Request,
     db: Session = Depends(get_db),
+    usuario: User | None = Depends(usuario_actual),
 ) -> RespuestaImagen:
     check_rate_limit(request)
     import time
@@ -561,7 +584,7 @@ def generar(
     motivo = _fuera_de_alcance(peticion.descripcion)
     if motivo:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, motivo)
-    if not _clausula_existe(db, peticion.clausula):
+    if not _clausula_existe(db, peticion.clausula, tenant_visible(usuario)):
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
             f"«{peticion.clausula}» no es un documento vigente del SGC. El material "

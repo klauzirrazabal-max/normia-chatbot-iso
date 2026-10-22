@@ -25,7 +25,6 @@ from app.config import settings
 from app.core.auth import puede_gestionar
 from app.db.session import get_db
 from app.models.db_models import CapaAction, Document, Escalation, Finding, User
-from app.security import resolve_tenant
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +36,11 @@ def estado(
     usuario: User = Depends(exigir_usuario),
     db: Session = Depends(get_db),
 ) -> dict:
-    tenant = resolve_tenant(usuario.tenant_id or settings.default_tenant_id)
+    # El cliente del USUARIO, sin pasar por `resolve_tenant`: esa funcion
+    # fuerza el corpus publico e ignora lo que se le pida, que es lo correcto
+    # para una demostracion abierta y lo contrario de lo que hace falta aqui.
+    # Quien ha entrado consulta su propio sistema de gestion.
+    tenant = usuario.tenant_id or settings.default_tenant_id
 
     documentos = dict(
         db.query(Document.status, func.count(Document.id))

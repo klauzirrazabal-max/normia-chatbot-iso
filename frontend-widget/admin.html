@@ -271,7 +271,12 @@ window.fetch = (url, opts = {}) =>
     }
     return r;
   });
-const TENANT = new URLSearchParams(location.search).get("tenant") || "demo-publica";
+// El cliente ya NO sale de la URL. Lo decide el servidor a partir de la
+// sesion, y mandarlo desde aqui no cambia nada: escribir el identificador de
+// otro cliente en la barra de direcciones devolvia su SGC entero.
+// Se conserva la variable porque medio panel la usa para componer las URLs,
+// pero su valor real llega en /api/auth/yo.
+let TENANT = "";
 let pollTimer = null;
 
 document.getElementById("tenant-label").textContent = TENANT;
@@ -819,10 +824,16 @@ async function refreshFindings() {
   });
 }
 
-refreshLibrary();
-refreshJobs();
-refreshEscalations();
-refreshFindings();
+// Se espera a saber quien entro: hasta entonces no hay cliente que consultar.
+document.addEventListener("normia:sesion", (e) => {
+  TENANT = (e.detail && e.detail.tenant_id) || "";
+  const etiqueta = document.getElementById("tenant-label");
+  if (etiqueta) etiqueta.textContent = TENANT;
+  refreshLibrary();
+  refreshJobs();
+  refreshEscalations();
+  refreshFindings();
+});
 </script>
 <script src="shell.js"></script>
 </body>

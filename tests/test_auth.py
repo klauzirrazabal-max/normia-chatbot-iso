@@ -90,3 +90,52 @@ class TestRoles:
         """Si alguien escribe 'superadmin' en la base, no hereda permisos."""
         assert not puede_gestionar("superadmin")
         assert not puede_administrar("root")
+
+
+class TestElClienteNoSaleDeLaURL:
+    """
+    El identificador de cliente no es un secreto: aparece en la configuracion,
+    en los scripts y en cualquier captura de pantalla. Durante un tiempo fue la
+    UNICA puerta del panel, que lo leia del parametro `tenant_id`.
+
+    Medido: con una sesion de `demo-publica`, pedir
+    `/api/admin/documents?tenant_id=empresa-demo-iso` devolvia los 133
+    documentos del cliente real.
+    """
+
+    def _usuario(self, tenant):
+        class U:
+            tenant_id = tenant
+        return U()
+
+    def test_con_sesion_manda_el_cliente_del_usuario(self):
+        from app.channels.admin_adapter import tenant_de
+        yo = self._usuario("demo-publica")
+        assert tenant_de(yo, "empresa-demo-iso") == "demo-publica"
+        assert tenant_de(yo, "") == "demo-publica"
+
+    def test_sin_sesion_solo_se_llega_con_la_clave_de_servicio(self):
+        """
+        Un script de carga no tiene cuenta y tiene que poder decir sobre que
+        cliente trabaja. Ahi el parametro sigue valiendo, porque para llegar
+        hace falta la clave.
+        """
+        from app.channels.admin_adapter import tenant_de
+        assert tenant_de(None, "empresa-demo-iso") == "empresa-demo-iso"
+
+    def test_las_clausulas_citables_son_las_del_cliente(self):
+        """
+        Ofrecerle a alguien de un cliente el catalogo de otro seria darle
+        clausulas que no son suyas, y una pieza respaldada por un documento
+        ajeno no respalda nada.
+        """
+        from app.channels.imagen_adapter import tenant_visible
+        assert tenant_visible(self._usuario("empresa-demo-iso")) == "empresa-demo-iso"
+
+    def test_sin_sesion_las_clausulas_son_las_publicas(self, monkeypatch):
+        from app.config import settings as cfg
+
+        from app.channels.imagen_adapter import tenant_visible
+
+        monkeypatch.setattr(cfg, "public_tenant_id", "demo-publica")
+        assert tenant_visible(None) == "demo-publica"

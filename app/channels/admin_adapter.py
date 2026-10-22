@@ -81,6 +81,32 @@ def require_calidad_o_clave(
     return None
 
 
+def tenant_de(usuario: User | None, pedido: str) -> str:
+    """
+    De que cliente son los datos de esta peticion.
+
+    Venia del parametro `tenant_id` de la URL, y eso era una fuga: una sesion
+    de un cliente leia el SGC de otro escribiendo su identificador en la barra
+    de direcciones. Medido: una sesion de `demo-publica` devolvia los 133
+    documentos de `empresa-demo-iso`. El identificador no es un secreto --
+    aparece en la configuracion y en cualquier captura -- asi que no puede ser
+    la unica puerta.
+
+    Con sesion, manda el cliente DEL USUARIO y lo que pida la URL se ignora.
+    Sin sesion solo se llega con la clave de servicio, que usan los scripts de
+    carga: ahi el parametro sigue valiendo, porque un script no tiene cuenta y
+    tiene que poder decir sobre que cliente trabaja.
+    """
+    if usuario is not None:
+        if pedido and pedido != usuario.tenant_id:
+            logger.warning(
+                "admin.tenant_ignorado",
+                extra={"pedido": pedido[:64], "servido": usuario.tenant_id},
+            )
+        return usuario.tenant_id
+    return pedido or settings.default_tenant_id
+
+
 def firma(usuario: User | None) -> str | None:
     """Como queda registrado el autor de un acto controlado."""
     return usuario.nombre if usuario is not None else None
@@ -147,9 +173,10 @@ def upload_documents(
     tenant_id: str = Form(default=""),
     area: str = Form(default=""),
     db: Session = Depends(get_db),
+    usuario: User | None = Depends(require_calidad_o_clave),
 ) -> dict:
     """Recibe los archivos, encola su procesamiento y responde de inmediato."""
-    tenant = tenant_id or settings.default_tenant_id
+    tenant = tenant_de(usuario, tenant_id)
     tenant_dir = UPLOAD_DIR / tenant
     tenant_dir.mkdir(parents=True, exist_ok=True)
 
@@ -213,10 +240,13 @@ def upload_documents(
 
 @router.get("/jobs")
 def list_jobs(
-    tenant_id: str = "", limit: int = 50, db: Session = Depends(get_db)
+    tenant_id: str = "",
+    limit: int = 50,
+    db: Session = Depends(get_db),
+    usuario: User | None = Depends(require_calidad_o_clave),
 ) -> dict:
     """Estado de los jobs recientes. La UI consulta esto mientras haya alguno en curso."""
-    tenant = tenant_id or settings.default_tenant_id
+    tenant = tenant_de(usuario, tenant_id)
 
     rows = (
         db.query(UploadJob)
@@ -293,9 +323,13 @@ def delete_job(job_id: int, db: Session = Depends(get_db)) -> None:
 
 
 @router.get("/documents")
-def list_documents(tenant_id: str = "", db: Session = Depends(get_db)) -> dict:
+def list_documents(
+    tenant_id: str = "",
+    db: Session = Depends(get_db),
+    usuario: User | None = Depends(require_calidad_o_clave),
+) -> dict:
     """Biblioteca completa, agrupada por area y con el conteo de chunks de cada documento."""
-    tenant = tenant_id or settings.default_tenant_id
+    tenant = tenant_de(usuario, tenant_id)
 
     chunk_counts = (
         db.query(DocumentChunk.document_id, func.count(DocumentChunk.id).label("n"))
@@ -426,9 +460,10 @@ def list_escalations(
     status: str = "",
     limit: int = 100,
     db: Session = Depends(get_db),
+    usuario: User | None = Depends(require_calidad_o_clave),
 ) -> dict:
     """Cola de consultas derivadas al Responsable de Calidad."""
-    tenant = tenant_id or settings.default_tenant_id
+    tenant = tenant_de(usuario, tenant_id)
 
     consulta = db.query(Escalation).filter(Escalation.tenant_id == tenant)
     if status:
@@ -515,6 +550,7 @@ def list_findings(
     status: str = "",
     limit: int = 100,
     db: Session = Depends(get_db),
+    usuario: User | None = Depends(require_calidad_o_clave),
 ) -> dict:
     """
     No conformidades registradas, cada una con sus acciones correctivas.
@@ -522,7 +558,7 @@ def list_findings(
     Sin esto, un hallazgo registrado por el chat solo se recuperaba sabiendo su
     ID numerico y volviendo a preguntarle al asistente. Un SGC necesita la lista.
     """
-    tenant = tenant_id or settings.default_tenant_id
+    tenant = tenant_de(usuario, tenant_id)
 
     consulta = db.query(Finding).filter(Finding.tenant_id == tenant)
     if status:

@@ -13,8 +13,10 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
+from app.channels.auth_adapter import usuario_actual
 from app.core import orchestrator
 from app.db.session import get_db
+from app.models.db_models import User
 from app.models.schemas import IncomingMessage, WebChatRequest, WebChatResponse
 from app.security import check_rate_limit, resolve_tenant
 
@@ -32,14 +34,30 @@ def chat(
     payload: WebChatRequest,
     request: Request,
     db: Session = Depends(get_db),
+    usuario: User | None = Depends(usuario_actual),
 ) -> WebChatResponse:
     check_rate_limit(request)
-    # El tenant NO se toma del cuerpo sin filtrar: ver app/security.py.
-    tenant_id = resolve_tenant(payload.tenant_id)
+
+    # Quien ha entrado consulta SU sistema de gestion.
+    #
+    # `resolve_tenant` sirve el corpus publico e ignora lo que pida el cliente:
+    # es lo correcto para una demostracion abierta, donde nadie tiene cuenta y
+    # el identificador de un cliente no es un secreto. Pero con sesion, servir
+    # el corpus publico a alguien de ABISERVI es responderle con documentos
+    # que no son los suyos.
+    #
+    # El cuerpo de la peticion no decide nunca: o manda la sesion, o manda la
+    # configuracion.
+    tenant_id = (
+        usuario.tenant_id if usuario is not None else resolve_tenant(payload.tenant_id)
+    )
+
     msg = IncomingMessage(
         tenant_id=tenant_id,
         channel="web",
-        external_user_id=payload.session_id,
+        # Con sesion, la conversacion es de la PERSONA y no del navegador: se
+        # recupera desde otro equipo y queda atribuida a quien pregunto.
+        external_user_id=(f"u{usuario.id}" if usuario else payload.session_id),
         text=payload.message,
     )
 
