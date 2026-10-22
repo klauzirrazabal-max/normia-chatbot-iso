@@ -18,6 +18,7 @@ Dos niveles:
 from __future__ import annotations
 
 import re
+from datetime import date
 
 from app.core.rag.retriever import RetrievedChunk
 
@@ -114,15 +115,26 @@ DERIVACION_RECHAZADA_MESSAGE = (
     "en la documentación vigente."
 )
 
-OUT_OF_SCOPE_HINT = (
-    "Recuerda: no apruebas, autorizas ni modificas documentos. Si te lo piden, "
-    "escala a Calidad con la herramienta escalate_to_quality.\n"
-    "Si el usuario reporta una desviacion o incumplimiento, registralo con "
-    "register_finding indicando la severidad, y despues pregunta quien se "
-    "encargara de corregirlo y para cuando, para registrarlo con "
-    "registrar_accion_correctiva. Un hallazgo sin accion correctiva deja el "
-    "ciclo a medias."
-)
+def out_of_scope_hint(hoy: date | None = None) -> str:
+    """
+    Recordatorio de limites que se anade al prompt en cada turno.
+
+    Lleva la FECHA porque el modelo no la sabe, y sin ella calcula plazos en el
+    ano equivocado: a "antes del 20 de noviembre", estando en octubre de 2026,
+    devolvio 2025-11-20 y la accion correctiva nacia vencida hacia once meses.
+    """
+    hoy = hoy or date.today()
+    return (
+        "Recuerda: no apruebas, autorizas ni modificas documentos. Si te lo piden, "
+        "escala a Calidad con la herramienta escalate_to_quality.\n"
+        f"HOY es {hoy.isoformat()}. Usala para interpretar fechas relativas: 'el 20 "
+        "de noviembre' es el proximo 20 de noviembre, nunca uno ya pasado.\n"
+        "Si el usuario reporta una desviacion o incumplimiento, registralo con "
+        "register_finding indicando la severidad, y despues pregunta quien se "
+        "encargara de corregirlo y para cuando, para registrarlo con "
+        "registrar_accion_correctiva. Un hallazgo sin accion correctiva deja el "
+        "ciclo a medias."
+    )
 
 
 # --- Verificacion de citas -------------------------------------------------

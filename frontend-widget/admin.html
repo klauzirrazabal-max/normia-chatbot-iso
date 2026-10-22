@@ -124,6 +124,22 @@
   .b-sin_contexto { background: #f1f5f9; color: var(--muted); }
   .b-fuera_de_alcance { background: #f1f5f9; color: var(--muted); }
   .b-error { background: #fee2e2; color: var(--err); }
+  .b-abierto { background: #fef3c7; color: var(--warn); }
+  .b-cerrado { background: var(--ok-bg); color: var(--ok); }
+  .b-mayor { background: #fee2e2; color: var(--err); }
+  .b-menor { background: #fef3c7; color: var(--warn); }
+  .b-observacion { background: #f1f5f9; color: var(--muted); }
+  /* Una accion correctiva es una fila DENTRO del hallazgo, no una tarjeta
+     aparte: lo que hay que ver de un vistazo es si cuelga algo de cada no
+     conformidad, y de quien. */
+  .capa {
+    border-left: 2px solid var(--accent); margin: 8px 0 0 4px;
+    padding: 5px 0 3px 12px; font-size: 13px;
+  }
+  .capa-meta { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+  .capa-vencida { color: var(--err); font-weight: 600; }
+  .sin-capa { color: var(--err); font-size: 12.5px; font-weight: 600; margin: 8px 0 0 4px; }
+
   .filtros { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
   .filtros button.activo { background: var(--accent); border-color: var(--accent); color: #fff; }
 
@@ -157,6 +173,7 @@
     <div class="stat"><b id="s-obs">—</b><span>Obsoletos</span></div>
     <div class="stat"><b id="s-chunks">—</b><span>Fragmentos</span></div>
     <div class="stat"><b id="s-esc">—</b><span>Escaladas</span></div>
+    <div class="stat"><b id="s-sin-capa">—</b><span>Sin acción correctiva</span></div>
   </div>
 </header>
 
@@ -191,6 +208,12 @@
     <h2>Consultas derivadas a Calidad <span class="count" id="esc-count">0</span></h2>
     <div class="filtros" id="esc-filtros"></div>
     <div id="esc-list"></div>
+  </section>
+
+  <section id="hallazgos-section">
+    <h2>No conformidades y acciones correctivas <span class="count" id="hallazgo-count">0</span></h2>
+    <div class="filtros" id="hallazgo-filtros"></div>
+    <div id="hallazgo-list"></div>
   </section>
 
   <section>
@@ -659,9 +682,114 @@ async function patchEsc(id, cambios, btn) {
   }
 }
 
+// --- No conformidades y sus acciones correctivas ---------------------------
+//
+// El endpoint existia y no lo consumia nadie: un hallazgo registrado por el
+// chat solo se recuperaba sabiendo su numero y volviendole a preguntar al
+// asistente. Un SGC necesita la lista, y sobre todo necesita ver cuales siguen
+// sin accion correctiva, que es lo que mira un auditor.
+
+const ESTADOS_HALLAZGO = ["abierto", "en_revision", "cerrado"];
+const ETIQUETA_HALLAZGO = {
+  abierto: "Abiertos", en_revision: "En revisión", cerrado: "Cerrados",
+};
+const ETIQUETA_SEVERIDAD = {
+  mayor: "No conformidad mayor", menor: "No conformidad menor",
+  observacion: "Observación",
+};
+let filtroHallazgo = "abierto";
+
+function diasHasta(iso) {
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  return Math.round((new Date(iso + "T00:00:00") - hoy) / 86400000);
+}
+
+function plazo(iso) {
+  const d = diasHasta(iso);
+  if (d < 0) return { texto: `vencida hace ${-d} día${-d === 1 ? "" : "s"}`, vencida: true };
+  if (d === 0) return { texto: "vence hoy", vencida: true };
+  return { texto: `faltan ${d} día${d === 1 ? "" : "s"}`, vencida: false };
+}
+
+async function refreshFindings() {
+  let data;
+  try {
+    const url = `${API}/api/admin/findings?tenant_id=${encodeURIComponent(TENANT)}` +
+      (filtroHallazgo ? `&status=${filtroHallazgo}` : "");
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(res.status);
+    data = await res.json();
+  } catch {
+    document.getElementById("hallazgo-list").innerHTML =
+      '<div class="empty">No se pudo cargar la lista de no conformidades.</div>';
+    return;
+  }
+
+  document.getElementById("s-sin-capa").textContent = data.sin_accion;
+  document.getElementById("hallazgo-count").textContent = data.findings.length;
+
+  const filtros = document.getElementById("hallazgo-filtros");
+  filtros.innerHTML = "";
+  ESTADOS_HALLAZGO.forEach((estado) => {
+    const b = el("button", filtroHallazgo === estado ? "activo" : "",
+      `${ETIQUETA_HALLAZGO[estado]} (${data.counts[estado] || 0})`);
+    b.onclick = () => { filtroHallazgo = estado; refreshFindings(); };
+    filtros.appendChild(b);
+  });
+
+  const host = document.getElementById("hallazgo-list");
+  host.innerHTML = "";
+
+  if (!data.findings.length) {
+    host.appendChild(el("div", "empty",
+      `No hay no conformidades en estado "${ETIQUETA_HALLAZGO[filtroHallazgo]}".`));
+    return;
+  }
+
+  data.findings.forEach((f) => {
+    // Rojo solo cuando falta la accion correctiva y el hallazgo sigue vivo:
+    // ese es el incumplimiento, no la gravedad en si.
+    const sinAccion = f.status !== "cerrado" && !f.actions.length;
+    const card = el("div", "card" + (sinAccion ? " err" : ""));
+
+    const head = el("div", "card-head");
+    head.appendChild(el("span", "badge b-" + f.severity,
+      ETIQUETA_SEVERIDAD[f.severity] || f.severity));
+    head.appendChild(el("span", "badge b-" + f.status,
+      ETIQUETA_HALLAZGO[f.status] || f.status));
+    head.appendChild(el("span", "meta", `#${f.id}`));
+    if (f.area) head.appendChild(el("span", "meta", "| " + f.area));
+    if (f.created_at) {
+      head.appendChild(el("span", "meta", "| " + f.created_at.slice(0, 10)));
+    }
+    card.appendChild(head);
+    card.appendChild(el("div", "esc-q", f.description));
+
+    if (sinAccion) {
+      card.appendChild(el("div", "sin-capa",
+        "Sin acción correctiva: falta definir qué se hará, quién se encarga y para cuándo."));
+    }
+
+    f.actions.forEach((a) => {
+      const fila = el("div", "capa");
+      fila.appendChild(el("div", "", a.description));
+      const p = plazo(a.due_date);
+      const meta = el("div", "capa-meta");
+      meta.appendChild(el("span", "", `${a.responsible} | ${a.due_date} | `));
+      meta.appendChild(el("span", p.vencida && a.status !== "completado" ? "capa-vencida" : "",
+        a.status === "completado" ? "completada" : p.texto));
+      fila.appendChild(meta);
+      card.appendChild(fila);
+    });
+
+    host.appendChild(card);
+  });
+}
+
 refreshLibrary();
 refreshJobs();
 refreshEscalations();
+refreshFindings();
 </script>
 </body>
 </html>

@@ -439,6 +439,22 @@ def registrar_accion_correctiva(
         except ValueError:
             logger.warning("capa.fecha_ilegible", extra={"due_date": due_date})
 
+    # Una accion correctiva no puede vencer antes de existir. El modelo no sabe
+    # en que ano vive: a "antes del 20 de noviembre", estando en octubre de
+    # 2026, contesto 2025-11-20 y la accion nacia vencida hacia once meses. El
+    # panel la habria pintado en rojo desde el primer segundo y el plazo no
+    # habria servido para nada.
+    if limite is not None and limite < date.today():
+        return {
+            "finding_id": finding_id,
+            "error": "fecha_en_el_pasado",
+            "message": (
+                f"La fecha limite {limite.isoformat()} ya paso (hoy es "
+                f"{date.today().isoformat()}). Una accion correctiva no puede vencer "
+                f"antes de registrarse: confirma con el usuario la fecha correcta."
+            ),
+        }
+
     faltan = [e for e, v in (("quien se encarga", responsable), ("para cuando", limite)) if not v]
     if faltan:
         return {
@@ -720,7 +736,8 @@ def ampliar_hallazgo(
             ),
         }
 
-    hallazgo.description = f"{hallazgo.description}\n\nAmpliacion: {detalles}"
+    # Texto que LEE una persona en el panel de Calidad: con tilde.
+    hallazgo.description = f"{hallazgo.description}\n\nAmpliación: {detalles}"
     db.commit()
     logger.info("tool.finding_extended", extra={"finding_id": finding_id})
     return {

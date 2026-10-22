@@ -35,7 +35,7 @@ from app.core.guardrails.grounding_check import (
     DERIVACION_ACEPTADA_MESSAGE,
     DERIVACION_RECHAZADA_MESSAGE,
     NO_CONTEXT_MESSAGE,
-    OUT_OF_SCOPE_HINT,
+    out_of_scope_hint,
     PHANTOM_CITATION_MESSAGE,
     classify_citations,
     extract_cited_codes,
@@ -198,7 +198,7 @@ def _build_messages(
                     "del documento que uses. Si estos fragmentos no contienen la respuesta, "
                     "dilo y ofrece derivarlo a Calidad; no completes con conocimiento "
                     "general.\n\n"
-                    f"{context}\n\n{OUT_OF_SCOPE_HINT}"
+                    f"{context}\n\n{out_of_scope_hint()}"
                 ),
             }
         )
@@ -212,7 +212,7 @@ def _build_messages(
                     "tienes informacion suficiente y PREGUNTA si quiere que lo derives al "
                     "Responsable de Calidad. No afirmes que ya lo derivaste: la derivacion "
                     "solo ocurre si el usuario la acepta."
-                    f"\n\n{OUT_OF_SCOPE_HINT}"
+                    f"\n\n{out_of_scope_hint()}"
                 ),
             }
         )
@@ -729,6 +729,27 @@ def _resolver_consentimiento(
     )
     texto = DERIVACION_ACEPTADA_MESSAGE if respuesta else DERIVACION_RECHAZADA_MESSAGE
     return BotResponse(text=texto, escalate=respuesta, grounded=True)
+
+
+def _capa_pendiente(db: Session, conversation_id: int) -> bool:
+    """
+    ¿Hay en este hilo un hallazgo registrado al que aun le falta su accion?
+
+    Es la senal de que el turno siguiente es parte del ciclo CAPA y no una
+    consulta a la documentacion. Se limita a ESTA conversacion: un hallazgo
+    abierto de otro hilo no cambia como se atiende este.
+    """
+    from app.models.db_models import CapaAction, Finding
+
+    return db.query(
+        db.query(Finding)
+        .filter(
+            Finding.conversation_id == conversation_id,
+            Finding.status != "cerrado",
+            ~Finding.id.in_(db.query(CapaAction.finding_id)),
+        )
+        .exists()
+    ).scalar() or False
 
 
 def _record_incident(
@@ -1290,6 +1311,21 @@ def handle_message(db: Session, msg: IncomingMessage) -> BotResponse:
     #
     # Para lo documental el comportamiento no cambia en absoluto.
     exige_respaldo = tipo_turno is TipoTurno.DOCUMENTAL
+
+    # Excepcion: la conversacion esta completando un ciclo CAPA.
+    #
+    # Cuando el asistente acaba de registrar un hallazgo, pregunta quien se
+    # encarga y para cuando. La respuesta -- "lo va a cambiar el jefe de
+    # almacen" -- se clasificaba como consulta documental, no recuperaba nada
+    # (claro: no esta en ningun procedimiento) y el guardrail la tumbaba y
+    # ofrecia derivar a Calidad. El usuario estaba contestando a una pregunta
+    # del propio bot y recibia un cambio de tema.
+    #
+    # No se relaja nada peligroso: el hallazgo ya existe, es de este hilo, y lo
+    # que falta por recoger son un nombre y una fecha, que no se citan de
+    # ningun documento.
+    if exige_respaldo and _capa_pendiente(db, conversation.id):
+        exige_respaldo = False
 
     if exige_respaldo and not grounded_context and not data_tools_ran:
         # Guardrail BLOQUEANTE: sin respaldo documental y sin un dato de
