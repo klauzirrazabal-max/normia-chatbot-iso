@@ -62,6 +62,14 @@ _candado = threading.Lock()
 # agotado del navegador.
 _generando = threading.Lock()
 
+# El refinador es un segundo paso sobre la misma imagen. La base resuelve la
+# composicion y el refinador cierra el detalle, que es justo donde fallaba:
+# caras fundidas, manos de mas dedos, bordes sucios. Comparte el codificador
+# de texto 2 y el VAE con la base, asi que no son dos modelos enteros en
+# memoria sino uno y medio.
+_refinador = None
+_FRACCION_BASE = 0.8  # la base trabaja hasta el 80%; el ultimo 20% lo refina
+
 
 # --- Guardrail de alcance -----------------------------------------------------
 #
@@ -390,6 +398,42 @@ def _cargar_pipeline():
     return _pipeline
 
 
+def _cargar_refinador():
+    """
+    Carga el refinador reutilizando las piezas de la base.
+
+    Devuelve None si no esta descargado: el refinado es una mejora, no un
+    requisito, y quedarse sin pieza por no tener un modelo opcional seria
+    cambiar calidad por disponibilidad.
+    """
+    global _refinador
+    if _refinador is not None:
+        return _refinador
+
+    with _candado:
+        if _refinador is None:
+            try:
+                import torch
+                from diffusers import StableDiffusionXLImg2ImgPipeline
+
+                base = _cargar_pipeline()
+                logger.info("imagenes.cargando_refinador")
+                _refinador = StableDiffusionXLImg2ImgPipeline.from_pretrained(
+                    "stabilityai/stable-diffusion-xl-refiner-1.0",
+                    text_encoder_2=base.text_encoder_2,
+                    vae=base.vae,
+                    torch_dtype=torch.float16,
+                    variant="fp16",
+                    use_safetensors=True,
+                ).to("mps")
+                _refinador.enable_attention_slicing()
+                logger.info("imagenes.refinador_listo")
+            except Exception:  # noqa: BLE001
+                logger.warning("imagenes.sin_refinador", exc_info=True)
+                _refinador = False
+    return _refinador or None
+
+
 @router.get("/clausulas")
 def clausulas_disponibles(
     db: Session = Depends(get_db),
@@ -554,15 +598,44 @@ def generar(
             "vuelve a intentarlo cuando termine.",
         )
     try:
-        imagen = pipe(
-            prompt=prompt,
-            negative_prompt=NEGATIVO,
-            num_inference_steps=peticion.pasos,
-            guidance_scale=7.0,
-            height=1024 if peticion.vertical else 768,
-            width=768 if peticion.vertical else 1024,
-            generator=torch.Generator("cpu").manual_seed(int(time.time()) % 100000),
-        ).images[0]
+        semilla = torch.Generator("cpu").manual_seed(int(time.time()) % 100000)
+        refinador = _cargar_refinador()
+
+        comunes = {
+            "prompt": prompt,
+            "negative_prompt": NEGATIVO,
+            "num_inference_steps": peticion.pasos,
+            "guidance_scale": 7.0,
+            "generator": semilla,
+        }
+
+        if refinador is None:
+            imagen = pipe(
+                **comunes,
+                height=1024 if peticion.vertical else 768,
+                width=768 if peticion.vertical else 1024,
+            ).images[0]
+        else:
+            # Dos pasos sobre la MISMA imagen. La base resuelve la composicion
+            # y se detiene al 80%; el refinador toma el latente a medio hacer y
+            # cierra el ultimo 20%, que es donde estaba el problema: caras
+            # fundidas, manos con dedos de mas, bordes sucios.
+            #
+            # `denoising_end` y `denoising_start` tienen que sumar el corte
+            # exacto, o el refinador empieza desde un ruido que no corresponde
+            # y la imagen cambia de contenido en vez de afinarse.
+            latente = pipe(
+                **comunes,
+                height=1024 if peticion.vertical else 768,
+                width=768 if peticion.vertical else 1024,
+                denoising_end=_FRACCION_BASE,
+                output_type="latent",
+            ).images
+            imagen = refinador(
+                **comunes,
+                image=latente,
+                denoising_start=_FRACCION_BASE,
+            ).images[0]
     finally:
         _generando.release()
 

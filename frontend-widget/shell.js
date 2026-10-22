@@ -16,30 +16,30 @@
   const ESTILOS = `
     .vistas {
       display: flex; gap: 2px; align-items: center; flex-wrap: wrap;
-      background: #fff; border-bottom: 1px solid #e2e8f0; padding: 0 20px;
+      background: var(--superficie); border-bottom: 1px solid var(--borde); padding: 0 20px;
       font-family: inherit;
     }
     .vistas a {
       padding: 11px 14px; font-size: 13.5px; font-weight: 600;
-      color: #64748b; text-decoration: none; border-bottom: 2px solid transparent;
+      color: var(--tinta-suave); text-decoration: none; border-bottom: 2px solid transparent;
     }
-    .vistas a:hover { color: #2563eb; }
-    .vistas a[aria-current="page"] { color: #2563eb; border-bottom-color: #2563eb; }
-    .vistas .marca { font-weight: 700; color: #0f172a; margin-right: 14px; font-size: 14px; }
+    .vistas a:hover { color: var(--marca); }
+    .vistas a[aria-current="page"] { color: var(--marca); border-bottom-color: var(--marca); }
+    .vistas .marca { font-weight: 700; color: var(--tinta); margin-right: 14px; font-size: 14px; }
     .vistas .yo {
       margin-left: auto; display: flex; align-items: center; gap: 10px;
-      font-size: 13px; color: #475569;
+      font-size: 13px; color: var(--tinta-media);
     }
     .vistas .rol {
-      background: #eff6ff; color: #1d4ed8; border-radius: 999px;
+      background: var(--marca-suave); color: var(--marca-oscura); border-radius: var(--radio-pil);
       padding: 2px 9px; font-size: 11.5px; font-weight: 600; text-transform: uppercase;
       letter-spacing: .03em;
     }
     .vistas .salir {
-      background: none; border: none; color: #64748b; font-size: 13px;
+      background: none; border: none; color: var(--tinta-suave); font-size: 13px;
       cursor: pointer; text-decoration: underline; padding: 4px 0; font-family: inherit;
     }
-    .vistas .salir:hover { color: #b91c1c; }
+    .vistas .salir:hover { color: var(--riesgo); }
     @media (max-width: 720px) {
       .vistas { padding: 0 12px; }
       .vistas .yo { width: 100%; margin-left: 0; padding: 0 2px 8px; }

@@ -4,13 +4,15 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>NormIA · Gestión documental</title>
+<link rel="stylesheet" href="normia.css" />
 <style>
   :root {
-    --bg: #f8fafc; --panel: #ffffff; --text: #0f172a; --muted: #64748b;
-    --border: #e2e8f0; --accent: #2563eb; --accent-soft: #eff6ff;
-    --warn: #b45309; --warn-bg: #fffbeb; --warn-border: #fcd34d;
-    --err: #b91c1c; --err-bg: #fef2f2; --err-border: #fca5a5;
-    --ok: #15803d; --ok-bg: #f0fdf4;
+    --bg: var(--papel); --panel: var(--superficie); --text: var(--tinta); --muted: var(--tinta-suave);
+    --border: var(--borde); --accent: var(--marca); --accent-soft: var(--marca-suave);
+    --warn: var(--aviso); --warn-bg: var(--aviso-fondo); --warn-border: var(--aviso-borde);
+    --err: var(--riesgo); --err-bg: var(--riesgo-fondo); --err-border: var(--riesgo-borde);
+    /* --ok y --ok-bg los define normia.css; redefinirlos aqui con su
+       propio nombre seria una referencia circular. */
     --radius: 12px;
   }
   * { box-sizing: border-box; }
@@ -64,11 +66,11 @@
     font-size: 11px; font-weight: 620; padding: 2px 9px; border-radius: 20px;
     text-transform: uppercase; letter-spacing: .03em; white-space: nowrap;
   }
-  .b-listo { background: var(--ok-bg); color: var(--ok); }
+  .b-listo { background: var(--ok-fondo); color: var(--ok); }
   .b-revision { background: #fef3c7; color: var(--warn); }
   .b-error { background: #fee2e2; color: var(--err); }
   .b-proc { background: var(--accent-soft); color: var(--accent); }
-  .b-vigente { background: var(--ok-bg); color: var(--ok); }
+  .b-vigente { background: var(--ok-fondo); color: var(--ok); }
   .b-obsoleto { background: #f1f5f9; color: var(--muted); }
 
   .advice { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(0,0,0,.07); }
@@ -119,13 +121,13 @@
   .esc-reason { color: var(--muted); font-size: 12.5px; margin: 6px 0 9px; }
   .b-pendiente { background: #fef3c7; color: var(--warn); }
   .b-en_revision { background: var(--accent-soft); color: var(--accent); }
-  .b-resuelta { background: var(--ok-bg); color: var(--ok); }
+  .b-resuelta { background: var(--ok-fondo); color: var(--ok); }
   .b-descartada { background: #f1f5f9; color: var(--muted); }
   .b-sin_contexto { background: #f1f5f9; color: var(--muted); }
   .b-fuera_de_alcance { background: #f1f5f9; color: var(--muted); }
   .b-error { background: #fee2e2; color: var(--err); }
   .b-abierto { background: #fef3c7; color: var(--warn); }
-  .b-cerrado { background: var(--ok-bg); color: var(--ok); }
+  .b-cerrado { background: var(--ok-fondo); color: var(--ok); }
   .b-mayor { background: #fee2e2; color: var(--err); }
   .b-menor { background: #fef3c7; color: var(--warn); }
   .b-observacion { background: #f1f5f9; color: var(--muted); }

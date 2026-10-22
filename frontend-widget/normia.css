@@ -1,0 +1,210 @@
+/* =============================================================================
+   NormIA · sistema visual
+   =============================================================================
+
+   El sujeto es el documento controlado: codigos como SST-PR-02, versiones
+   como v2, clausulas numeradas, sellos de VIGENTE y OBSOLETO, listas maestras
+   y bloques de firma. El diseno sale de ahi y no de un tema generico.
+
+   NADA DE FUENTES WEB. NormIA corre en la maquina del cliente justamente para
+   que sus documentos no salgan a internet; enlazar una tipografia de Google
+   haria que el producto dependiera de la red que fue disenado para evitar, y
+   en una planta sin salida a internet las paginas se verian con la fuente de
+   reserva. Se usa la pila del sistema, que ademas no cuesta una descarga.
+
+   LA MONOESPACIADA NO ES DECORACION. Un codigo de documento es un
+   identificador, como una matricula: en monoespaciada se lee como dato y no
+   como prosa, y las columnas de version cuadran. Es el vocabulario del
+   oficio, puesto donde se usa.
+   ========================================================================== */
+
+:root {
+  /* --- Neutros, con una leve inclinacion fria -----------------------------
+     Un gris puro parece no elegido. El sesgo azulado acompana al acento y da
+     el aire administrativo que pide el asunto: esto es papeleo controlado,
+     no una aplicacion de ocio. */
+  --papel:        #f6f8fb;
+  --superficie:   #ffffff;
+  --superficie-2: #f0f3f8;
+  --borde:        #e1e7ef;
+  --borde-fuerte: #cbd5e1;
+
+  --tinta:        #111827;
+  --tinta-media:  #475569;
+  --tinta-suave:  #64748b;
+
+  /* --- Marca --------------------------------------------------------------
+     El azul del logotipo de ABISERVI, un punto mas profundo para que aguante
+     texto blanco encima sin forzar el peso. */
+  --marca:        #1a56db;
+  --marca-oscura: #1443ae;
+  --marca-suave:  #eaf0fe;
+
+  /* --- Semanticos ---------------------------------------------------------
+     Separados del acento a proposito. El azul significa "accion"; estos
+     significan ESTADO, y mezclarlos hace que un documento vigente parezca un
+     boton. */
+  --ok:        #0f7b4f;  --ok-fondo:     #e7f6ee;  --ok-borde:     #a7dcc1;
+  --aviso:     #92610a;  --aviso-fondo:  #fdf5e3;  --aviso-borde:  #f0d79a;
+  --riesgo:    #b42318;  --riesgo-fondo: #fdeceb;  --riesgo-borde: #f5b5b0;
+  --inactivo:  #64748b;  --inactivo-fondo:#f1f5f9; --inactivo-borde:#dfe5ec;
+
+  /* --- Escala de espaciado, en pasos de 4 --------------------------------- */
+  --e1: 4px;  --e2: 8px;  --e3: 12px; --e4: 16px;
+  --e5: 24px; --e6: 32px; --e7: 48px; --e8: 64px;
+
+  --radio:     8px;
+  --radio-sm:  6px;
+  --radio-pil: 999px;
+
+  --sombra:    0 1px 2px rgba(15, 23, 42, .06);
+  --sombra-alta: 0 8px 24px rgba(15, 23, 42, .12);
+
+  /* --- Tipografia ---------------------------------------------------------
+     Pila del sistema: en cada maquina sale la cara que esa maquina compone
+     mejor, sin descargar nada. */
+  --texto: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+           "Helvetica Neue", Arial, sans-serif;
+  --codigo: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+            "Liberation Mono", monospace;
+
+  color-scheme: light;
+}
+
+/* =============================================================================
+   Base
+   ========================================================================== */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--papel);
+  color: var(--tinta);
+  font: 15px/1.55 var(--texto);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 { margin: 0; text-wrap: balance; font-weight: 650; letter-spacing: -.011em; }
+h1 { font-size: 21px; }
+h2 { font-size: 16px; }
+h3 { font-size: 14px; }
+
+a { color: var(--marca); }
+
+/* El foco TIENE que verse: se navega con teclado mas de lo que se cree, y un
+   contorno invisible deja a quien lo hace sin saber donde esta. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--marca);
+  outline-offset: 2px;
+  border-radius: var(--radio-sm);
+}
+
+[hidden] { display: none !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+
+/* =============================================================================
+   Vocabulario del oficio
+   ========================================================================== */
+
+/* Un codigo de documento. Monoespaciado y con un fondo tenue: se lee como
+   identificador, no como palabra. */
+.codigo {
+  font-family: var(--codigo);
+  font-size: .86em;
+  letter-spacing: -.01em;
+  background: var(--superficie-2);
+  border-radius: var(--radio-sm);
+  padding: 1px 6px;
+  color: var(--tinta-media);
+  white-space: nowrap;
+}
+
+/* Los numeros que se comparan en columna cuadran. */
+.cifra { font-variant-numeric: tabular-nums; }
+
+/* El sello de estado. Forma ADEMAS de color: quien no distingue el verde del
+   ambar sigue viendo tres formas distintas por el texto y el borde. */
+.sello {
+  display: inline-flex; align-items: center; gap: var(--e1);
+  font-size: 11.5px; font-weight: 650; text-transform: uppercase;
+  letter-spacing: .04em; padding: 2px 9px; border-radius: var(--radio-pil);
+  border: 1px solid transparent; white-space: nowrap;
+}
+.sello-ok       { background: var(--ok-fondo);       color: var(--ok);       border-color: var(--ok-borde); }
+.sello-aviso    { background: var(--aviso-fondo);    color: var(--aviso);    border-color: var(--aviso-borde); }
+.sello-riesgo   { background: var(--riesgo-fondo);   color: var(--riesgo);   border-color: var(--riesgo-borde); }
+.sello-inactivo { background: var(--inactivo-fondo); color: var(--inactivo); border-color: var(--inactivo-borde); }
+.sello-marca    { background: var(--marca-suave);    color: var(--marca-oscura); border-color: #c7d8fb; }
+
+/* =============================================================================
+   Controles
+   ========================================================================== */
+
+.boton {
+  display: inline-flex; align-items: center; gap: var(--e2);
+  font: 600 14px/1 var(--texto); padding: 9px 14px;
+  border-radius: var(--radio-sm); border: 1px solid var(--borde-fuerte);
+  background: var(--superficie); color: var(--tinta-media);
+  cursor: pointer; transition: background .12s, border-color .12s, color .12s;
+}
+.boton:hover { background: var(--superficie-2); color: var(--tinta); }
+.boton:disabled { opacity: .55; cursor: not-allowed; }
+
+.boton-principal {
+  background: var(--marca); border-color: var(--marca); color: #fff;
+}
+.boton-principal:hover { background: var(--marca-oscura); border-color: var(--marca-oscura); color: #fff; }
+.boton-riesgo { color: var(--riesgo); border-color: var(--riesgo-borde); }
+.boton-riesgo:hover { background: var(--riesgo-fondo); color: var(--riesgo); }
+
+.campo {
+  width: 100%; padding: 9px 11px; font: 14.5px/1.45 var(--texto);
+  color: var(--tinta); background: var(--superficie-2);
+  border: 1px solid var(--borde); border-radius: var(--radio-sm);
+}
+.campo:focus { background: var(--superficie); }
+
+.etiqueta {
+  display: block; font-size: 11.5px; font-weight: 650; color: var(--tinta-suave);
+  text-transform: uppercase; letter-spacing: .05em; margin-bottom: var(--e2);
+}
+
+.pista { font-size: 12.5px; color: var(--tinta-suave); line-height: 1.45; margin: var(--e2) 0 0; }
+
+/* =============================================================================
+   Contenedores
+   =============================================================================
+   La tarjeta se usa con cuentagotas. Borde, relleno, radio y sombra marcan un
+   elemento como objeto aparte; ponerselos a todo aplana la jerarquia y no
+   distingue lo que pide atencion de lo que no. Por eso hay una tarjeta neutra
+   y tres que SIGNIFICAN algo. */
+
+.tarjeta {
+  background: var(--superficie); border: 1px solid var(--borde);
+  border-radius: var(--radio); padding: var(--e4);
+}
+.tarjeta-aviso  { border-color: var(--aviso-borde);  background: var(--aviso-fondo); }
+.tarjeta-riesgo { border-color: var(--riesgo-borde); background: var(--riesgo-fondo); }
+
+.vacio {
+  color: var(--tinta-suave); font-size: 13.5px;
+  padding: var(--e4) var(--e1); line-height: 1.5;
+}
+
+/* Una tabla no se estrecha mas alla de sus columnas: se desliza dentro de su
+   caja en vez de arrastrar la pagina entera hacia la derecha. */
+.tabla-ancha { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.tabla-ancha table { min-width: 560px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+thead th {
+  text-align: left; padding: var(--e2) var(--e4); color: var(--tinta-suave);
+  font-size: 11px; font-weight: 650; text-transform: uppercase; letter-spacing: .05em;
+  border-bottom: 1px solid var(--borde);
+}
+tbody td { padding: var(--e3) var(--e4); border-bottom: 1px solid var(--borde); }
+tbody tr:last-child td { border-bottom: none; }
