@@ -21,8 +21,14 @@ from pathlib import Path
 
 from sqlalchemy.orm import Session
 
-from app.core.rag.doc_header import DocumentHeader, code_from_filename, read_header
-from app.models.db_models import Document
+from app.core.rag.doc_header import (
+    ApprovalBlock,
+    DocumentHeader,
+    code_from_filename,
+    read_approval,
+    read_header,
+)
+from app.models.db_models import Document, RegistryEntry
 
 
 class Severity(StrEnum):
@@ -40,6 +46,7 @@ class Action(StrEnum):
     RENAME_FILE = "rename_file"
     CONFIRM_CODE = "confirm_code"
     REVIEW_VERSION = "review_version"
+    CONFIRM_APPROVAL = "confirm_approval"
 
 
 @dataclass(frozen=True)
@@ -69,6 +76,7 @@ class UploadAssessment:
     resolved_code: str | None
     resolved_version: str | None
     advices: list[Advice] = field(default_factory=list)
+    approval: ApprovalBlock = field(default_factory=ApprovalBlock)
 
     @property
     def blocking(self) -> bool:
@@ -89,12 +97,33 @@ class UploadAssessment:
                     self.header.revision_date.isoformat() if self.header.revision_date else None
                 ),
                 "code_in_filename": code_from_filename(self.filename),
+                "aprobado_por": self.approval.aprobado_por,
+                "revisado_por": self.approval.revisado_por,
+                "elaborado_por": self.approval.elaborado_por,
             },
             "resolved_code": self.resolved_code,
             "resolved_version": self.resolved_version,
             "blocking": self.blocking,
             "advices": [a.to_dict() for a in self.advices],
         }
+
+
+# Tipos de documento que deben declarar quien los aprobo.
+#
+# No todos lo hacen, y no es un descuido: un FORMATO es una plantilla que se
+# rellena, y lo aprobado es el procedimiento que lo invoca. Lo comprobe sobre
+# el SGC real: los 30 procedimientos, los 3 manuales, los 5 instructivos y los
+# 2 planes llevan su bloque de firmas; de los 84 formatos, solo 14. Exigirselo
+# a un formato produciria 70 avisos falsos y el usuario dejaria de leerlos.
+TIPOS_CON_APROBACION = frozenset({"PR", "MN", "IN", "PL"})
+
+
+def tipo_de_documento(code: str | None) -> str | None:
+    """'CAL-PR-03' -> 'PR'. El tipo va en el segmento del medio del codigo."""
+    if not code:
+        return None
+    partes = code.split("-")
+    return partes[1].upper() if len(partes) >= 2 else None
 
 
 def version_number(version: str | None) -> int:
@@ -110,6 +139,7 @@ def assess_upload(
 ) -> UploadAssessment:
     """Lee el documento, lo compara con lo ya registrado y devuelve los avisos."""
     header = read_header(pdf_path)
+    approval = read_approval(pdf_path)
     name_code = code_from_filename(original_name)
 
     advices: list[Advice] = []
@@ -125,8 +155,8 @@ def assess_upload(
             Advice(
                 Severity.WARNING,
                 "code_mismatch",
-                f"El nombre del archivo dice {name_code}, pero el documento esta codificado "
-                f"como {header.code} en su membrete. Se usara {header.code}; conviene "
+                f"El nombre del archivo dice {name_code}, pero el documento está codificado "
+                f"como {header.code} en su membrete. Se usará {header.code}; conviene "
                 "renombrar el archivo para que coincidan.",
                 Action.RENAME_FILE,
                 {"in_filename": name_code, "in_document": header.code},
@@ -138,26 +168,99 @@ def assess_upload(
             Advice(
                 Severity.ERROR,
                 "no_code",
-                "No pude determinar el codigo del documento: no aparece en el membrete ni "
-                "al inicio del nombre del archivo. Indicalo manualmente o corrige el archivo.",
+                "No pude determinar el código del documento: no aparece en el membrete ni "
+                "al inicio del nombre del archivo. Indícalo manualmente o corrige el archivo.",
                 Action.CONFIRM_CODE,
             )
         )
-        return UploadAssessment(original_name, header, None, None, advices)
+        return UploadAssessment(original_name, header, None, None, advices, approval)
 
     if not resolved_version:
         advices.append(
             Advice(
                 Severity.WARNING,
                 "no_version",
-                "El documento no declara version en su membrete. Se asumira v1 salvo que "
+                "El documento no declara versión en su membrete. Se asumirá v1 salvo que "
                 "indiques otra.",
                 Action.REVIEW_VERSION,
             )
         )
         resolved_version = "v1"
 
-    # --- 2. Comparacion con lo ya registrado ----------------------------------
+    # --- 2. Evidencia de aprobacion -------------------------------------------
+    #
+    # La clausula 7.5.2 pide que la informacion documentada se revise y se
+    # apruebe antes de emitirse. Hasta ahora no se comprobaba nada de eso: el
+    # sistema validaba QUE documento es y en que version, pero no si alguien lo
+    # habia aprobado. Un procedimiento sin aprobar que el asistente cita como
+    # vigente es precisamente la no conformidad que este producto existe para
+    # evitar.
+    #
+    # Son dos evidencias distintas y las dos hacen falta:
+    #   - el documento declara QUIEN lo aprobo, en su bloque de firmas;
+    #   - la Lista Maestra declara CUANDO se aprobo.
+    tipo = tipo_de_documento(resolved_code)
+
+    if tipo in TIPOS_CON_APROBACION and not approval.tiene_aprobacion:
+        advices.append(
+            Advice(
+                Severity.WARNING,
+                "sin_bloque_de_aprobacion",
+                "El documento no declara quién lo aprobó: no encontré el bloque "
+                "ELABORADO / REVISADO / APROBADO POR en su última página. La cláusula "
+                "7.5.2 pide que esté revisado y aprobado antes de emitirse. Confirma "
+                "que es la versión aprobada antes de publicarlo.",
+                Action.CONFIRM_APPROVAL,
+                {"tipo": tipo},
+            )
+        )
+
+    registro = (
+        db.query(RegistryEntry)
+        .filter(RegistryEntry.tenant_id == tenant_id, RegistryEntry.code == resolved_code)
+        .one_or_none()
+    )
+
+    if registro is None:
+        advices.append(
+            Advice(
+                Severity.WARNING,
+                "fuera_de_lista_maestra",
+                f"{resolved_code} no figura en la Lista Maestra de Documentos Internos. "
+                f"Un documento controlado que el asistente va a citar debería estar "
+                f"registrado ahí, con su versión y su fecha de aprobación.",
+                Action.CONFIRM_APPROVAL,
+            )
+        )
+    else:
+        if registro.effective_date is None:
+            advices.append(
+                Advice(
+                    Severity.WARNING,
+                    "sin_fecha_de_aprobacion",
+                    f"{resolved_code} figura en la Lista Maestra pero sin fecha de "
+                    f"aprobación. Sin esa fecha no hay evidencia de cuándo entró en "
+                    f"vigor.",
+                    Action.CONFIRM_APPROVAL,
+                )
+            )
+        if registro.version and registro.version != resolved_version:
+            # Este es el error que motivo el modulo entero: un instructivo
+            # impreso como v2 registrado como v1, y nadie lo noto en mas de un
+            # ano. Aqui salta en el momento de subirlo.
+            advices.append(
+                Advice(
+                    Severity.WARNING,
+                    "version_discrepa_de_lista_maestra",
+                    f"El documento se presenta como {resolved_version}, pero la Lista "
+                    f"Maestra registra {resolved_code} {registro.version}. Una de las dos "
+                    f"está desactualizada: confirma cuál antes de publicarlo.",
+                    Action.REVIEW_VERSION,
+                    {"en_documento": resolved_version, "en_lista_maestra": registro.version},
+                )
+            )
+
+    # --- 3. Comparacion con lo ya registrado ----------------------------------
     existing = (
         db.query(Document)
         .filter(Document.tenant_id == tenant_id, Document.code == resolved_code)
@@ -173,7 +276,9 @@ def assess_upload(
                 "previas registradas.",
             )
         )
-        return UploadAssessment(original_name, header, resolved_code, resolved_version, advices)
+        return UploadAssessment(
+            original_name, header, resolved_code, resolved_version, advices, approval
+        )
 
     nueva = version_number(resolved_version)
     misma_version = [d for d in existing if d.version == resolved_version]
@@ -185,8 +290,8 @@ def assess_upload(
                 Severity.WARNING,
                 "same_version_exists",
                 f"Ya existe {resolved_code} {resolved_version} en el sistema. Si es una "
-                "correccion del mismo archivo, reemplazalo; si es una revision nueva, "
-                "deberia subir de version.",
+                "corrección del mismo archivo, reemplázalo; si es una revisión nueva, "
+                "debería subir de versión.",
                 Action.REPLACE_EXISTING,
                 {"document_ids": [d.id for d in misma_version]},
             )
@@ -201,9 +306,9 @@ def assess_upload(
             Advice(
                 Severity.WARNING,
                 "supersedes_previous",
-                f"Esta version reemplaza a {listado}, que sigue marcada como vigente. Dos "
+                f"Esta versión reemplaza a {listado}, que sigue marcada como vigente. Dos "
                 "versiones vigentes del mismo documento es una no conformidad de control de "
-                "informacion documentada: marca la anterior como obsoleta para que el "
+                "información documentada: marca la anterior como obsoleta para que el "
                 "asistente deje de citarla.",
                 Action.MARK_PREVIOUS_OBSOLETE,
                 {"document_ids": [d.id for d in anteriores_vigentes]},
@@ -217,12 +322,14 @@ def assess_upload(
             Advice(
                 Severity.WARNING,
                 "older_than_registered",
-                f"Estas subiendo {resolved_version}, pero el sistema ya tiene {listado}. Si "
-                "es una version historica, marcala como obsoleta para conservar la "
+                f"Estás subiendo {resolved_version}, pero el sistema ya tiene {listado}. Si "
+                "es una versión histórica, márcala como obsoleta para conservar la "
                 "trazabilidad sin que el asistente la cite.",
                 Action.REVIEW_VERSION,
                 {"document_ids": [d.id for d in mas_nuevas]},
             )
         )
 
-    return UploadAssessment(original_name, header, resolved_code, resolved_version, advices)
+    return UploadAssessment(
+        original_name, header, resolved_code, resolved_version, advices, approval
+    )
