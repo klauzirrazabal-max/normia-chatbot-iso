@@ -41,11 +41,19 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     logger.info("app.stopping")
 
 
+# En local la documentacion interactiva es comoda. Publicada deja a la vista
+# todos los endpoints de administracion y la forma exacta de sus cuerpos, que es
+# regalarle el mapa a quien quiera probar la clave. Se apaga fuera de local.
+_ES_LOCAL = settings.app_env.strip().lower() in ("local", "dev", "test")
+
 app = FastAPI(
     title="NormIA",
     description="Asistente de documentacion y cumplimiento ISO (RAG + agentes)",
     version="0.1.0",
     lifespan=lifespan,
+    docs_url="/docs" if _ES_LOCAL else None,
+    redoc_url="/redoc" if _ES_LOCAL else None,
+    openapi_url="/openapi.json" if _ES_LOCAL else None,
 )
 
 app.add_middleware(
