@@ -21,6 +21,10 @@ __pycache__/
 #
 # Es la razon de que este proyecto corra el modelo en local: si los documentos no
 # salen de la maquina, tampoco pueden salir por git.
+# Lo que sube un usuario por el panel. Son documentos del cliente y no tienen
+# nada que hacer en el repositorio.
+data/uploads/
+
 data/knowledge_base/*/*.pdf
 data/knowledge_base/*/metadata.csv
 

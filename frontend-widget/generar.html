@@ -49,6 +49,17 @@
     padding:12px;text-align:center;color:var(--grafito);
   }
   .lienzo img{max-width:100%;max-height:70vh;border-radius:3px;display:block}
+  .esperando{display:flex;flex-direction:column;align-items:center;gap:10px}
+  .girando{
+    width:34px;height:34px;border-radius:50%;
+    border:3px solid var(--linea);border-top-color:var(--tinta);
+    animation:girar 1s linear infinite;
+  }
+  @keyframes girar{to{transform:rotate(360deg)}}
+  /* Quien ha pedido que no se muevan las cosas, no las ve moverse. */
+  @media (prefers-reduced-motion: reduce){ .girando{animation:none} }
+  .reloj-grande{font-variant-numeric:tabular-nums;font-size:1.5rem;font-weight:600;color:var(--tinta)}
+  .aviso-lento{font-size:.82rem;max-width:22ch;line-height:1.4}
   .estado{font-size:.88rem;color:var(--grafito);margin:12px 0 0;min-height:1.4em}
   .error{color:#9E2B21}
   /* `display:flex` gana a `hidden`, asi que el boton de descarga se veia
@@ -338,16 +349,31 @@ $("formulario").addEventListener("submit", async (e) => {
   e.preventDefault();
   $("boton").disabled = true;
   $("acciones").hidden = true;
-  $("lienzo").textContent = "";
   $("estado").className = "estado";
+
+  // El aviso va DENTRO del lienzo. Estaba abajo a la izquierda, bajo el boton,
+  // mientras el recuadro de la derecha -- donde esta mirando quien espera --
+  // se quedaba vacio casi medio minuto. Un hueco en blanco durante 28 s se lee
+  // como que algo se rompio.
+  $("lienzo").innerHTML =
+    '<div class="esperando">' +
+    '<div class="girando" aria-hidden="true"></div>' +
+    '<div>Dibujando la pieza…</div>' +
+    '<div class="reloj-grande" id="reloj-lienzo">0 s</div>' +
+    '<div class="aviso-lento" id="aviso-lento" hidden>' +
+    'La primera vez carga el modelo y tarda más.</div>' +
+    "</div>";
 
   // La primera generacion carga el modelo (~7 GB) y tarda casi el doble. Decirlo
   // es la diferencia entre "esta lento" y "esta roto".
   const t0 = Date.now();
   reloj = setInterval(() => {
     const s = Math.round((Date.now() - t0) / 1000);
-    $("estado").innerHTML = `Generando… <span class="reloj">${s} s</span>` +
-      (s > 45 ? " — la primera vez carga el modelo, tarda más." : "");
+    const dentro = document.getElementById("reloj-lienzo");
+    if (dentro) dentro.textContent = `${s} s`;
+    const lento = document.getElementById("aviso-lento");
+    if (lento && s > 45) lento.hidden = false;
+    $("estado").innerHTML = `Generando… <span class="reloj">${s} s</span>`;
   }, 500);
 
   try {

@@ -62,7 +62,14 @@ router = APIRouter(
 )
 
 MAX_UPLOAD_BYTES = 25 * 1024 * 1024  # 25 MB por archivo
-UPLOAD_DIR = Path("data/knowledge_base")
+# Los archivos subidos tienen su propio sitio.
+#
+# Estaban cayendo en `data/knowledge_base/<tenant>/`, que es donde vive el
+# corpus semilla: subir un documento que ya existia dejaba un
+# "com_pr_01_compras_2.pdf" al lado del original, y regenerar el corpus los
+# mezclaba. Lo que sube un usuario y lo que genera un script no comparten
+# carpeta.
+UPLOAD_DIR = Path("data/uploads")
 
 
 def _safe_stem(name: str) -> str:

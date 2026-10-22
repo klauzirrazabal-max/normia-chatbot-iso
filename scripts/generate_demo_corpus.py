@@ -49,6 +49,18 @@ VERSION : {version_num}
 REVISION : {effective_date}
 """
 
+# Las tres columnas del pie, con la separacion que las convierte en columnas al
+# extraer el texto del PDF. Es como firma un documento controlado: por cargo,
+# no por nombre.
+# El PDF sale de cupsfilter en monoespaciada, asi que la separacion de aqui es
+# la separacion real en la pagina. Los huecos son anchos a proposito: el lector
+# reparte las columnas por el punto medio entre etiquetas, y un cargo que cruce
+# ese punto se le atribuye a la columna vecina ("CALIDAD GERENTE GENERAL").
+APROBACION = """
+ELABORADO POR:              REVISADO POR:               APROBADO POR:
+Coordinador de Calidad      Jefe de Operaciones         Gerente General
+"""
+
 
 DOCUMENTOS = [
     # Seguridad y salud en el trabajo.
@@ -368,7 +380,11 @@ def texto_completo(doc: DocumentoDemo) -> str:
         version_num=doc.version.lstrip("v").zfill(2),
         effective_date=doc.effective_date,
     )
-    return f"{encabezado}\n{doc.body}"
+    # Bloque de firmas al final, como lo lleva un documento controlado de
+    # verdad. Sin el, la validacion de ingesta marcaba TODO el corpus de
+    # demostracion como "no declara quien lo aprobo", que es decir que el SGC
+    # de la demo esta descontrolado.
+    return f"{encabezado}\n{doc.body}\n{APROBACION}"
 
 
 def escribir_pdf(texto: str, destino: Path) -> None:

@@ -25,6 +25,7 @@ import io
 import logging
 import re
 import threading
+import unicodedata
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -161,22 +162,42 @@ def _palabras(texto: str) -> set[str]:
 
 
 def _fuera_de_alcance(descripcion: str) -> str | None:
-    """Devuelve el motivo del rechazo, o None si la descripcion vale."""
+    """
+    Devuelve el motivo del rechazo, o None si la descripcion vale.
+
+    El motivo lo LEE una persona mientras escribe, asi que va con tildes, y las
+    palabras senaladas se devuelven TAL COMO LAS ESCRIBIO: la comparacion se
+    hace sin acentos, pero decirle a alguien que ha escrito "cumpleanos" cuando
+    escribio "cumpleaños" parece una falta del sistema.
+    """
     palabras = _palabras(descripcion)
 
     prohibidas = palabras & _FUERA_DE_ALCANCE
     if prohibidas:
         return (
-            "La descripcion menciona algo ajeno al sistema de gestion: "
-            + ", ".join(sorted(prohibidas))
+            "La descripción menciona algo ajeno al sistema de gestión: "
+            + ", ".join(sorted(_como_las_escribio(descripcion, prohibidas)))
         )
     if not palabras & _VOCABULARIO:
         return (
-            "La descripcion no parece material del sistema de gestion. Debe hablar "
-            "del entorno de trabajo: seguridad, almacen, procesos, documentacion o "
-            "formacion. Escribela en ingles, que es como funciona mejor el modelo."
+            "Esto no parece material del sistema de gestión. Describe algo del "
+            "entorno de trabajo: seguridad, almacén, procesos, documentación o "
+            "formación."
         )
     return None
+
+
+def _como_las_escribio(texto: str, normalizadas: set[str]) -> set[str]:
+    """Recupera la grafia original de unas palabras ya normalizadas."""
+    originales: set[str] = set()
+    for bruta in re.findall(r"[^\W\d_]+", texto, flags=re.UNICODE):
+        plano = "".join(
+            c for c in unicodedata.normalize("NFKD", bruta.lower())
+            if not unicodedata.combining(c)
+        )
+        if plano in normalizadas:
+            originales.add(bruta.lower())
+    return originales or normalizadas
 
 
 # Palabras que hacen que el modelo dibuje TEXTO. No son temas prohibidos: son
