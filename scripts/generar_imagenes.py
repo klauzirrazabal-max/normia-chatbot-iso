@@ -242,8 +242,14 @@ def componer(arte: Path, pieza: Pieza, destino: Path) -> None:
         dib.text((margen, y), ln, font=f, fill=GRAFITO)
         y += int(tam * 1.16)
 
-    pie = fuente(int(an * 0.026))
-    dib.text((margen, y + int(an * 0.012)), pieza.clausula, font=pie, fill=AZUL_CLARO)
+    # La clausula solo se imprime si la hay. Antes era obligatoria y el
+    # buscador la elegia siempre: para un cartel de EPP propuso "Desarmado,
+    # retiro y ordenamiento de repuestos", que no lo respalda. Una cita
+    # EQUIVOCADA en un cartel colgado en la pared es peor que ninguna: afirma
+    # un respaldo documental que no existe, y eso en una auditoria se mira.
+    if (pieza.clausula or "").strip():
+        pie = fuente(int(an * 0.026))
+        dib.text((margen, y + int(an * 0.012)), pieza.clausula, font=pie, fill=AZUL_CLARO)
     dib.line([(0, cabecera), (an, cabecera)], fill=AZUL_OSCURO, width=max(3, an // 190))
 
     lienzo.save(destino, quality=95)

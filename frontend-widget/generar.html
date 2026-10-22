@@ -166,6 +166,13 @@
         </div>
         <input type="hidden" id="clausula" value="" />
         <p class="pista" id="pista-clausulas">Cargando el catálogo…</p>
+        <!-- Sin clausula la pieza se genera igual, pero sale SIN la linea de
+             respaldo. Decirlo es la diferencia entre una decision y un
+             descuido. -->
+        <p class="pista" id="sin-respaldo">
+          Sin cláusula, el cartel se genera igual pero <b>no llevará cita</b>.
+          Puedes buscarla arriba si quieres que la lleve.
+        </p>
         <p class="pista">
           <button type="button" class="enlace" id="ver-ejemplo">Rellenar con un ejemplo</button>
         </p>
@@ -229,6 +236,36 @@ window.fetch = (url, opts = {}) =>
 // El `detail` de un error no siempre es texto: cuando FastAPI rechaza el
 // cuerpo por validacion es una LISTA de objetos, y pintarla tal cual daba
 // "[object Object]" en rojo debajo del boton. Nadie puede hacer nada con eso.
+// La descarga, con nombre propio y como fichero de verdad.
+//
+// Iba como `data:` URI de mas de un mega metido en el href, y el navegador no
+// siempre respeta ahi el nombre del atributo `download`: el fichero bajaba sin
+// extension. Con un Blob y su URL de objeto, baja como PNG y con un nombre que
+// dice lo que es, en vez de "material-sgc" para todas las piezas.
+let urlDescarga = null;
+
+function nombreDeFichero(titular) {
+  const plano = (titular || "pieza")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
+    .slice(0, 48) || "pieza";
+  const hoy = new Date().toISOString().slice(0, 10);
+  return `${plano}-${hoy}.png`;
+}
+
+function prepararDescarga(d) {
+  // La URL anterior se libera: cada pieza deja una reservada en memoria.
+  if (urlDescarga) URL.revokeObjectURL(urlDescarga);
+  const base64 = d.imagen.split(",", 2)[1];
+  const bruto = atob(base64);
+  const bytes = new Uint8Array(bruto.length);
+  for (let i = 0; i < bruto.length; i++) bytes[i] = bruto.charCodeAt(i);
+  urlDescarga = URL.createObjectURL(new Blob([bytes], { type: "image/png" }));
+  const a = $("descargar");
+  a.href = urlDescarga;
+  a.download = nombreDeFichero(d.titular);
+}
+
 function leerDetalle(cuerpo, estado) {
   const d = cuerpo && cuerpo.detail;
   if (typeof d === "string" && d.trim()) return d;
@@ -376,18 +413,17 @@ function revisarFormulario() {
   const falta = [];
   if (!$("titular").value.trim()) falta.push("el titular");
   if ($("descripcion").value.trim().length < 8) falta.push("qué debe mostrar la imagen");
-  if (!respaldoElegido()) falta.push("la cláusula que lo respalda");
-
+  // La clausula NO entra aqui: es opcional. Obligarla cuando no hay ninguna
+  // que de verdad respalde la pieza produce citas falsas, y una cita
+  // equivocada impresa en un cartel es peor que ninguna.
   const listo = falta.length === 0;
   $("boton").disabled = !listo;
   $("porque-no").hidden = listo;
-  if (!listo) {
-    $("porque-no").textContent =
-      `Para generar falta ${falta.join(", ")}.` +
-      (falta.includes("la cláusula que lo respalda")
-        ? " Un cartel sin respaldo documental es propaganda; con él es material del sistema."
-        : "");
-  }
+  if (!listo) $("porque-no").textContent = `Para generar falta ${falta.join(", ")}.`;
+
+  // Y se dice con claridad que se va a imprimir, o que no.
+  const sinRespaldo = $("sin-respaldo");
+  if (sinRespaldo) sinRespaldo.hidden = Boolean(respaldoElegido());
 }
 
 function respaldoElegido() {
@@ -518,7 +554,7 @@ $("formulario").addEventListener("submit", async (e) => {
     // se veian las dos cosas a la vez: una imagen lista y un "dibujando la
     // pieza, 69 s" encima.
     $("lienzo").replaceChildren(img);
-    $("descargar").href = d.imagen;
+    prepararDescarga(d);
     $("acciones").hidden = false;
     $("estado").textContent = `Lista en ${d.segundos} s.` +
       (d.clausula ? ` Respaldo: ${d.clausula}` : " Sin respaldo documental.");

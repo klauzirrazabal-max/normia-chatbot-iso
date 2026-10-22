@@ -74,6 +74,11 @@ _refinador = None
 # redibujar la escena.
 _FUERZA_REFINADO = 0.25
 
+# Distancia maxima para PROPONER una clausula como respaldo. Mas estricta que
+# la del RAG a proposito: una cita que va impresa en un cartel pide mas
+# certeza que un fragmento que solo da contexto a una respuesta.
+_PARECIDO_MINIMO = 0.37
+
 
 # --- Guardrail de alcance -----------------------------------------------------
 #
@@ -371,7 +376,20 @@ def _clausula_existe(db: Session, referencia: str, tenant: str) -> bool:
 class PeticionImagen(BaseModel):
     descripcion: str = Field(min_length=8, max_length=400)
     titular: str = Field(min_length=3, max_length=120)
-    clausula: str = Field(min_length=3, max_length=120)
+    # OPCIONAL, y es una decision de producto, no una relajacion.
+    #
+    # Era obligatoria con el argumento de que "un cartel sin respaldo es
+    # propaganda". El argumento vale cuando hay una clausula que de verdad lo
+    # respalda; cuando no la hay, obligar a poner una produce CITAS FALSAS. Lo
+    # medido: para un cartel de EPP el buscador propuso "Desarmado, retiro y
+    # ordenamiento de repuestos", y el documento correcto quedaba a una
+    # milesima de distancia -- el orden era ruido.
+    #
+    # Una cita equivocada en un cartel colgado en la pared es peor que ninguna:
+    # afirma un respaldo que no existe. Lo que SI sigue siendo obligatorio es
+    # que la pieza trate del sistema de gestion, que es el guardrail que
+    # importa.
+    clausula: str = Field(default="", max_length=120)
     vertical: bool = True
     # 30 pasos dejaban la anatomia a medio resolver. A 42 el coste sube unos 8 s
     # y las manos y las caras se cierran. Por encima de 50 no se nota.
@@ -568,7 +586,13 @@ def preparar(
 
         consulta = f"{peticion.titular.strip()}. {descripcion}".strip(". ")
         resultado = retrieve(db, tenant_visible(usuario), consulta)
-        if resultado.accepted:
+        # Solo se propone lo que se parece DE VERDAD. El umbral del RAG
+        # (0.527) sirve para responder una pregunta, donde un fragmento
+        # mediano aun aporta contexto; para firmar un cartel no basta.
+        # Medido sobre el SGC real: la clausula correcta de altura sale a
+        # 0.340, y los casos en los que la propuesta era mala caian entre
+        # 0.395 y 0.460.
+        if resultado.accepted and resultado.accepted[0].distance <= _PARECIDO_MINIMO:
             mejor = resultado.accepted[0]
             sugerida = mejor.citation_label.replace("seccion", "sección")
             # El TITULO es lo que permite ver si la propuesta tiene sentido.
@@ -600,7 +624,9 @@ def generar(
     motivo = _fuera_de_alcance(peticion.descripcion)
     if motivo:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, motivo)
-    if not _clausula_existe(db, peticion.clausula, tenant_visible(usuario)):
+    if peticion.clausula.strip() and not _clausula_existe(
+        db, peticion.clausula, tenant_visible(usuario)
+    ):
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
             f"«{peticion.clausula}» no es un documento vigente del SGC. El material "
