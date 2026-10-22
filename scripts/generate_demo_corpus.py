@@ -22,9 +22,11 @@ from __future__ import annotations
 
 import argparse
 import csv
+import re
 import subprocess
 import sys
 import tempfile
+import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -52,7 +54,7 @@ DOCUMENTOS = [
     DocumentoDemo(
         code="STI-PR-01",
         version="v4",
-        title="Atencion de Solicitudes Tecnologicas",
+        title="Atención de Solicitudes Tecnológicas",
         area="PROCEDIMIENTOS",
         effective_date="2025-07-08",
         body="""1. OBJETIVO
@@ -234,7 +236,7 @@ los riesgos y oportunidades del SGC.
     DocumentoDemo(
         code="STI-PO-01",
         version="v2",
-        title="Politica de Seguridad de la Informacion",
+        title="Política de Seguridad de la Información",
         area="POLITICAS",
         effective_date="2026-04-09",
         body="""1. OBJETIVO
@@ -261,7 +263,7 @@ correspondan.
     DocumentoDemo(
         code="STI-PO-02",
         version="v1",
-        title="Politica de Uso de Equipos y Dispositivos",
+        title="Política de Uso de Equipos y Dispositivos",
         area="POLITICAS",
         effective_date="2026-04-09",
         body="""1. OBJETIVO
@@ -279,6 +281,18 @@ de TI, en equipos corporativos o personales utilizados para fines laborales.
 """,
     ),
 ]
+
+
+def _slug(texto: str) -> str:
+    """
+    Nombre de fichero en ASCII, aunque el titulo lleve tildes.
+
+    El titulo es el nombre controlado del documento y se muestra en la ficha de
+    cada respuesta: ahi las tildes importan. El nombre del fichero es otra cosa
+    y conviene que viaje sin ellas.
+    """
+    plano = unicodedata.normalize("NFKD", texto).encode("ascii", "ignore").decode()
+    return re.sub(r"[^a-z0-9]+", "_", plano.lower()).strip("_")
 
 
 def texto_completo(doc: DocumentoDemo) -> str:
@@ -330,7 +344,7 @@ def main() -> int:
 
     filas = []
     for doc in DOCUMENTOS:
-        nombre = f"{doc.code.lower().replace('-', '_')}_{doc.title.lower().replace(' ', '_')}.pdf"
+        nombre = f"{doc.code.lower().replace('-', '_')}_{_slug(doc.title)}.pdf"
         escribir_pdf(texto_completo(doc), destino / nombre)
         filas.append(
             {

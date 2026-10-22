@@ -81,6 +81,14 @@ class Settings(BaseSettings):
     # Consultas por minuto y por IP. 0 = sin limite.
     rate_limit_per_minute: int = 0
 
+    # De quien nos fiamos para saber la IP real del cliente.
+    #
+    # Vacio (por defecto) = de nadie: se usa la IP de la conexion y se IGNORA
+    # cualquier cabecera de reenvio. Detras de un tunel o un balanceador se pone
+    # el nombre del proveedor ("cloudflare") para que se lea su cabecera, que es
+    # la unica que el cliente no puede falsificar.
+    trusted_proxy: str = ""
+
     @property
     def allowed_origins_list(self) -> list[str]:
         return [o.strip() for o in self.widget_allowed_origins.split(",") if o.strip()]

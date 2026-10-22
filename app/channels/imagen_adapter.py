@@ -32,7 +32,11 @@ from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 from app.models.db_models import Document, DocumentChunk
-from app.security import check_rate_limit, require_admin_key
+from app.security import (
+    check_rate_limit,
+    require_admin_key_salvo_demo,
+    resolve_tenant,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +47,17 @@ router = APIRouter(prefix="/api/imagenes", tags=["imagenes"])
 # imagen tardaria 70 s en vez de 40.
 _pipeline: Any = None
 _candado = threading.Lock()
+
+# El candado de arriba solo protege la CARGA del pipeline. La inferencia corria
+# sin ninguno, asi que dos peticiones simultaneas lanzaban dos difusiones a la
+# vez sobre la misma GPU. En una Mac eso no da un error limpio: da memoria
+# agotada a mitad, o dos imagenes degradadas, justo durante la demostracion.
+#
+# Es un candado de UNA plaza y no se espera en cola: quien llegue mientras hay
+# una pieza en curso recibe un 429 inmediato. Una pieza tarda cerca de un
+# minuto; encolar peticiones solo convierte la espera en un tiempo de espera
+# agotado del navegador.
+_generando = threading.Lock()
 
 
 # --- Guardrail de alcance -----------------------------------------------------
@@ -226,7 +241,7 @@ def _cargar_pipeline():
 @router.get("/clausulas")
 def clausulas_disponibles(
     db: Session = Depends(get_db),
-    _: None = Depends(require_admin_key),
+    _: None = Depends(require_admin_key_salvo_demo),
 ) -> list[dict[str, str]]:
     """
     El catalogo de cláusulas vigentes, para que la pieza cite una que existe.
@@ -236,17 +251,22 @@ def clausulas_disponibles(
     """
     from app.config import settings
 
+    # El MISMO criterio que el chat: con tenant publico configurado se sirve ese
+    # y ninguno otro. Antes se servia siempre `default_tenant_id`, el SGC real
+    # del cliente, y por eso hacia falta la clave.
+    tenant = resolve_tenant(settings.default_tenant_id)
+
     filas = (
         db.query(Document.code, Document.version, Document.title, DocumentChunk.section)
         .join(DocumentChunk, DocumentChunk.document_id == Document.id)
-        .filter(Document.tenant_id == settings.default_tenant_id, Document.status == "vigente")
+        .filter(Document.tenant_id == tenant, Document.status == "vigente")
         .order_by(Document.code, DocumentChunk.section)
         .limit(400)
         .all()
     )
     return [
         {
-            "etiqueta": f"{c} {v}" + (f" §{s}" if s else "") + f" — {t}",
+            "etiqueta": f"{c} {v}" + (f", seccion {s}" if s else "") + f" - {t}",
             "referencia": f"{c} {v}" + (f", seccion {s}" if s else ""),
         }
         for c, v, t, s in filas
@@ -301,15 +321,24 @@ def generar(
     prompt = f"{peticion.descripcion.strip()}, {MARCA}"
     logger.info("imagenes.generando", extra={"titular": peticion.titular[:60]})
 
-    imagen = pipe(
-        prompt=prompt,
-        negative_prompt=NEGATIVO,
-        num_inference_steps=peticion.pasos,
-        guidance_scale=7.0,
-        height=1024 if peticion.vertical else 768,
-        width=768 if peticion.vertical else 1024,
-        generator=torch.Generator("cpu").manual_seed(int(time.time()) % 100000),
-    ).images[0]
+    if not _generando.acquire(blocking=False):
+        raise HTTPException(
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            "Hay otra pieza generandose en este momento. Son unos 40 segundos: "
+            "vuelve a intentarlo cuando termine.",
+        )
+    try:
+        imagen = pipe(
+            prompt=prompt,
+            negative_prompt=NEGATIVO,
+            num_inference_steps=peticion.pasos,
+            guidance_scale=7.0,
+            height=1024 if peticion.vertical else 768,
+            width=768 if peticion.vertical else 1024,
+            generator=torch.Generator("cpu").manual_seed(int(time.time()) % 100000),
+        ).images[0]
+    finally:
+        _generando.release()
 
     # Un desbordamiento del VAE no lanza excepcion: devuelve una imagen negra.
     # Mas vale un 500 con causa que un cartel negro con el logotipo encima.

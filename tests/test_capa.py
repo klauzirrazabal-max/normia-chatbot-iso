@@ -25,13 +25,22 @@ def esquema(nombre: str) -> dict:
 class TestHerramientaDeclarada:
     def test_existe_la_accion_correctiva(self):
         fn = esquema("registrar_accion_correctiva")
-        assert set(fn["parameters"]["required"]) == {"finding_id", "description"}
+        assert set(fn["parameters"]["required"]) == {
+            "finding_id", "description", "responsible", "due_date",
+        }
 
-    def test_pide_responsable_y_plazo(self):
-        """Sin responsable y sin fecha, una accion correctiva no se puede seguir."""
-        props = esquema("registrar_accion_correctiva")["parameters"]["properties"]
-        assert "responsible" in props
-        assert "due_date" in props
+    def test_responsable_y_plazo_son_obligatorios(self):
+        """
+        Regla de negocio dura: no puede haber CAPAs huerfanos.
+
+        La primera version los declaraba opcionales y se limitaba a avisar de lo
+        que faltaba. Avisar no es exigir: quedo uno huerfano en la base. Ahora
+        lo impiden las tres capas -- el esquema que ve el modelo, la funcion, y
+        un NOT NULL en la tabla.
+        """
+        req = esquema("registrar_accion_correctiva")["parameters"]["required"]
+        assert "responsible" in req
+        assert "due_date" in req
 
     def test_el_hallazgo_lleva_severidad(self):
         props = esquema("register_finding")["parameters"]["properties"]
@@ -67,3 +76,34 @@ class TestHuellaParaDuplicados:
     ])
     def test_hallazgos_distintos(self, a, b):
         assert _huella(a) != _huella(b)
+
+
+class TestNoSeCreanAccionesIncompletas:
+    """
+    La funcion se niega y DICE que falta, para que el modelo lo pregunte.
+
+    Devolver un error mudo haria que el modelo reintentara inventando un
+    responsable, que es peor que no registrar nada.
+    """
+
+    def _llamar(self, **kw):
+        from app.core.agents.tools import registrar_accion_correctiva
+        return registrar_accion_correctiva(
+            db=None, tenant_id="t", finding_id=1, description="Reemplazar extintores", **kw
+        )
+
+    def test_sin_responsable(self):
+        r = self._llamar(responsible="", due_date="2026-11-15")
+        assert r["error"] == "datos_incompletos"
+        assert "quien se encarga" in r["faltan"]
+
+    def test_sin_fecha(self):
+        r = self._llamar(responsible="Jefe de Almacen", due_date="")
+        assert r["error"] == "datos_incompletos"
+        assert "para cuando" in r["faltan"]
+
+    def test_fecha_ilegible_no_cuela(self):
+        """'el mes que viene' no es una fecha: antes se guardaba sin plazo."""
+        r = self._llamar(responsible="Calidad", due_date="el mes que viene")
+        assert r["error"] == "datos_incompletos"
+        assert "AAAA-MM-DD" in r["message"]

@@ -229,9 +229,14 @@
     '<svg viewBox="0 0 24 24"><path d="M19 6.4 17.6 5 12 10.6 6.4 5 5 6.4 10.6 12 5 17.6 6.4 19 12 13.4 17.6 19 19 17.6 13.4 12z"/></svg>';
   const ICON_SEND = '<svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>';
 
+  // Palabra por palabra el mismo texto que `RESPUESTA_SALUDO` en
+  // app/core/routing.py. Había dos saludos distintos: este, y el que devuelve
+  // el servidor cuando alguien escribe "hola". Decían cosas diferentes y solo
+  // uno llevaba tildes -- y este es el primero que lee cualquiera.
   const GREETING =
-    "Hola, soy NormIA. Respondo sobre los documentos ISO vigentes de la organizacion, " +
-    "citando siempre el codigo y la version del documento. Que necesitas consultar?";
+    "¡Hola! Soy NormIA: respondo sobre la documentación ISO vigente de la organización, " +
+    "citando siempre el documento y la sección de donde sale la respuesta. " +
+    "¿Qué necesitas consultar?";
 
   class NormiaChatWidget extends HTMLElement {
     constructor() {
@@ -275,7 +280,7 @@
         "</div>" +
         '<div class="messages" role="log" aria-live="polite"></div>' +
         '<form class="composer">' +
-        '<textarea rows="1" placeholder="Escribe tu consulta..." aria-label="Mensaje"></textarea>' +
+        '<textarea rows="1" placeholder="Escribe tu consulta…" aria-label="Mensaje"></textarea>' +
         '<button class="send" type="submit" aria-label="Enviar">' + ICON_SEND + "</button>" +
         "</form>";
 
@@ -433,7 +438,7 @@
         const doc = document.createElement("div");
         doc.className = "doc";
         doc.textContent =
-          (c.title || c.code) + (c.section ? " · sección " + c.section : "");
+          (c.title || c.code) + (c.section ? ", sección " + c.section : "");
         item.appendChild(doc);
 
         const ref = document.createElement("div");
@@ -442,7 +447,7 @@
         if (c.effective_date) {
           const vig = document.createElement("span");
           vig.className = "vigente";
-          vig.textContent = " · vigente desde " + this.formatDate(c.effective_date);
+          vig.textContent = " | vigente desde " + this.formatDate(c.effective_date);
           ref.appendChild(vig);
         }
         item.appendChild(ref);
@@ -572,6 +577,28 @@
       }
     }
 
+    mensajeDeFallo(status, detalle) {
+      // Cada código dice algo distinto a quien pregunta, y "intenta de nuevo" es
+      // un mal consejo en la mitad de ellos.
+      if (status === 429) {
+        return (
+          detalle ||
+          "Estoy atendiendo muchas consultas a la vez. Espera unos segundos y vuelve a preguntar."
+        );
+      }
+      if (status === 503) {
+        return (
+          detalle ||
+          "El servicio no está disponible en este momento. Vuelve a intentarlo en unos minutos."
+        );
+      }
+      if (detalle) return detalle;
+      return (
+        "No pude procesar tu consulta por un problema técnico. Si vuelve a pasar, " +
+        "avisa al área de sistemas."
+      );
+    }
+
     renderSuggestions(suggestions) {
       const previas = this.messagesEl.querySelector(".suggestions");
       if (previas) previas.remove();
@@ -631,8 +658,15 @@
         typing.remove();
 
         if (!res.ok) {
-          this.addBubble("bot", "Hubo un problema al procesar tu consulta. Intenta de nuevo.");
-          this.statusDot.setAttribute("data-status", "offline");
+          // El servidor RESPONDIÓ: no está caído, y decirle a quien pregunta que
+          // revise el backend sería mentirle. Cuando el detalle viene del
+          // servidor se muestra tal cual, porque lleva la referencia de la
+          // incidencia que puede citar a sistemas.
+          const cuerpo = await res.json().catch(() => ({}));
+          this.addBubble("bot", this.mensajeDeFallo(res.status, cuerpo.detail));
+          // El punto sigue en verde: el servidor contestó. Solo se apaga cuando
+          // de verdad no hay nadie al otro lado.
+          this.statusDot.setAttribute("data-status", "online");
           return;
         }
 
@@ -647,7 +681,7 @@
         if (data.escalate) {
           const note = document.createElement("div");
           note.className = "escalated";
-          note.textContent = "Esta consulta fue derivada al Responsable de Calidad.";
+          note.textContent = "Esta consulta quedó derivada al Responsable de Calidad.";
           bubble.appendChild(note);
         }
 
@@ -670,8 +704,15 @@
         this.renderSuggestions(data.suggestions);
         this.scrollToBottom();
       } catch (err) {
+        // Aquí sí: `fetch` solo lanza cuando no hubo respuesta -- sin red, DNS
+        // que no resuelve, servidor apagado. Es el único caso en el que el punto
+        // debe ponerse rojo.
         typing.remove();
-        this.addBubble("bot", "No pude conectar con el servidor. Revisa que el backend este corriendo.");
+        this.addBubble(
+          "bot",
+          "No hay conexión con NormIA en este momento. Comprueba tu red e inténtalo " +
+            "de nuevo; si sigue igual, avisa al área de sistemas."
+        );
         this.statusDot.setAttribute("data-status", "offline");
       } finally {
         this.setBusy(false);

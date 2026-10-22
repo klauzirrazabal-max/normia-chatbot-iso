@@ -107,16 +107,65 @@ _limitador = VentanaDeslizante(settings.rate_limit_per_minute)
 
 def ip_del_cliente(request: Request) -> str:
     """
-    IP real detras del tunel.
+    IP real del cliente, para repartir el limite por quien consulta.
 
-    Cloudflare y ngrok reescriben la IP de origen, asi que sin mirar la cabecera
-    de reenvio todo el trafico compartiria un solo cubo y el limite castigaria a
-    todo el mundo a la vez.
+    Detras de un tunel o un balanceador, la IP de la conexion es la del proxy:
+    sin mirar una cabecera de reenvio todo el trafico compartiria un solo cubo y
+    el limite castigaria a todo el mundo a la vez.
+
+    PERO esa cabecera la escribe el cliente. `X-Forwarded-For` se tomaba
+    entera y se usaba su PRIMER valor, que es precisamente el que cualquiera
+    puede inventar. Medido: 60 peticiones seguidas desde la misma maquina
+    cambiando la cabecera en cada una, 0 bloqueadas. El limite no existia para
+    quien supiera eso, y la generacion de imagenes es publica y consume la GPU
+    casi un minuto por pieza.
+
+    Ahora la cabecera solo se lee si `TRUSTED_PROXY` declara detras de quien
+    estamos, y se lee la que ESE proveedor garantiza reescribir. Sin la
+    variable se usa la IP de la conexion y nada mas, que es lo correcto cuando
+    no hay proxy delante.
     """
+    proveedor = settings.trusted_proxy.strip().lower()
+    directa = request.client.host if request.client else "desconocida"
+    if not proveedor:
+        return directa
+
+    if proveedor == "cloudflare":
+        # Cloudflare SOBRESCRIBE esta cabecera en cada peticion, asi que lo que
+        # mande el cliente en ella se pierde. `X-Forwarded-For` no sirve: alli
+        # Cloudflare ANADE al final y conserva lo que viniera delante.
+        cf = request.headers.get("cf-connecting-ip", "").strip()
+        if cf:
+            return cf
+        return directa
+
+    # Proxy generico (nginx, un balanceador propio): el ultimo salto de
+    # X-Forwarded-For es el que anadio el proxy en el que confiamos. Los
+    # anteriores los pudo escribir el cliente, asi que se descartan.
     reenviada = request.headers.get("x-forwarded-for", "")
     if reenviada:
-        return reenviada.split(",")[0].strip()
-    return request.client.host if request.client else "desconocida"
+        saltos = [p.strip() for p in reenviada.split(",") if p.strip()]
+        if saltos:
+            return saltos[-1]
+    return directa
+
+
+def require_admin_key_salvo_demo(x_admin_key: str | None = Header(default=None)) -> None:
+    """
+    Clave solo cuando lo servido son datos del cliente.
+
+    El catalogo de clausulas lo necesita la pagina de generacion para que la
+    pieza cite algo que existe. Pedirle la clave de administracion a quien solo
+    va a generar un cartel es la friccion que convirtio una demo en un dialogo
+    del navegador pidiendo credenciales.
+
+    Con `PUBLIC_TENANT_ID` configurado lo que se sirve es el corpus publico, que
+    no es secreto: pasa sin clave. Sin esa variable se serviria el SGC real del
+    cliente, y entonces si se exige.
+    """
+    if settings.public_tenant_id.strip():
+        return
+    require_admin_key(x_admin_key)
 
 
 def check_rate_limit(request: Request) -> None:

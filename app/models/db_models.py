@@ -155,8 +155,11 @@ class CapaAction(Base):
         Integer, ForeignKey("findings.id", ondelete="CASCADE"), nullable=False
     )
     description: Mapped[str] = mapped_column(Text, nullable=False)
-    responsible: Mapped[str | None] = mapped_column(String)
-    due_date: Mapped[object | None] = mapped_column(Date)
+    # Obligatorios por regla de negocio: una accion sin dueno y sin plazo no se
+    # puede seguir ni cerrar, y un hallazgo "en revision" con una accion asi
+    # queda parado para siempre sin que nadie lo note.
+    responsible: Mapped[str] = mapped_column(String, nullable=False)
+    due_date: Mapped[object] = mapped_column(Date, nullable=False)
     status: Mapped[str] = mapped_column(String, nullable=False, default="pendiente")
 
 

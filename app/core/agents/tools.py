@@ -73,10 +73,10 @@ TOOLS_SCHEMA: list[dict[str, Any]] = [
         "function": {
             "name": "registrar_accion_correctiva",
             "description": (
-                "Registra una accion correctiva sobre un hallazgo YA registrado, con su "
-                "responsable y su fecha limite. Usala cuando el usuario indique que se va "
-                "a hacer para corregir un hallazgo y quien se encarga. Requiere el ID "
-                "numerico del hallazgo: si no lo tienes, pidelo antes."
+                "Registra una accion correctiva sobre un hallazgo YA registrado. "
+                "Exige las cuatro cosas: el ID del hallazgo, que se va a hacer, QUIEN se "
+                "encarga y PARA CUANDO. Si falta alguna, no la inventes: preguntasela al "
+                "usuario y llama a la herramienta cuando la tengas."
             ),
             "parameters": {
                 "type": "object",
@@ -91,14 +91,17 @@ TOOLS_SCHEMA: list[dict[str, Any]] = [
                     },
                     "responsible": {
                         "type": "string",
-                        "description": "Nombre o cargo de quien se encarga, si se indica",
+                        "description": "Nombre o cargo de quien se encarga. OBLIGATORIO",
                     },
                     "due_date": {
                         "type": "string",
-                        "description": "Fecha limite en formato AAAA-MM-DD, si se indica",
+                        "description": (
+                            "Fecha limite en formato AAAA-MM-DD. OBLIGATORIA. Si el "
+                            "usuario la da en palabras ('fin de mes'), conviertela"
+                        ),
                     },
                 },
-                "required": ["finding_id", "description"],
+                "required": ["finding_id", "description", "responsible", "due_date"],
                 "additionalProperties": False,
             },
         },
@@ -420,6 +423,42 @@ def registrar_accion_correctiva(
     sin el, cualquiera podria colgar acciones del hallazgo de otro cliente
     probando identificadores, y de paso confirmar que ese hallazgo existe.
     """
+    # Regla de negocio dura: sin responsable y sin plazo no hay accion correctiva.
+    # Antes se creaba igual y se avisaba de lo que faltaba -- avisar no es exigir,
+    # y quedo un CAPA huerfano en la base. Ahora se devuelve QUE falta para que el
+    # modelo lo pregunte: un turno mas de conversacion a cambio de que el ciclo
+    # quede cerrable.
+    #
+    # Y se valida antes de consultar el hallazgo: a una llamada incompleta no le
+    # va a salvar la base.
+    responsable = (responsible or "").strip()
+    limite = None
+    if due_date:
+        try:
+            limite = date.fromisoformat(due_date.strip()[:10])
+        except ValueError:
+            logger.warning("capa.fecha_ilegible", extra={"due_date": due_date})
+
+    faltan = [e for e, v in (("quien se encarga", responsable), ("para cuando", limite)) if not v]
+    if faltan:
+        return {
+            "finding_id": finding_id,
+            "error": "datos_incompletos",
+            "faltan": faltan,
+            "message": (
+                f"No se registro la accion: falta {' y '.join(faltan)}. "
+                f"Una accion correctiva sin responsable o sin fecha limite no se "
+                f"puede seguir. Preguntaselo al usuario y vuelve a intentarlo."
+                + (
+                    f" La fecha '{due_date}' no se entendio: hace falta en formato "
+                    f"AAAA-MM-DD."
+                    if due_date and limite is None
+                    else ""
+                )
+            ),
+        }
+
+
     finding = (
         db.query(Finding).filter_by(id=finding_id, tenant_id=tenant_id).one_or_none()
     )
@@ -430,20 +469,10 @@ def registrar_accion_correctiva(
             "message": f"No existe un hallazgo con ID {finding_id}.",
         }
 
-    limite = None
-    if due_date:
-        try:
-            limite = date.fromisoformat(due_date.strip()[:10])
-        except ValueError:
-            # Una fecha ilegible no puede tumbar el registro de la accion: se
-            # guarda sin plazo y se dice, que es peor que tener plazo pero mucho
-            # mejor que perder la accion entera.
-            logger.warning("capa.fecha_ilegible", extra={"due_date": due_date})
-
     accion = CapaAction(
         finding_id=finding_id,
         description=description,
-        responsible=(responsible or "").strip() or None,
+        responsible=responsable,
         due_date=limite,
     )
     db.add(accion)
@@ -468,21 +497,16 @@ def registrar_accion_correctiva(
         "capa.registrada",
         extra={"capa_id": accion.id, "finding_id": finding_id, "responsible": responsible},
     )
-    faltan = [
-        etiqueta
-        for etiqueta, valor in (("responsable", accion.responsible), ("fecha limite", limite))
-        if not valor
-    ]
     return {
         "capa_id": accion.id,
         "finding_id": finding_id,
         "finding_status": finding.status,
         "responsible": accion.responsible,
-        "due_date": limite.isoformat() if limite else None,
+        "due_date": limite.isoformat(),
         "status": accion.status,
         "message": (
-            f"Accion correctiva registrada sobre el hallazgo {finding_id}."
-            + (f" Falta indicar {' y '.join(faltan)}." if faltan else "")
+            f"Accion correctiva registrada sobre el hallazgo {finding_id}: "
+            f"responsable {accion.responsible}, fecha limite {limite.isoformat()}."
         ),
     }
 

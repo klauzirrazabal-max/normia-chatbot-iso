@@ -86,6 +86,22 @@ ESCALATED_MESSAGE = (
     "controlados. La derive al Responsable de Calidad para que la revise."
 )
 
+def rag_error_message(referencia: str) -> str:
+    """
+    Fallo de la busqueda documental, dicho sin culpar al usuario.
+
+    Se distingue del fallo del modelo a proposito: aqui no sirve "intentalo de
+    nuevo en unos segundos" porque una base caida no se recupera sola en ese
+    plazo, y prometerlo hace que la persona reintente diez veces.
+    """
+    return (
+        "No pude consultar la documentacion en este momento por un problema "
+        f"tecnico. La incidencia quedo registrada como {referencia}; mencionala al "
+        "area de sistemas. Prefiero decirtelo a responderte sin haber podido "
+        "comprobarlo en los documentos vigentes."
+    )
+
+
 def llm_error_message(referencia: str) -> str:
     """
     Mensaje de fallo con una referencia citable.
@@ -1017,9 +1033,53 @@ def handle_message(db: Session, msg: IncomingMessage) -> BotResponse:
     history = _load_history(db, conversation.id, HISTORY_TURNS)[:-1]  # sin el turno actual
 
     # Una peticion explicita de clausula se sirve directa; el resto va al RAG.
-    retrieval = _direct_section_request(db, msg.tenant_id, msg.text) or retrieve(
-        db, msg.tenant_id, msg.text
-    )
+    #
+    # Y va envuelto. El fallo del LLM estaba cuidado -- incidente, referencia y
+    # escalacion -- pero este no tenia nada: si caia Postgres, pgvector o el
+    # modelo de embeddings, la excepcion subia hasta el adaptador web y salia un
+    # 500 generico. Sin incidente, sin referencia, y sin que Calidad llegara a
+    # enterarse de que el sistema estuvo caido. La tabla de incidentes lo
+    # confirmaba: 113 filas, todas de tipo 'llm', ni una de recuperacion.
+    try:
+        retrieval = _direct_section_request(db, msg.tenant_id, msg.text) or retrieve(
+            db, msg.tenant_id, msg.text
+        )
+    except Exception as exc:  # noqa: BLE001 -- cualquier fallo aqui es el mismo caso
+        logger.exception("orchestrator.rag_failed", extra={"tenant_id": msg.tenant_id})
+        # El rollback hace falta para limpiar una transaccion envenenada, pero
+        # se lleva por delante la conversacion y el mensaje del usuario, que
+        # hasta aqui solo estaban en flush. Sin rehacerlos, el incidente apunta
+        # a una conversacion que ya no existe y el INSERT revienta -- en plena
+        # caida, que es cuando menos se puede permitir.
+        db.rollback()
+        try:
+            conversation = get_or_create_conversation(db, msg)
+            db.add(Message(conversation_id=conversation.id, role="user", content=msg.text))
+            db.flush()
+            conversacion_id = conversation.id
+        except Exception:  # noqa: BLE001
+            # La base no responde ni para esto. El incidente se guarda suelto:
+            # sin conversacion es peor rastro que con ella, pero es rastro.
+            db.rollback()
+            conversacion_id = None
+
+        referencia = _record_incident(db, msg, conversacion_id, "rag", str(exc))
+        if conversacion_id is None:
+            db.commit()
+            return BotResponse(
+                text=rag_error_message(referencia), escalate=False, grounded=False
+            )
+        # NO se escala: esto no es un hueco de la documentacion, es una averia.
+        # Mezclarlas ensuciaria la lista de lo que el SGC no cubre, que es
+        # justamente para lo que sirve esa cola.
+        return _persist_and_return(
+            db,
+            conversacion_id,
+            BotResponse(text=rag_error_message(referencia), escalate=False, grounded=False),
+            RetrievalResult(accepted=[], rejected=[], max_distance=0.0),
+            [],
+            started,
+        )
 
     messages = _build_messages(
         _system_prompt(db, msg.tenant_id),
