@@ -100,7 +100,7 @@ a{color:var(--sello);text-decoration:none}
       <div class="cifra"><div class="v">132</div><div class="k">documentos controlados vigentes, en 12 áreas</div></div>
       <div class="cifra"><div class="v">1 043</div><div class="k">cláusulas indexadas con código, versión y sección</div></div>
       <div class="cifra"><div class="v">12 / 12</div><div class="k">consultas del banco acertadas con RAG (1 / 12 sin él)</div></div>
-      <div class="cifra"><div class="v">436</div><div class="k">tests automatizados, 19 ficheros, todos en verde</div></div>
+      <div class="cifra"><div class="v">440</div><div class="k">tests automatizados, 19 ficheros, todos en verde</div></div>
     </div>
     <p class="small muted">Este informe describe el problema, la metodología, la arquitectura, los
     resultados medidos y las limitaciones del prototipo. Todas las cifras provienen de ficheros
@@ -202,7 +202,7 @@ respuesta sale.</p>
   <tr><td class="n" style="white-space:normal"><b>Que ningún documento salga de la organización</b></td>
       <td>Modelos locales (LLM, embeddings, difusión). Restricción de partida, no optimización.</td></tr>
 </table>
-<p>Los criterios son <b>medibles y automatizados</b>: 436 tests cubren guardrails, herramientas,
+<p>Los criterios son <b>medibles y automatizados</b>: 440 tests cubren guardrails, herramientas,
 enrutado, ingesta, consentimiento, autenticación y seguridad. Un objetivo que no se puede
 verificar no está en la lista.</p>
 
@@ -269,7 +269,7 @@ correctivas, escalaciones, usuarios y la traza de auditoría en un solo motor. E
 </table>
 <h3>Flujo de una consulta</h3>
 <figure>
-  <img src="diagramas/02-flujo-consulta-horizontal.png" alt="Flujo de una consulta con cuatro guardrails">
+  <img src="diagramas/02-flujo-consulta-horizontal.png" alt="Flujo de una consulta con cinco guardrails">
   <figcaption>Figura 2. La pregunta se compara a la vez con las preguntas frecuentes verificadas y con
   las cláusulas vigentes. En rojo, los puntos donde la respuesta se descarta y la consulta se ofrece a
   Calidad.</figcaption>
@@ -409,6 +409,7 @@ puede imprimir un respaldo que no existe.</p>
   <li><b>El texto no lo dibuja el modelo.</b> El titular, el logotipo real y la cita de la cláusula
   se componen encima; el modelo solo dibuja la escena. Un modelo de difusión escribe letras
   ilegibles.</li>
+  <li><b>La escena llega con su acción.</b> El juez de alcance pedía la traducción «telegráfica» y «haciendo un inventario con su tablet» llegaba al generador como «warehouse worker inventory tablet»: cuatro sustantivos, ningún verbo, y salía un retrato posando. Ahora la instrucción pide quién, qué está haciendo físicamente, con qué y dónde; si la escena no trae un verbo visible, se retraduce. Medido: «warehouse worker scanning boxes with a tablet on a shelf».</li>
   <li><b>Los prompts caben en 77 tokens.</b> CLIP corta en 77 sin avisar; el negativo llegó a tener
   135 y el modelo descartaba 58, entre ellos los términos contra deformidades. Un test lo mide
   con el tokenizador real.</li>
@@ -467,7 +468,7 @@ latencia mediana 7,5 s frente a 7,9 s: la mejora no penaliza el tiempo de respue
   <div class="cifra"><div class="v">17,5 GB</div><div class="k">memoria del LLM; SDXL 6,6 + refinador 5,8 GB, liberados al terminar</div></div>
 </div>
 <h3>12.5 Verificación automatizada</h3>
-<p><b>436 tests en 19 ficheros</b>, 3 s de ejecución. Los de mayor peso: enrutado (46),
+<p><b>440 tests en 19 ficheros</b>, 3 s de ejecución. Los de mayor peso: enrutado (46),
 consentimiento (44 + 9), herramientas (36), citas (27), troceado (27), imágenes (26),
 autenticación (25), fundamentación (23), seguridad (18), CAPA (16). Varios tests nacieron de un
 defecto encontrado en vivo y escriben en su docstring el incidente que reproducen.</p>
@@ -649,7 +650,7 @@ uv run python scripts/crear_usuario.py calidad@empresa.com --rol calidad
 uv run uvicorn app.main:app --port 8000
 # http://localhost:8000  →  acceso, inicio, asistente, material visual, gestión documental
 
-uv run pytest -q                           # 436 tests</pre>
+uv run pytest -q                           # 440 tests</pre>
 <p>El repositorio incluye un SGC sintético (<code>scripts/generate_demo_corpus.py</code>) para que
 el proyecto se pueda clonar y ejecutar: los documentos reales de un cliente son información
 controlada y no entran en git. El <code>README.md</code> (913 líneas) documenta cada decisión,
