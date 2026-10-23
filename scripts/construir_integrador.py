@@ -1,16 +1,10 @@
 """
 La presentacion del Proyecto Integrador: la solucion COMPLETA, en 14 laminas.
 
-Es un entregable distinto de los otros dos mazos, y hacia falta:
-
-  docs/presentacion.html            Fase 1. Cuenta el RAG, no menciona
-                                    fine-tuning ni imagenes.
-  docs/presentacion-ejecutiva.html  Fase 2. Cuenta fine-tuning e imagenes,
-                                    apenas el RAG -- que es el 70% del sistema.
-
-Para el Proyecto Integrador hacen falta las dos mitades juntas, con las
-secciones que pide el enunciado: problema, objetivos, arquitectura, tecnologias,
-resultados, limitaciones y proximos pasos.
+Cuenta las dos mitades del sistema juntas -- el RAG con sus guardrails y el
+fine-tuning con la generacion de imagenes -- con las secciones que pide el
+enunciado: problema, objetivos, arquitectura, tecnologias, resultados,
+limitaciones y proximos pasos.
 
     uv run python scripts/construir_integrador.py
 

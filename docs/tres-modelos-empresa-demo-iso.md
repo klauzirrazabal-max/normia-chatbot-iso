@@ -1,6 +1,6 @@
 # Los tres estados del modelo
 
-Las mismas 12 preguntas, **sin RAG** en los tres casos, como en el taller.
+Las mismas 12 preguntas, **sin RAG** en los tres casos.
 Asi se ve lo que aporta el modelo por si mismo.
 
 | Metrica | Sin entrenamiento | Con entrenamiento | Con fine-tuning |

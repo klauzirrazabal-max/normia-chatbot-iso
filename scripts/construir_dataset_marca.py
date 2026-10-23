@@ -5,8 +5,8 @@ Un DreamBooth LoRA necesita 15-20 fotos del sujeto. Del cliente solo tenemos el
 logotipo, asi que las piezas se fabrican: el modelo de difusion genera el
 PRODUCTO EN BLANCO y el logotipo real se compone encima, en perspectiva.
 
-Es lo mismo que hace el dataset del taller de la sesion 3 -- una marca sobre
-tazas, camisetas y cuadernos -- pero construido, no recopilado.
+Es un dataset de marca -- una marca sobre tazas, camisetas y cuadernos --
+construido, no recopilado.
 
     uv run python scripts/construir_dataset_marca.py
     uv run python scripts/construir_dataset_marca.py --solo taza camiseta --pasos 40

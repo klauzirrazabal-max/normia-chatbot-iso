@@ -68,12 +68,8 @@ extend-immutable-calls = [
 "scripts/generate_demo_corpus.py" = ["E402", "E501"]
 # Las laminas de la presentacion son HTML dentro de literales. Trocearlo para
 # cumplir el ancho de linea lo volveria ilegible y propenso a errores de espaciado.
-"scripts/_laminas_fase2.py" = ["E501"]
-"scripts/construir_presentacion.py" = ["E402", "E501"]
 # El notebook lleva celdas de codigo dentro de literales: trocearlas para
 # cumplir el ancho de linea romperia la indentacion del codigo generado.
 "scripts/construir_notebook.py" = ["E501"]
-"scripts/construir_ejecutiva.py" = ["E402", "E501"]
 # El LEEME de la entrega es una tabla markdown dentro de un literal.
-"scripts/preparar_entrega.py" = ["E501"]
 "scripts/construir_integrador.py" = ["E402", "E501"]

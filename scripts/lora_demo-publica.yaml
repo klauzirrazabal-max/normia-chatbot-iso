@@ -11,7 +11,7 @@
 
 # POR QUE ESTE MODELO Y NO Qwen3.5-4B
 # -----------------------------------
-# Qwen3.5-4B parecia la eleccion obvia: es el que usa el taller de la sesion 2 y
+# Qwen3.5-4B parecia la eleccion obvia: es la otra opcion de 4B y
 # comparte familia con el de produccion. Pero no se puede entrenar aqui, y se
 # comprobo midiendo:
 #
@@ -67,6 +67,6 @@ test: true
 test_batches: -1
 
 lora_parameters:
-  rank: 16                   # igual que LORA_R del taller de la sesion 2
+  rank: 16                   # rango habitual para un adaptador de este tamano
   scale: 20.0
   dropout: 0.0

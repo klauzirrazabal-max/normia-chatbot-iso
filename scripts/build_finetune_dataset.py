@@ -89,8 +89,8 @@ _SYSTEM_PROMPT = DEFAULT_SYSTEM_PROMPT
 #   sin contexto                "esta es la respuesta, memorizala"
 #                               -> aprende el CONTENIDO. Se evalua SIN recuperacion.
 #
-# Son dos experimentos distintos, no uno mejor que otro. El taller de la sesion 2
-# hace el segundo -- el dossier de Wayra no es consultable, hay que memorizarlo.
+# Son dos experimentos distintos, no uno mejor que otro. El segundo sirve cuando la
+# fuente no se puede consultar en tiempo de respuesta y hay que memorizarla.
 # Medir un dataset con contexto en un escenario sin recuperacion es pedirle al
 # modelo algo que nunca se le enseno, y da un resultado que no significa nada.
 _SIN_CONTEXTO = False

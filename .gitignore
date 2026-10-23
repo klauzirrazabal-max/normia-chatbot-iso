@@ -60,14 +60,12 @@ models/
 !data/knowledge_base/*/.gitkeep
 !data/knowledge_base/*/metadata.csv.ejemplo
 
-# Guion de exposicion: es una herramienta personal, no un entregable.
-# Su tono esta escrito para quien expone, no para quien evalua.
-docs/guion-exposicion.md
+# Notas personales de la exposicion: no forman parte del proyecto.
+docs/guion-*.md
+docs/guion-*.html
 
-# Los mockups del ejercicio de clase son activos de marca de un TERCERO (Gloria):
-# su logotipo y fotos de producto de licencia desconocida. Sirven para entrenar en
-# local, no para redistribuirse. El logo de ABISERVI si viaja: es la marca del
-# cliente de este proyecto y hace falta para construir su dataset de imagen.
+# Mockups de referencia de marcas de terceros: no se redistribuyen. El logo de
+# ABISERVI si viaja: es la marca del cliente y hace falta para su dataset de imagen.
 data/marca/mockups/
 
 # El arte sin componer: util para reencuadrar sin volver a generar, pero es el
@@ -99,7 +97,6 @@ docs/valor-lora-*.md
 # scripts/exportar_dataset_notebook.py.
 notebooks/normia_dataset.jsonl
 
-# La carpeta de entrega lleva el dataset con el texto de las clausulas reales.
-# Se regenera entera con scripts/preparar_entrega.py.
+# Copias locales de entrega: llevan el dataset con el texto de las clausulas reales.
 entrega/
 .playwright-mcp/

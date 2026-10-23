@@ -639,8 +639,7 @@ print("Instruccion al modelo:", instruccion[:120], "...")
 ---
 # 5 · Comparacion de resultados
 
-Las mismas preguntas a **tres estados del modelo**, como en el taller de la
-sesion 2:
+Las mismas preguntas a **tres estados del modelo**:
 
 | Estado | Que es |
 |---|---|

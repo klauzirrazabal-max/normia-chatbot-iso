@@ -1,8 +1,8 @@
 """
 La misma pregunta, al modelo SIN entrenar y al entrenado. Lado a lado.
 
-Es la comparacion del taller de la sesion 2 aplicada a NormIA: no un numero
-agregado, sino las respuestas literales, para poder leer que cambio.
+No es un numero agregado, sino las respuestas literales, para poder leer que
+cambio.
 
 Las preguntas NO salen del aire: son las del banco de pruebas
 (`scripts/benchmark_models.py`), que estan excluidas del dataset de

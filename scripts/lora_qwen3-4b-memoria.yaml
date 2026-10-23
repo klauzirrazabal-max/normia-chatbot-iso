@@ -4,8 +4,8 @@
 #
 # MEMORIZACION. Los ejemplos NO llevan el texto de la clausula: solo pregunta y
 # respuesta. El modelo tiene que sacar el contenido de sus pesos, no de un
-# documento delante. Es el experimento del taller de la sesion 2 -- el dossier de
-# Wayra no es consultable -- aplicado al SGC del cliente.
+# documento delante. Es el experimento para una fuente que no se puede consultar en
+# tiempo de respuesta, aplicado al SGC del cliente.
 #
 # La variante CON contexto (`lora_qwen3-4b.yaml`) ensena el FORMATO y se evalua
 # CON recuperacion. Esta ensena el CONTENIDO y se evalua SIN ella. Medir una en
@@ -18,7 +18,7 @@
 
 # POR QUE ESTE MODELO Y NO Qwen3.5-4B
 # -----------------------------------
-# Qwen3.5-4B parecia la eleccion obvia: es el que usa el taller de la sesion 2 y
+# Qwen3.5-4B parecia la eleccion obvia: es la otra opcion de 4B y
 # comparte familia con el de produccion. Pero no se puede entrenar aqui, y se
 # comprobo midiendo:
 #
@@ -61,7 +61,7 @@ grad_accumulation_steps: 4   # lote efectivo de 4
 num_layers: 16
 
 # 468 ejemplos / lote efectivo 4 = 117 pasos por epoca. 400 pasos son ~3.4
-# epocas; el taller de clase usa 4.
+# epocas.
 iters: 500
 
 learning_rate: 1.0e-4
@@ -73,6 +73,6 @@ test: true
 test_batches: -1
 
 lora_parameters:
-  rank: 16                   # igual que LORA_R del taller de la sesion 2
+  rank: 16                   # rango habitual para un adaptador de este tamano
   scale: 20.0
   dropout: 0.0

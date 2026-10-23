@@ -1,6 +1,5 @@
 """
-Las mismas preguntas en TRES estados. Es la comparacion del taller de la
-sesion 2, adaptada a un sistema con RAG.
+Las mismas preguntas en TRES estados, para un sistema con RAG.
 
   1. SIN RAG     el modelo solo, con el prompt de sistema y la pregunta.
                  Sin documentos, sin herramientas, sin guardrails.

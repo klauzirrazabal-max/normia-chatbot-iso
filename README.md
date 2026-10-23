@@ -137,8 +137,7 @@ cliente.
 Entregables del Proyecto Integrador (Diploma AI Engineer, DMC Institute):
 
 - **Informe tecnico** (18 paginas): [`docs/informe-tecnico.pdf`](docs/informe-tecnico.pdf), generado desde [`docs/informe-tecnico.html`](docs/informe-tecnico.html).
-- **Presentacion de la sustentacion** (15 laminas): [`docs/presentacion-integrador.pdf`](docs/presentacion-integrador.pdf), generada desde [`docs/presentacion-integrador.html`](docs/presentacion-integrador.html) -- abrela en el navegador y navega con las flechas.
-- **Guion de la exposicion**: [`docs/guion-exposicion.md`](docs/guion-exposicion.md).
+- **Presentacion de la sustentacion** (15 laminas): [`docs/presentacion-integrador.html`](docs/presentacion-integrador.html) -- abrela en el navegador y navega con las flechas. Tambien en PDF: [`docs/presentacion-integrador.pdf`](docs/presentacion-integrador.pdf).
 
 Para regenerar los PDF desde el HTML (Chrome en modo sin ventana, A4):
 
@@ -146,10 +145,6 @@ Para regenerar los PDF desde el HTML (Chrome en modo sin ventana, A4):
 "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --disable-gpu \
   --no-pdf-header-footer --print-to-pdf=docs/informe-tecnico.pdf "file://$PWD/docs/informe-tecnico.html"
 ```
-
-La presentacion anterior (13 laminas) esta en [`docs/presentacion.html`](docs/presentacion.html)
--- abrela en el navegador y navega con las flechas o deslizando -- y en
-[`docs/NormIA.pptx`](docs/NormIA.pptx).
 
 Los tres diagramas estan tambien como PNG en [`docs/diagramas/`](docs/diagramas/),
 incluida una variante horizontal del flujo de consulta pensada para diapositivas.
@@ -807,7 +802,6 @@ cd docker && NORMIA_DB_PORT=5433 docker compose up -d && cd ..
 | `docs/comparacion-lora.md` | Las 12 preguntas con las dos respuestas enfrentadas, literales |
 | `docs/banco-4b-base.txt` · `docs/banco-4b-lora.txt` | La salida cruda del banco sobre cada estado |
 | `docs/entrenamiento.log` | El log de la corrida |
-| `docs/presentacion-fase2.html` | Las 13 laminas, armadas por `scripts/construir_presentacion.py` desde esos ficheros |
 
 ### Las tres piezas por separado
 
@@ -868,8 +862,8 @@ proyecto existe para evitar.
 
 ### Por que Qwen3-4B y no el modelo de produccion
 
-En una Mac de 48 GB no entra el 27B, y el modelo del taller de clase
-(`Qwen3.5-4B`) tampoco sirve, aunque lo parezca. Medido:
+En una Mac de 48 GB no entra el 27B, y `Qwen3.5-4B`, la otra opcion de 4B,
+tampoco sirve, aunque lo parezca. Medido:
 
 | Modelo | Arquitectura | Pico con secuencias de 512 |
 |---|---|---|

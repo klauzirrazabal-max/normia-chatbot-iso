@@ -1,5 +1,5 @@
 """
-Los tres estados DEL MODELO, como en el taller de la sesion 2.
+Los tres estados DEL MODELO.
 
   1. SIN ENTRENAMIENTO  Qwen3-4B-Base. Los pesos antes de cualquier
                         post-entrenamiento. Solo sabe continuar texto: no
@@ -15,9 +15,9 @@ DISTINTO del que mide `comparar_tres_estados.py`, que varia cuanto andamiaje
 tiene el sistema (sin RAG / con RAG / RAG+LoRA). Los dos son utiles y se
 presentan juntos.
 
-Aqui los tres estados corren en igualdad de condiciones: **sin RAG**, como en el
-taller. Asi se ve lo que aporta el modelo por si mismo, sin que la recuperacion
-tape la diferencia.
+Aqui los tres estados corren en igualdad de condiciones: **sin RAG**. Asi se
+ve lo que aporta el modelo por si mismo, sin que la recuperacion tape la
+diferencia.
 
     uv run python scripts/comparar_tres_modelos.py \\
         --base models/Qwen3-4B-Base-4bit \\
@@ -122,8 +122,8 @@ def prompt_sistema(tenant: str) -> str:
 def responder(modelo, tok, pregunta: str, sistema: str, crudo: bool, max_tokens: int) -> str:
     """
     `crudo=True` es el estado 1: sin plantilla de chat, porque el modelo base no
-    tiene. Se le da la pregunta como texto y continua. Es exactamente lo que hace
-    el taller, y lo que revela que un modelo base no conversa.
+    tiene. Se le da la pregunta como texto y continua. Es lo que revela que un
+    modelo base no conversa.
     """
     from mlx_lm import generate
 
@@ -247,7 +247,7 @@ def main() -> int:
     lineas = [
         "# Los tres estados del modelo",
         "",
-        "Las mismas 12 preguntas, **sin RAG** en los tres casos, como en el taller.",
+        "Las mismas 12 preguntas, **sin RAG** en los tres casos.",
         "Asi se ve lo que aporta el modelo por si mismo.",
         "",
         "| Metrica | " + " | ".join(t for _, t in ETIQUETAS) + " |",
