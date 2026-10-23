@@ -102,3 +102,4 @@ notebooks/normia_dataset.jsonl
 # La carpeta de entrega lleva el dataset con el texto de las clausulas reales.
 # Se regenera entera con scripts/preparar_entrega.py.
 entrega/
+.playwright-mcp/

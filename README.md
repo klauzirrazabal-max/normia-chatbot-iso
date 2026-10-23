@@ -134,7 +134,20 @@ la unidad de sentido es la clausula, y es lo que permite citar "seccion 6.2" con
 trazabilidad. El sistema **detecta y avisa**; no modifica los documentos del
 cliente.
 
-La presentacion del proyecto (13 laminas) esta en [`docs/presentacion.html`](docs/presentacion.html)
+Entregables del Proyecto Integrador (Diploma AI Engineer, DMC Institute):
+
+- **Informe tecnico** (17 paginas): [`docs/informe-tecnico.pdf`](docs/informe-tecnico.pdf), generado desde [`docs/informe-tecnico.html`](docs/informe-tecnico.html).
+- **Presentacion de la sustentacion** (14 laminas): [`docs/presentacion-integrador.pdf`](docs/presentacion-integrador.pdf), generada desde [`docs/presentacion-integrador.html`](docs/presentacion-integrador.html) -- abrela en el navegador y navega con las flechas.
+- **Guion de la exposicion**: [`docs/guion-exposicion.md`](docs/guion-exposicion.md).
+
+Para regenerar los PDF desde el HTML (Chrome en modo sin ventana, A4):
+
+```bash
+"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --disable-gpu \
+  --no-pdf-header-footer --print-to-pdf=docs/informe-tecnico.pdf "file://$PWD/docs/informe-tecnico.html"
+```
+
+La presentacion anterior (13 laminas) esta en [`docs/presentacion.html`](docs/presentacion.html)
 -- abrela en el navegador y navega con las flechas o deslizando -- y en
 [`docs/NormIA.pptx`](docs/NormIA.pptx).
 

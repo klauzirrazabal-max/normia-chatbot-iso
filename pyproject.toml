@@ -76,3 +76,4 @@ extend-immutable-calls = [
 "scripts/construir_ejecutiva.py" = ["E402", "E501"]
 # El LEEME de la entrega es una tabla markdown dentro de un literal.
 "scripts/preparar_entrega.py" = ["E501"]
+"scripts/construir_integrador.py" = ["E402", "E501"]

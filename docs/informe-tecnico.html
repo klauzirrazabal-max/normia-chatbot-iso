@@ -1,0 +1,613 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>NormIA · Informe técnico</title>
+<style>
+/* Mismo sistema del mazo: papel claro, tinta grafito, un verde sello. Sin
+   fuentes web, porque el producto corre sin internet y el informe también
+   debe abrirse así. */
+:root{
+  --papel:#FFFFFF; --tinta:#15191A; --grafito:#5D6663; --linea:#D4DAD5;
+  --linea-fuerte:#B6BFB8; --sello:#1D5C3C; --sello-tenue:#E3EEE8;
+  --rechazo:#9E2B21; --rechazo-tenue:#F7E6E3; --aviso:#8A5A00; --aviso-tenue:#FBF2DC;
+}
+@page{size:A4;margin:17mm 17mm 17mm 17mm}
+@page{@bottom-right{content:counter(page)}}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--papel);color:var(--tinta);
+  font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:10.5pt;line-height:1.5}
+code,.mono,td.n,.cod{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+code{font-size:.92em;background:#F3F5F3;padding:.05em .3em;border-radius:2px}
+h1{font-size:26pt;line-height:1.12;margin:0 0 4mm;letter-spacing:-.01em}
+h2{font-size:16pt;line-height:1.2;margin:9mm 0 3mm;padding-top:2mm;border-top:1.5px solid var(--linea-fuerte);
+   break-after:avoid}
+h3{font-size:11.5pt;margin:5mm 0 1.5mm;break-after:avoid}
+p{margin:0 0 2.6mm;max-width:none}
+ul,ol{margin:0 0 3mm;padding-left:5mm}
+li{margin-bottom:1.1mm}
+b{font-weight:600}
+.eyebrow{font-size:8pt;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--sello);margin:0 0 2mm}
+.muted{color:var(--grafito)}
+.small{font-size:9pt}
+table{width:100%;border-collapse:collapse;margin:2mm 0 4mm;font-size:9.5pt}
+tr{break-inside:avoid}
+thead,tr:first-child{break-after:avoid}
+th{text-align:left;font-size:7.8pt;letter-spacing:.12em;text-transform:uppercase;color:var(--grafito);
+   font-weight:600;padding:1.4mm 2mm;border-bottom:1.5px solid var(--linea-fuerte)}
+td{padding:1.6mm 2mm;border-bottom:1px solid var(--linea);vertical-align:top}
+td.n{color:var(--sello);font-weight:600;white-space:nowrap}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.ok{color:var(--sello);font-weight:600}
+.mal{color:var(--rechazo);font-weight:600}
+
+.portada{min-height:240mm;display:flex;flex-direction:column;justify-content:space-between;break-after:page}
+.portada .bajada{font-size:12.5pt;color:var(--grafito);max-width:150mm}
+.ficha{display:grid;grid-template-columns:repeat(2,1fr);gap:3mm 8mm;margin-top:8mm;max-width:150mm}
+.ficha dt{font-size:7.8pt;letter-spacing:.14em;text-transform:uppercase;color:var(--grafito)}
+.ficha dd{margin:0;font-weight:600}
+
+.cifras{display:grid;grid-template-columns:repeat(4,1fr);gap:3mm;margin:3mm 0 5mm;break-inside:avoid}
+.cifra{border:1px solid var(--linea);border-radius:3px;padding:3mm 3.5mm;background:#FBFCFB}
+.cifra .v{font-family:"IBM Plex Mono",monospace;font-size:17pt;font-weight:600;color:var(--sello);line-height:1}
+.cifra .k{font-size:8.5pt;color:var(--grafito);margin-top:1.4mm;line-height:1.3}
+
+figure{margin:3mm 0 5mm;break-inside:avoid}
+figure img{max-width:100%;max-height:118mm;width:auto;border:1px solid var(--linea);border-radius:3px;display:block;margin:0 auto}
+.dos figure img{width:100%;max-height:none}
+figure.half img{max-height:88mm;width:auto;max-width:100%;margin:0 auto}
+figcaption{font-size:8.6pt;color:var(--grafito);margin-top:1.6mm}
+.dos{display:grid;grid-template-columns:1fr 1fr;gap:4mm;break-inside:avoid}
+
+.nota{border-left:3px solid var(--sello);background:var(--sello-tenue);padding:2.5mm 3.5mm;margin:3mm 0 4mm;break-inside:avoid}
+.nota.mal{border-color:var(--rechazo);background:var(--rechazo-tenue);color:var(--tinta);font-weight:400}
+.nota.aviso{border-color:var(--aviso);background:var(--aviso-tenue)}
+.nota p:last-child{margin:0}
+blockquote{margin:2mm 0 3mm;padding:1.5mm 3.5mm;border-left:2px solid var(--linea-fuerte);color:var(--grafito);font-style:italic}
+pre{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-size:8.6pt;background:#F3F5F3;border:1px solid var(--linea);
+    border-radius:3px;padding:2.5mm 3mm;overflow:hidden;white-space:pre-wrap;break-inside:avoid;margin:2mm 0 3.5mm}
+.salto{break-before:page}
+.indice ol{columns:2;column-gap:10mm;padding-left:5mm}
+.indice li{break-inside:avoid}
+a{color:var(--sello);text-decoration:none}
+.pie-doc{font-size:8pt;color:var(--grafito);border-top:1px solid var(--linea);padding-top:2mm;margin-top:4mm;break-before:avoid}
+</style>
+</head>
+<body>
+
+<!-- ───────────────────────── PORTADA ───────────────────────── -->
+<section class="portada">
+  <div>
+    <p class="eyebrow">Diploma AI Engineer · DMC Institute · Proyecto Integrador</p>
+    <h1>NormIA: asistente de documentación y cumplimiento para sistemas de gestión certificados</h1>
+    <p class="bajada">Sistema conversacional con recuperación aumentada (RAG), agente de herramientas
+    con efecto real sobre la base de datos, fine-tuning con QLoRA y generación multimodal,
+    sobre el sistema de gestión de la calidad de una empresa de logística. Ejecutado
+    íntegramente en infraestructura propia: ningún documento sale de la máquina.</p>
+    <dl class="ficha">
+      <div><dt>Autor</dt><dd>Klauz A. España Irrazabal</dd></div>
+      <div><dt>Cliente / caso</dt><dd>ABISERVI, logística (Perú)</dd></div>
+      <div><dt>Bloques del diploma</dt><dd>Chatbot LLM + RAG · Agentes · Generativa texto e imagen</dd></div>
+      <div><dt>Fecha de entrega</dt><dd>22 de octubre de 2026</dd></div>
+      <div><dt>Repositorio</dt><dd><a href="https://github.com/klauzirrazabal-max/normia-chatbot-iso">github.com/klauzirrazabal-max/normia-chatbot-iso</a></dd></div>
+      <div><dt>Video demostrativo</dt><dd>[enlace pendiente de grabación]</dd></div>
+    </dl>
+  </div>
+  <div>
+    <div class="cifras">
+      <div class="cifra"><div class="v">132</div><div class="k">documentos controlados vigentes, en 12 áreas</div></div>
+      <div class="cifra"><div class="v">1 043</div><div class="k">cláusulas indexadas con código, versión y sección</div></div>
+      <div class="cifra"><div class="v">12 / 12</div><div class="k">consultas del banco acertadas con RAG (1 / 12 sin él)</div></div>
+      <div class="cifra"><div class="v">436</div><div class="k">tests automatizados, 19 ficheros, todos en verde</div></div>
+    </div>
+    <p class="small muted">Este informe describe el problema, la metodología, la arquitectura, los
+    resultados medidos y las limitaciones del prototipo. Todas las cifras provienen de ficheros
+    del repositorio o de mediciones reproducibles indicadas en cada caso.</p>
+  </div>
+</section>
+
+<!-- ───────────────────────── ÍNDICE ───────────────────────── -->
+<section class="indice">
+  <p class="eyebrow">Contenido</p>
+  <ol>
+    <li>Resumen ejecutivo</li>
+    <li>El problema de negocio</li>
+    <li>Objetivos y criterios de verificación</li>
+    <li>Metodología de trabajo</li>
+    <li>Arquitectura de la solución</li>
+    <li>Recuperación aumentada sobre documentos controlados</li>
+    <li>Guardrails: controles deterministas</li>
+    <li>El agente y sus herramientas</li>
+    <li>Fine-tuning con QLoRA</li>
+    <li>Generación de material visual</li>
+    <li>Seguridad, roles y aislamiento</li>
+    <li>Resultados</li>
+    <li>El sistema en funcionamiento</li>
+    <li>Limitaciones</li>
+    <li>Conclusiones y próximos pasos</li>
+    <li>Instrucciones de instalación y uso</li>
+  </ol>
+</section>
+
+<!-- ───────────────────────── 1 ───────────────────────── -->
+<h2>1. Resumen ejecutivo</h2>
+<p>En una organización certificada bajo ISO 9001, consultar un procedimiento exige saber tres
+cosas antes de leer nada: en qué documento está la respuesta, cuál es su versión vigente y en
+qué cláusula. Hoy eso se resuelve preguntándole a una persona del área de Calidad; cuando esa
+persona no está, se resuelve adivinando. Actuar sobre una versión derogada no es un despiste:
+es una no conformidad en auditoría.</p>
+<p>NormIA es un asistente conversacional que responde preguntas sobre la documentación vigente
+<b>citando siempre código, versión y sección</b>, y que <b>no inventa</b>: cuando no tiene
+respaldo documental, lo dice y ofrece derivar la consulta al Responsable de Calidad. Además
+registra no conformidades y sus acciones correctivas (ciclo CAPA), detecta inconsistencias al
+ingerir documentos y produce material de concienciación con la cláusula que lo respalda.</p>
+<p>La tesis del proyecto no es «un chatbot que responde» sino <b>trazabilidad auditable</b>. Por
+eso el diseño combina un modelo de lenguaje con una capa de controles deterministas que pueden
+descartar una respuesta ya redactada. Medido sobre un banco de 12 consultas reales, el modelo
+por sí solo acierta 1; con recuperación aumentada acierta 12 de 12 y no cita ningún documento
+inexistente.</p>
+<p>Todo corre en una sola máquina, sin servicios externos: el modelo de lenguaje, los
+embeddings y la generación de imágenes son locales. No es una optimización sino la condición
+de partida, porque un sistema de gestión contiene procedimientos internos y organigramas que
+no pueden viajar a una API de terceros.</p>
+
+<!-- ───────────────────────── 2 ───────────────────────── -->
+<h2>2. El problema de negocio</h2>
+<p>ABISERVI es una empresa peruana de logística con un sistema de gestión de la calidad (SGC)
+certificado. Su documentación controlada comprende <b>132 documentos vigentes en 12 áreas</b>
+(manuales, políticas, procedimientos, instructivos, formatos, planes, organigramas y listas
+maestras) que suman <b>1 043 cláusulas numeradas</b>. La unidad de respuesta casi nunca es «el
+documento»: es una cláusula concreta dentro de él.</p>
+<h3>Tres síntomas observados</h3>
+<ul>
+  <li><b>El conocimiento está en una persona.</b> Las dudas operativas («¿cuánto tiempo tengo para
+  atender un requerimiento?», «¿qué anillo del arnés vale para detener caídas?») se resuelven
+  preguntando a Calidad. Cuando no está disponible, el operario actúa de memoria.</li>
+  <li><b>La versión importa tanto como el contenido.</b> Al ingerir el SGC real y cruzarlo contra su
+  Lista Maestra aparecieron discrepancias: <code>CAL-IN-01</code> figura como v1 en la lista pero
+  imprime v2 en su membrete; varios formatos referenciados por procedimientos vigentes no están
+  registrados.</li>
+  <li><b>Las no conformidades se pierden entre el aviso y el registro.</b> Un hallazgo reportado de
+  palabra no genera acción correctiva, y el ciclo CAPA que exige la cláusula 10.2 queda a
+  medias.</li>
+</ul>
+<h3>Por qué inteligencia artificial, y por qué con límites</h3>
+<p>Un buscador clásico devuelve documentos; lo que la persona necesita es una respuesta en
+lenguaje natural con su referencia exacta. Un modelo de lenguaje resuelve la redacción, pero
+introduce el riesgo opuesto: responder con seguridad algo que no está en ningún documento. El
+problema de negocio, por tanto, no es «responder» sino <b>responder solo cuando hay respaldo
+y demostrar cuál es</b>. Eso define la arquitectura: el modelo redacta, pero no decide si la
+respuesta sale.</p>
+
+<!-- ───────────────────────── 3 ───────────────────────── -->
+<h2>3. Objetivos y criterios de verificación</h2>
+<table>
+  <tr><th style="width:42%">Objetivo</th><th>Cómo se verifica</th></tr>
+  <tr><td class="n" style="white-space:normal">Responder sobre documentación vigente, citando siempre la fuente</td>
+      <td>Banco de 12 consultas reales (<code>scripts/benchmark_models.py</code>) con la respuesta
+      correcta verificada leyendo el documento. Un documento marcado obsoleto deja de citarse en el
+      mismo instante.</td></tr>
+  <tr><td class="n" style="white-space:normal">No inventar nunca un documento ni una acción</td>
+      <td>Cada código citado se comprueba contra la base; cada versión citada se corrige contra la
+      real; cada ID de hallazgo o acción correctiva afirmado debe existir. Si no, la respuesta se
+      descarta.</td></tr>
+  <tr><td class="n" style="white-space:normal">Cerrar el ciclo de no conformidad</td>
+      <td>Un hallazgo registrado exige responsable y fecha (<code>NOT NULL</code> en base) y queda
+      visible en el panel de Calidad con los días que faltan.</td></tr>
+  <tr><td class="n" style="white-space:normal">Producir el material de concienciación que la norma exige</td>
+      <td>Cláusulas 7.2, 7.3 y 7.4 de ISO 9001 (competencia, toma de conciencia, comunicación). Cada
+      pieza cita la cláusula que la respalda y la cita se valida contra el catálogo.</td></tr>
+  <tr><td class="n" style="white-space:normal"><b>Que ningún documento salga de la organización</b></td>
+      <td>Modelos locales (LLM, embeddings, difusión). Restricción de partida, no optimización.</td></tr>
+</table>
+<p>Los criterios son <b>medibles y automatizados</b>: 436 tests cubren guardrails, herramientas,
+enrutado, ingesta, consentimiento, autenticación y seguridad. Un objetivo que no se puede
+verificar no está en la lista.</p>
+
+<!-- ───────────────────────── 4 ───────────────────────── -->
+<h2>4. Metodología de trabajo</h2>
+<p>El proyecto se desarrolló entre el <b>27 de agosto y el 22 de octubre de 2026</b> en 70
+commits, con el SGC real del cliente desde el primer día (recomendación explícita de la guía:
+elegir un problema cuyos datos estén disponibles desde el inicio). Se siguieron cuatro
+principios:</p>
+<ol>
+  <li><b>Medir antes de cambiar.</b> Cada decisión de modelo, umbral o prompt tiene una medición
+  previa y otra posterior. La línea base del modelo de producción se congeló el 24/09/2026
+  (<code>docs/linea-base.md</code>) antes de entrenar ningún adaptador: un fine-tuning sin
+  línea base no se puede defender.</li>
+  <li><b>Los guardrails nacen de fallos observados, no de hipótesis.</b> Cada control tiene
+  documentado el incidente que lo motivó, en el propio código, con el dato medido.</li>
+  <li><b>Verificar el hecho, no la redacción.</b> No se buscan frases en la salida del modelo
+  («he registrado…»): se comprueba contra la base si el registro existe. Cazar formulaciones se
+  pierde siempre; un ID o está en la tabla o no está.</li>
+  <li><b>Ensayo en vivo como prueba de aceptación.</b> El flujo completo (entrada, consulta,
+  intento de engaño, subida de un PDF, ciclo CAPA, derogación de un documento, cambio de rol) se
+  ejecutó en el navegador antes de dar por cerrada cada fase. Varios defectos descritos en la
+  sección 14 se encontraron así y no en los tests.</li>
+</ol>
+<h3>Fases</h3>
+<table>
+  <tr><th style="width:26%">Fase</th><th>Trabajo</th><th style="width:22%">Evidencia</th></tr>
+  <tr><td class="n" style="white-space:normal">1. Ingesta y RAG</td><td>Extracción de PDF con tablas, troceado por cláusula, embeddings
+  locales, búsqueda vectorial con umbral, cruce contra la Lista Maestra.</td><td><code>app/core/rag/</code>, <code>app/core/docs/</code></td></tr>
+  <tr><td class="n" style="white-space:normal">2. Orquestador y guardrails</td><td>Enrutado de turnos, function calling, cuatro controles
+  bloqueantes, traza de auditoría por turno.</td><td><code>app/core/orchestrator.py</code>, <code>app/core/guardrails/</code></td></tr>
+  <tr><td class="n" style="white-space:normal">3. Agente y CAPA</td><td>Nueve herramientas, registro de hallazgos y acciones correctivas,
+  escalación con consentimiento.</td><td><code>app/core/agents/tools.py</code></td></tr>
+  <tr><td class="n" style="white-space:normal">4. Fine-tuning</td><td>Dataset de 584 ejemplos verificados, QLoRA en 4 bits, evaluación
+  sobre casos excluidos del entrenamiento.</td><td><code>data/finetune/</code>, <code>docs/comparacion-lora.md</code></td></tr>
+  <tr><td class="n" style="white-space:normal">5. Generativa de imagen</td><td>SDXL con refinador, prompt juzgado por el LLM, composición
+  del logotipo real, validación de la cláusula citada.</td><td><code>app/channels/imagen_adapter.py</code></td></tr>
+  <tr><td class="n" style="white-space:normal">6. Producto</td><td>Autenticación con tres roles, aislamiento por cliente, panel de
+  Calidad, pantallas de inicio, asistente y material visual.</td><td><code>app/channels/</code>, <code>frontend-widget/</code></td></tr>
+</table>
+
+<!-- ───────────────────────── 5 ───────────────────────── -->
+<h2 class="salto">5. Arquitectura de la solución</h2>
+<p>Cuatro capas en una sola máquina. El cliente es un <i>Web Component</i> con Shadow DOM que se
+incrusta en cualquier intranet sin heredar ni imponer estilos; la API es FastAPI; el núcleo
+contiene el orquestador, la recuperación, las herramientas, los guardrails y el pipeline de
+ingesta; los modelos (Qwen3.8 27B vía Ollama y <code>BAAI/bge-m3</code>) corren en local; y
+PostgreSQL 16 con pgvector guarda documentos, cláusulas, conversaciones, hallazgos, acciones
+correctivas, escalaciones, usuarios y la traza de auditoría en un solo motor.</p>
+<figure>
+  <img src="diagramas/01-arquitectura.png" alt="Diagrama de arquitectura en cuatro capas">
+  <figcaption>Figura 1. Vista general. Un solo motor de datos: integridad relacional (vigente/obsoleto)
+  y búsqueda vectorial juntas, sin sincronizar dos sistemas.</figcaption>
+</figure>
+<table>
+  <tr><th>Capa</th><th>Elección</th><th>Por qué esa</th></tr>
+  <tr><td class="n">Backend</td><td>Python 3.12, FastAPI, SQLAlchemy</td><td>Estándar, fácil de probar. Endpoints síncronos despachados a hilos porque SQLAlchemy es síncrono.</td></tr>
+  <tr><td class="n">Datos</td><td>PostgreSQL 16 + pgvector (HNSW) + unaccent</td><td>Relacional y vectorial en un motor; búsqueda insensible a acentos (los usuarios escriben «clausula»).</td></tr>
+  <tr><td class="n">LLM</td><td>Qwen3.8 27B, FP4, Apache 2.0, vía Ollama</td><td>Licencia comercial limpia, sin coste por consulta. Elegido midiendo contra alternativas (<code>scripts/benchmark_models.py</code>). El cliente habla el protocolo compatible con OpenAI: vLLM o Groq entran cambiando tres variables.</td></tr>
+  <tr><td class="n">Embeddings</td><td><code>BAAI/bge-m3</code>, 1 024 dim, MIT</td><td>Multilingüe, local, sin clave de API.</td></tr>
+  <tr><td class="n">Fine-tuning</td><td>QLoRA 4 bits sobre Qwen3-4B con MLX</td><td>Entrena el 0,37 % de los parámetros en una máquina de escritorio.</td></tr>
+  <tr><td class="n">Imagen</td><td>SDXL base + refinador, Diffusers, MPS</td><td>El modelo dibuja la escena; el logotipo real se compone encima. Licencia OpenRAIL++-M, con restricciones de uso propagadas al usuario (<code>condiciones.html</code>).</td></tr>
+  <tr><td class="n">Cliente</td><td>Web Component + Shadow DOM, sin framework</td><td>Incrustable en la intranet; sin fuentes web porque el producto corre sin internet.</td></tr>
+</table>
+<h3>Flujo de una consulta</h3>
+<figure>
+  <img src="diagramas/02-flujo-consulta-horizontal.png" alt="Flujo de una consulta con cuatro guardrails">
+  <figcaption>Figura 2. La pregunta se compara a la vez con las preguntas frecuentes verificadas y con
+  las cláusulas vigentes. En rojo, los puntos donde la respuesta se descarta y la consulta se ofrece a
+  Calidad.</figcaption>
+</figure>
+<h3>Ingesta de documentos</h3>
+<figure>
+  <img src="diagramas/03-ingesta.png" alt="Pipeline de ingesta de PDF">
+  <figcaption>Figura 3. La identidad del documento se lee de su membrete (<code>CÓDIGO</code>,
+  <code>VERSIÓN</code>, <code>REVISIÓN</code>), no del nombre del archivo, y se cruza contra la Lista
+  Maestra. El sistema avisa; no modifica los documentos del cliente.</figcaption>
+</figure>
+
+<!-- ───────────────────────── 6 ───────────────────────── -->
+<h2>6. Recuperación aumentada sobre documentos controlados</h2>
+<p><b>Troceado por cláusula, no por tamaño.</b> En un documento controlado la unidad de sentido es
+la cláusula («6.1.2», «7.4 Recepción y conformidad»). Trocear así es lo que permite citar
+«sección 7.2.4» con trazabilidad. Las tablas se extraen como texto estructurado (los tiempos
+de atención de TI viven en una tabla).</p>
+<p><b>Dos búsquedas en paralelo.</b> La pregunta se vectoriza una vez y se compara con el banco de
+<b>730 preguntas frecuentes verificadas</b> (generadas desde las cláusulas y comprobadas una a
+una contra su texto) y con las cláusulas de documentos <b>vigentes</b>. Un documento marcado
+obsoleto desaparece del índice de búsqueda sin reindexar nada: es un filtro en la consulta.</p>
+<p><b>Umbral absoluto y margen relativo.</b> <code>ORDER BY distancia LIMIT k</code> siempre devuelve
+algo, por irrelevante que sea. El umbral (<code>RAG_MAX_DISTANCE = 0,527</code>, calibrado con
+<code>scripts/calibrate_threshold.py</code>) más un margen relativo del 8 % sobre el mejor
+resultado convierten la búsqueda en un guardrail: sin contexto suficiente, el modelo no
+redacta.</p>
+<p><b>Carga directa de sección.</b> Si el usuario pide «la sección 6.2 del COM-PR-01», no se pasa
+por el vector: se carga la cláusula exacta.</p>
+<p><b>Traza de auditoría.</b> Cada turno guarda qué se recuperó, a qué distancia, qué herramienta
+se llamó y si la respuesta quedó fundamentada (<code>messages.retrieval_debug</code>). Es lo que
+permite reconstruir, meses después, por qué el asistente dijo lo que dijo.</p>
+
+<!-- ───────────────────────── 7 ───────────────────────── -->
+<h2>7. Guardrails: controles deterministas</h2>
+<p>Cinco controles pueden <b>descartar una respuesta ya redactada</b>. Todos son código, no
+instrucciones al modelo, y cada uno existe porque se observó el fallo que evita:</p>
+<table>
+  <tr><th style="width:24%">Control</th><th>El fallo que lo motivó</th><th style="width:24%">Qué hace</th></tr>
+  <tr><td class="n" style="white-space:normal">1. Umbral semántico</td><td>Sin un mínimo de parecido, la búsqueda siempre devuelve algo.</td><td>Sin contexto, no se redacta: se ofrece derivar.</td></tr>
+  <tr><td class="n" style="white-space:normal">2. Versión citada</td><td>Escribió «STI-PO-01 v1» cuando el documento está en v2, contradiciendo su propia ficha de fuentes.</td><td>Corrige la versión contra la real y lo anota en la traza.</td></tr>
+  <tr><td class="n" style="white-space:normal">3. Código citado</td><td>Citó <code>PROC-CAL-04</code>, que no existe: lo copió del ejemplo de formato de su propio prompt.</td><td>Un código inexistente invalida la respuesta entera.</td></tr>
+  <tr><td class="n" style="white-space:normal">4. Fundamentación</td><td>Prometía derivar a Calidad sin que se registrara nada; se contaron 39 escalaciones sin registro.</td><td>La derivación existe en base o no se anuncia.</td></tr>
+  <tr><td class="n" style="white-space:normal">5. Registro afirmado</td><td>Respondió «la acción correctiva quedó registrada con el ID 100» sin haber ejecutado ninguna herramienta; la última acción era la 9.</td><td>Todo ID de hallazgo o acción afirmado se busca en la base. Si no está, se sustituye la respuesta.</td></tr>
+</table>
+<div class="nota">
+  <p><b>Por qué deterministas.</b> El modelo local a veces escribe la llamada a herramienta como texto
+  en vez de emitirla; el turno «funciona», no hay error, y la herramienta nunca se ejecuta. Un
+  control que dependa de que el modelo se acuerde de algo desaparece en silencio justo cuando
+  hace falta. Por eso el consentimiento para derivar, la verificación de citas y la de registros
+  no son herramientas: son código que se ejecuta siempre.</p>
+</div>
+<p><b>Consentimiento antes de derivar.</b> Nada entra en la bandeja de Calidad sin que el usuario
+diga que sí. Toda respuesta que deje una propuesta de derivación abierta termina con la misma
+pregunta, venga de un guardrail o de una herramienta, y el turno siguiente se resuelve
+comprobando eso. Antes de este control la bandeja acumuló 306 consultas que nadie había pedido
+derivar; una bandeja así se deja de mirar.</p>
+<p>Otros controles previenen antes de llegar ahí: filtro de alcance con suelo determinista y
+juicio del modelo para el material visual, detección de inyección de prompt en la escena,
+recuperación de llamadas a herramienta escritas como texto, cortacircuitos ante fallos del LLM,
+límite de peticiones por IP y tiempo máximo por consulta.</p>
+
+<!-- ───────────────────────── 8 ───────────────────────── -->
+<h2>8. El agente y sus herramientas</h2>
+<p>No es un enrutador de intenciones: las nueve herramientas se exponen por <i>function
+calling</i> y <b>el modelo elige</b>. Cuatro de ellas tienen efecto real sobre la base de datos.</p>
+<table>
+  <tr><th style="width:34%">Herramienta</th><th>Qué hace</th><th style="width:16%">Efecto</th></tr>
+  <tr><td class="n">buscar_documentos</td><td>«¿Tienen políticas de TI?»: consulta el catálogo por título, código y área.</td><td>lectura</td></tr>
+  <tr><td class="n">leer_documento</td><td>Resume un documento completo y ofrece navegar sus secciones.</td><td>lectura</td></tr>
+  <tr><td class="n">register_finding</td><td>Registra una no conformidad con severidad y área.</td><td class="ok">escribe</td></tr>
+  <tr><td class="n">ampliar_hallazgo</td><td>Añade detalle a un hallazgo ya registrado.</td><td class="ok">escribe</td></tr>
+  <tr><td class="n">registrar_accion_correctiva</td><td>Cierra el ciclo CAPA: exige acción, responsable y fecha; deduplica.</td><td class="ok">escribe</td></tr>
+  <tr><td class="n">get_capa_status</td><td>Estado de las acciones correctivas de un hallazgo.</td><td>lectura</td></tr>
+  <tr><td class="n">escalate_to_quality</td><td>Propone la derivación al responsable humano y la deja registrada, pendiente de confirmación.</td><td class="ok">escribe</td></tr>
+  <tr><td class="n">describir_capacidades</td><td>Responde sobre sí mismo sin consultar el SGC.</td><td>—</td></tr>
+  <tr><td class="n">generar_material_visual</td><td>Prepara un cartel con respaldo documental y lo entrega a la página de material visual.</td><td>—</td></tr>
+</table>
+<p><b>El ciclo CAPA, en un hilo.</b> El operario cuenta lo que vio; el agente lo clasifica (menor,
+mayor, observación), lo registra y <b>pregunta quién se encargará y para cuándo</b>. Con esos dos
+datos registra la acción correctiva y el hallazgo pasa a «en revisión». La fecha relativa
+(«antes del 15 de noviembre») se interpreta con la fecha del día inyectada en el prompt: sin
+ella el modelo devolvía fechas del año anterior y la acción nacía vencida.</p>
+
+<!-- ───────────────────────── 9 ───────────────────────── -->
+<h2>9. Fine-tuning con QLoRA</h2>
+<p>El objetivo del fine-tuning no era que el modelo «supiera» el SGC (eso lo resuelve la
+recuperación) sino que <b>respondiera en el formato del producto</b>: cita con código, versión y
+sección; llamada a herramienta como <i>tool call</i> y no como texto; negativa con escalación
+cuando no hay respaldo.</p>
+<h3>Dataset</h3>
+<p>584 ejemplos ensamblados <b>de lo que el proyecto ya tenía verificado</b>, no redactados a mano
+(<code>scripts/build_finetune_dataset.py</code>):</p>
+<table>
+  <tr><th>Familia</th><th class="num">Ejemplos</th><th>Qué enseña</th></tr>
+  <tr><td class="n">cita</td><td class="num">400</td><td>Responder con respaldo y citar código, versión y sección (de las 730 FAQ verificadas; recortada para no ahogar a las demás).</td></tr>
+  <tr><td class="n">herramienta</td><td class="num">135</td><td>Emitir la llamada como <i>tool call</i>, no escribirla en el texto.</td></tr>
+  <tr><td class="n">escalacion</td><td class="num">31</td><td>Negarse y llamar a <code>escalate_to_quality</code> sin respaldo.</td></tr>
+  <tr><td class="n">fantasma</td><td class="num">14</td><td>No citar un documento inexistente (los 14 rechazos documentados del FAQ).</td></tr>
+  <tr><td class="n">social</td><td class="num">4</td><td>Saludar sin escalar a Calidad.</td></tr>
+</table>
+<p>Reparto 468 / 57 / 59 (train / valid / test) <b>por grupo de cláusula de origen</b>, no por
+ejemplo: dos preguntas de la misma cláusula comparten casi todo el prompt y separarlas
+convertiría la validación en una medida de memorización. Las 12 preguntas del banco de pruebas
+quedan <b>fuera de las tres particiones</b>.</p>
+<h3>Entrenamiento</h3>
+<p>QLoRA sobre <code>mlx-community/Qwen3-4B-4bit</code> con MLX en Apple Silicon:
+<b>0,365 % de parámetros entrenables</b> (14,7 M de 4 022 M), 400 iteraciones, tasa de
+aprendizaje 1e-4, memoria pico 11,3 GB. Pérdida de validación de 2,259 a 0,221; pérdida en
+test 0,284 (perplejidad 1,33). Registro completo en <code>docs/entrenamiento.log</code>.</p>
+<h3>Resultado</h3>
+<p>Sobre las 12 consultas excluidas del entrenamiento, el modelo base acierta <b>11 de 12</b> y el
+afinado <b>12 de 12</b> (<code>docs/comparacion-lora.md</code>, con las respuestas completas de
+ambos). Lo que cambia no es tanto el acierto como la forma: la respuesta pasa de una
+mediana de 1 014 a 160 caracteres y cita de forma más consistente. Es un resultado
+independiente y medido, como pide la guía, y se presenta separado del que aporta el RAG.</p>
+<div class="nota aviso">
+  <p><b>Un efecto secundario medido:</b> el fine-tuning empeoró la emisión de llamadas a herramienta
+  del 100 % al 75 % en una de las mediciones. Entrenar una llamada como texto la empuja hacia su
+  forma de texto. El control de «registro afirmado» de la sección 7 existe en parte por esto.</p>
+</div>
+
+<!-- ───────────────────────── 10 ───────────────────────── -->
+<h2>10. Generación de material visual</h2>
+<p>ISO 9001 pide formar y comunicar (cláusulas 7.2, 7.3 y 7.4). El material de concienciación no
+es decoración: da servicio a tres cláusulas del estándar. NormIA genera carteles y señalética
+<b>que citan la cláusula que los respalda</b>, y la cita se valida contra el catálogo: no se
+puede imprimir un respaldo que no existe.</p>
+<ul>
+  <li><b>La escena la escribe el usuario en castellano</b>; el modelo la traduce a un prompt
+  telegráfico en inglés y <b>juzga si está dentro del alcance</b> de un sistema de gestión (un
+  suelo determinista rechaza lo inaceptable; el resto lo decide el modelo, incluida la
+  detección de inyección de prompt en la propia escena).</li>
+  <li><b>SDXL base + refinador en MPS</b>, con el VAE de precisión corregida. El refinador trabaja
+  sobre la imagen decodificada, no sobre latentes: el traspaso en latentes desbordaba en
+  fp16 y devolvía imágenes negras.</li>
+  <li><b>El texto no lo dibuja el modelo.</b> El titular, el logotipo real y la cita de la cláusula
+  se componen encima; el modelo solo dibuja la escena. Un modelo de difusión escribe letras
+  ilegibles.</li>
+  <li><b>Los prompts caben en 77 tokens.</b> CLIP corta en 77 sin avisar; el negativo llegó a tener
+  135 y el modelo descartaba 58, entre ellos los términos contra deformidades. Un test lo mide
+  con el tokenizador real.</li>
+  <li><b>Licencia.</b> SDXL es CreativeML OpenRAIL++-M: permite el uso como servicio pero obliga
+  a propagar sus restricciones; <code>condiciones.html</code> las muestra al usuario. En
+  producción se sustituiría por FLUX.1 (Apache 2.0).</li>
+</ul>
+<figure class="half">
+  <img src="informe/07-pieza-visual.png" alt="Cartel generado: revisa tu arnés antes de subir">
+  <figcaption>Figura 4. Pieza generada en 44 s en local, con el logotipo real compuesto encima. Fondo
+  liso y figura separada del fondo tras corregir el presupuesto de tokens del prompt.</figcaption>
+</figure>
+
+<!-- ───────────────────────── 11 ───────────────────────── -->
+<h2>11. Seguridad, roles y aislamiento</h2>
+<table>
+  <tr><th style="width:28%">Aspecto</th><th>Implementación</th></tr>
+  <tr><td class="n" style="white-space:normal">Autenticación</td><td><code>hashlib.scrypt</code> para contraseñas y cookie de sesión firmada con HMAC-SHA256 (<code>httpOnly</code>, 12 h). Sin dependencias externas.</td></tr>
+  <tr><td class="n" style="white-space:normal">Tres roles</td><td><b>operario</b> (consulta, reporta, ve sus hallazgos), <b>calidad</b> (gestión documental, bandeja, CAPA), <b>admin</b>. Todo <code>/api/admin/*</code> exige rol de Calidad a nivel de router: cuatro intentos de un operario devuelven 403.</td></tr>
+  <tr><td class="n" style="white-space:normal">Aislamiento por cliente</td><td>El tenant se toma de la sesión, nunca del cuerpo de la petición. Con <code>PUBLIC_TENANT_ID</code>, el anónimo solo ve el corpus público.</td></tr>
+  <tr><td class="n" style="white-space:normal">Límite de peticiones</td><td>Ventana deslizante por IP. La cabecera de reenvío solo se lee con <code>TRUSTED_PROXY</code> declarado; medido: sin eso, 60 peticiones con la cabecera falseada y 0 bloqueadas.</td></tr>
+  <tr><td class="n" style="white-space:normal">Resiliencia</td><td>Cortacircuitos ante fallos del LLM, reintentos acotados, tiempo máximo de 60 s, incidentes con número de referencia visible al usuario.</td></tr>
+  <tr><td class="n" style="white-space:normal">Datos</td><td>Ningún documento ni consulta sale de la máquina. Sin fuentes web ni CDN en la interfaz.</td></tr>
+</table>
+
+<!-- ───────────────────────── 12 ───────────────────────── -->
+<h2>12. Resultados</h2>
+<p>Tres mediciones distintas, con sus ficheros de origen. No deben mezclarse: responden a
+preguntas diferentes.</p>
+<h3>12.1 Qué aporta cada pieza (mismo modelo, tres estados)</h3>
+<p>Modelo <code>Qwen3-4B-4bit</code> sobre las 12 consultas del banco (<code>docs/tres-estados-empresa-demo-iso.md</code>):</p>
+<table>
+  <tr><th>Métrica</th><th class="num">Sin RAG</th><th class="num">Con RAG</th><th class="num">RAG + LoRA</th></tr>
+  <tr><td>Acierta en conjunto</td><td class="num mal">8 %</td><td class="num ok">100 %</td><td class="num ok">100 %</td></tr>
+  <tr><td>Cita el documento correcto</td><td class="num">25 %</td><td class="num ok">100 %</td><td class="num ok">100 %</td></tr>
+  <tr><td>Usa la herramienta correcta</td><td class="num mal">0 %</td><td class="num ok">100 %</td><td class="num ok">100 %</td></tr>
+  <tr><td>Escala cuando debe</td><td class="num">75 %</td><td class="num ok">100 %</td><td class="num ok">100 %</td></tr>
+  <tr><td>Sin citas inventadas</td><td class="num">92 %</td><td class="num ok">100 %</td><td class="num ok">100 %</td></tr>
+</table>
+<p>La primera columna es la razón de ser del proyecto: un modelo sin los documentos delante
+responde con seguridad y se inventa el código del procedimiento (<code>STI-MA-02</code>, que
+no existe en el SGC).</p>
+<h3>12.2 Línea base del modelo de producción</h3>
+<p><code>qwen3.8:27b-mlx</code> con RAG, congelada el 24/09/2026 antes de cualquier fine-tuning
+(<code>docs/linea-base.md</code>): cita el documento correcto 88 %, acierta la cláusula 100 %,
+sin citas inventadas 100 %, latencia mediana 14,8 s. Su punto débil medido era la herramienta
+correcta (50 %), que es lo que motivó el dataset de la familia <code>herramienta</code>.</p>
+<h3>12.3 Valor del fine-tuning (casos no vistos)</h3>
+<p>Base 11 / 12 frente a LoRA 12 / 12 sobre las consultas excluidas del entrenamiento, con
+latencia mediana 7,5 s frente a 7,9 s: la mejora no penaliza el tiempo de respuesta.</p>
+<h3>12.4 Rendimiento del sistema completo (ensayo del 22/10/2026)</h3>
+<div class="cifras">
+  <div class="cifra"><div class="v">2,7 s</div><div class="k">consulta documental con el modelo caliente (5,9 s en frío)</div></div>
+  <div class="cifra"><div class="v">~15 s</div><div class="k">turno del ciclo CAPA con llamada a herramienta</div></div>
+  <div class="cifra"><div class="v">44 s</div><div class="k">pieza visual con refinador, en local (70 s en frío)</div></div>
+  <div class="cifra"><div class="v">17,5 GB</div><div class="k">memoria del LLM; SDXL 6,6 + refinador 5,8 GB, liberados al terminar</div></div>
+</div>
+<h3>12.5 Verificación automatizada</h3>
+<p><b>436 tests en 19 ficheros</b>, 3 s de ejecución. Los de mayor peso: enrutado (46),
+consentimiento (44 + 9), herramientas (36), citas (27), troceado (27), imágenes (26),
+autenticación (25), fundamentación (23), seguridad (18), CAPA (16). Varios tests nacieron de un
+defecto encontrado en vivo y escriben en su docstring el incidente que reproducen.</p>
+
+<!-- ───────────────────────── 13 ───────────────────────── -->
+<h2>13. El sistema en funcionamiento</h2>
+<p>Capturas del ensayo completo del 22 de octubre de 2026 sobre el SGC real, con sesión del
+Responsable de Calidad.</p>
+<figure>
+  <img src="informe/01-respuesta-con-fuente-chat.png" alt="Respuesta con cita de documento, versión y sección">
+  <figcaption>Figura 5. Consulta sobre el arnés: la respuesta cita <code>OPE-PR-04 v1</code>, sección 7.2.4,
+  con la fecha desde la que está vigente. Los chips de debajo navegan a otras secciones del mismo documento.</figcaption>
+</figure>
+<div class="dos">
+  <figure>
+    <img src="informe/02-codigo-inventado-bloqueado-chat.png" alt="Intento de cita inventada bloqueado">
+    <figcaption>Figura 6. Se le pide citar un procedimiento inexistente. El modelo escribió el código; el
+    control 3 lo detectó, descartó la respuesta y preguntó si derivar. Nada entra en la bandeja sin un sí.</figcaption>
+  </figure>
+  <figure>
+    <img src="informe/06-registro-inventado-bloqueado-chat.png" alt="Registro afirmado sin existir, bloqueado">
+    <figcaption>Figura 7. El modelo afirmó haber registrado un hallazgo sin llamar a la herramienta. El control 5
+    lo sustituyó por un mensaje veraz en vez de dar por hecho un registro que no existe.</figcaption>
+  </figure>
+</div>
+<figure>
+  <img src="informe/03-subida-aviso-lista-maestra.png" alt="Subida de un PDF con aviso de Lista Maestra">
+  <figcaption>Figura 8. Se sube una política nueva arrastrando el PDF. El sistema lee código y versión del
+  membrete y avisa de que <code>OPE-PO-02</code> no figura en la Lista Maestra. Debajo, la cola de consultas
+  derivadas con su motivo.</figcaption>
+</figure>
+<figure class="half">
+  <img src="informe/04-responde-tras-subir-chat.png" alt="La misma pregunta, ahora con respuesta">
+  <figcaption>Figura 9. La pregunta que minutos antes no tenía respaldo («velocidad máxima en el patio de
+  maniobras») ahora se responde citando la sección 4.1 del documento recién subido, vigente desde ese día.</figcaption>
+</figure>
+<div class="dos">
+  <figure>
+    <img src="informe/05-panel-calidad.png" alt="Panel de Calidad">
+    <figcaption>Figura 10. Panel de Calidad: documentos que requieren revisión, consultas derivadas con su
+    motivo y, más abajo, las no conformidades con su acción correctiva y los días que faltan.</figcaption>
+  </figure>
+  <figure>
+    <img src="informe/08-vista-operario.png" alt="Vista del operario">
+    <figcaption>Figura 11. La misma aplicación con sesión de operario: desaparece la gestión documental y
+    las métricas se reducen a lo que le concierne. Las llamadas directas a <code>/api/admin/*</code>
+    devuelven 403.</figcaption>
+  </figure>
+</div>
+
+<!-- ───────────────────────── 14 ───────────────────────── -->
+<h2>14. Limitaciones</h2>
+<p>Se enumeran las que un tribunal preguntaría primero, incluidas las encontradas en el ensayo
+final. Ninguna está maquillada.</p>
+<ol>
+  <li><b>El banco son 12 consultas.</b> Suficiente para ver un patrón, corto para afirmar un
+  porcentaje con intervalo de confianza.</li>
+  <li><b>Contenido inventado con cita real.</b> Preguntado por cotizaciones de compras, el sistema
+  respondió «tres cotizaciones para compras mayores a 1 000 soles» citando <code>COM-PR-01 v3,
+  sección 6.1.2</code>. El documento existe, la sección existe, pero dice «una cotización» y no
+  hay umbral alguno: la búsqueda trajo una plantilla en blanco titulada «Cotización» y el modelo
+  rellenó el hueco con conocimiento general. El sistema <b>lo detecta</b> (evento
+  <code>citation_not_retrieved</code>: el código citado no estaba entre lo recuperado) pero hoy
+  solo lo registra. Conectarlo como bloqueo es el siguiente cambio, y el más importante.</li>
+  <li><b>La llamada a herramienta no es fiable turno a turno.</b> El modelo local a veces escribe
+  en prosa que registró algo sin emitir la llamada. El control de registro afirmado lo convierte
+  en un mensaje veraz y recuperable, pero no lo evita. Ollama ignora <code>tool_choice</code>,
+  así que no se puede forzar.</li>
+  <li><b>El fine-tuning empeoró la emisión de llamadas</b> del 100 % al 75 % en una medición.</li>
+  <li><b>24 cláusulas del SGC son imágenes</b> y una está escaneada: hoy se descartan en la ingesta.
+  Harían falta OCR y un modelo de visión.</li>
+  <li><b>Deduplicación de hallazgos por huella</b>: dejó pasar dos registros casi idénticos del
+  mismo extintor con redacción distinta.</li>
+  <li><b>Al borrar un documento, su trabajo de subida queda huérfano</b> en la lista de revisión.</li>
+  <li><b>El material visual no entra en documentos controlados.</b> Formación sí; documento del
+  SGC no: sería un problema de auditoría.</li>
+  <li><b>Sin pruebas de carga.</b> Generar una imagen bloquea un hilo 44 s; el límite de
+  peticiones y el cortacircuitos viven en memoria del proceso.</li>
+</ol>
+
+<!-- ───────────────────────── 15 ───────────────────────── -->
+<h2>15. Conclusiones y próximos pasos</h2>
+<p><b>Lo que el proyecto demuestra.</b> Un modelo de lenguaje local, sin los documentos delante,
+acierta 1 de 12 consultas sobre un SGC real e inventa códigos de procedimiento. Con recuperación
+por cláusula, umbral semántico y una capa de controles deterministas, acierta 12 de 12 y no cita
+nada que no exista. El fine-tuning, medido por separado sobre casos no vistos, mejora el
+formato sin penalizar la latencia. El agente cierra el ciclo de no conformidad con registros
+reales, verificables en la base, y nada se deriva a Calidad sin consentimiento.</p>
+<p><b>Lo que aprendimos.</b> Los fallos más caros no fueron de precisión sino de <i>promesa
+incumplida</i>: el sistema afirmando que había derivado, registrado o generado algo que no
+existía. Todos se resolvieron del mismo modo, verificando el hecho contra la base en vez de
+confiar en la redacción. Y los defectos más importantes se encontraron ensayando el flujo
+completo en el navegador, no en los tests: la cobertura automatizada no sustituye el uso real.</p>
+<h3>Próximos pasos, por orden</h3>
+<table>
+  <tr><th style="width:34%">Paso</th><th>Por qué</th></tr>
+  <tr><td class="n" style="white-space:normal">Bloquear la cita no recuperada</td><td>El detector existe y registra el evento; falta tratarlo como bloqueo, igual que la cita inexistente. Es la limitación 2.</td></tr>
+  <tr><td class="n" style="white-space:normal">Servir con vLLM en vez de Ollama</td><td>Medido: Ollama ignora <code>tool_choice</code>. No se puede forzar una llamada, y no es un servidor de carga.</td></tr>
+  <tr><td class="n" style="white-space:normal">Cola para lo lento</td><td>Generar una imagen bloquea un hilo 44 s; la ingesta de PDF, igual.</td></tr>
+  <tr><td class="n" style="white-space:normal">Estado compartido en Redis</td><td>Cortacircuitos y límite de peticiones por proceso: con dos instancias, cada una lleva su cuenta.</td></tr>
+  <tr><td class="n" style="white-space:normal">OCR y visión para lo escaneado</td><td>Recupera las 24 cláusulas que hoy se pierden.</td></tr>
+  <tr><td class="n" style="white-space:normal">Norma agnóstica</td><td>Campo de norma por cliente para que ninguna pantalla fije «ISO 9001»: el mismo producto sirve a 14001, 45001 o 27001.</td></tr>
+</table>
+<p>Lo que <b>no</b> cambiaría: el modelo en local. Para un sistema de gestión certificado eso no es
+una ventaja técnica; es la condición para que el proyecto exista.</p>
+
+<!-- ───────────────────────── 16 ───────────────────────── -->
+<h2>16. Instrucciones de instalación y uso</h2>
+<p>Requisitos: macOS o Linux, Docker, Python 3.12 (<code>uv</code> lo instala), Ollama con el modelo
+indicado y unos 24 GB de memoria para el LLM. La generación de imágenes necesita 13 GB
+adicionales durante la pieza.</p>
+<pre style="font-size:8.2pt">git clone https://github.com/klauzirrazabal-max/normia-chatbot-iso.git
+cd normia-chatbot-iso
+cp .env.example .env                       # revisa LLM_MODEL, DATABASE_URL, ADMIN_API_KEY
+docker compose -f docker/docker-compose.yml up -d     # PostgreSQL 16 + pgvector
+uv sync                                    # Python 3.12 y dependencias con lockfile
+ollama pull qwen3.8:27b-mlx
+
+uv run python scripts/seed_demo_tenant.py --tenant demo-publica --name "Empresa Demo"
+uv run python scripts/ingest_docs.py --tenant demo-publica     # troceado por cláusula + embeddings
+uv run python scripts/load_registry.py --tenant demo-publica   # Lista Maestra
+uv run python scripts/crear_usuario.py calidad@empresa.com --rol calidad
+
+uv run uvicorn app.main:app --port 8000
+# http://localhost:8000  →  acceso, inicio, asistente, material visual, gestión documental
+
+uv run pytest -q                           # 436 tests</pre>
+<p>El repositorio incluye un SGC sintético (<code>scripts/generate_demo_corpus.py</code>) para que
+el proyecto se pueda clonar y ejecutar: los documentos reales de un cliente son información
+controlada y no entran en git. El <code>README.md</code> (913 líneas) documenta cada decisión,
+el umbral de distancia, la comparación de modelos y la verificación.</p>
+<table>
+  <tr><th>Variable</th><th>Para qué</th></tr>
+  <tr><td class="n">LLM_BASE_URL, LLM_MODEL</td><td>Cualquier servidor compatible con OpenAI: Ollama, vLLM, Groq.</td></tr>
+  <tr><td class="n">RAG_MAX_DISTANCE, RAG_RELATIVE_MARGIN</td><td>Umbral absoluto y margen relativo del guardrail semántico.</td></tr>
+  <tr><td class="n">PUBLIC_TENANT_ID</td><td>Fija el corpus que ve un visitante anónimo; ignora lo que mande el cliente.</td></tr>
+  <tr><td class="n">TRUSTED_PROXY</td><td>Detrás de qué proxy se está, para leer la IP real sin que el cliente la falsee.</td></tr>
+</table>
+
+<p class="pie-doc">NormIA · Informe técnico del Proyecto Integrador · Diploma AI Engineer, DMC Institute · 22 de
+octubre de 2026 · Repositorio: github.com/klauzirrazabal-max/normia-chatbot-iso</p>
+
+</body>
+</html>
