@@ -99,10 +99,35 @@ def _normalize(text: str) -> str:
 # asi se deja de mirar, y entonces el canal de escalacion deja de existir.
 #
 # Ahora OFRECE. La derivacion solo se crea si el usuario dice que si.
+# La PREGUNTA, aislada, porque es la pieza que hace falta reconocer despues.
+#
+# Nada entra en la bandeja de Calidad sin que el usuario diga que si, y la forma
+# de garantizarlo sin adivinar es esta: toda respuesta que deje una propuesta
+# abierta TERMINA con esta frase, venga de un guardrail o de una herramienta. El
+# turno siguiente se resuelve mirando si el mensaje anterior acaba asi -- no hay
+# heuristica ni ventana de tiempo que pueda equivocarse.
+PREGUNTA_DERIVAR = (
+    "¿Quieres que lo derive al Responsable de Calidad para que lo revise?"
+)
+
 NO_CONTEXT_MESSAGE = (
     "No tengo información suficiente en los documentos vigentes para responder eso "
     "con certeza, y prefiero no improvisar una respuesta sobre el sistema de gestión. "
-    "¿Quieres que lo derive al Responsable de Calidad para que lo revise?"
+    + PREGUNTA_DERIVAR
+)
+
+# OFRECE, no afirma -- por la misma razon.
+#
+# Decia "Prefiero no arriesgarme y derivarlo al Responsable de Calidad", y el
+# widget pintaba encima "Esta consulta quedo derivada". Pero el registro nace
+# `propuesta`, que NO entra en la bandeja de Calidad: se le prometia al usuario
+# una derivacion que nadie iba a recibir. Es el mismo fallo que motivo esta
+# tabla -- prometer una accion y no ejecutarla deja un rastro falso de que algo
+# se hizo -- reaparecido por el otro lado.
+PHANTOM_CITATION_MESSAGE = (
+    "No puedo darte una respuesta confiable a eso: al redactarla me referí a un documento "
+    "que no existe en el sistema documental, y prefiero no arriesgarme. "
+    + PREGUNTA_DERIVAR
 )
 
 DERIVACION_ACEPTADA_MESSAGE = (
@@ -114,6 +139,41 @@ DERIVACION_RECHAZADA_MESSAGE = (
     "De acuerdo, no lo derivo. Si quieres, reformula la consulta y la busco de nuevo "
     "en la documentación vigente."
 )
+
+
+def ofrece_derivar(texto: str) -> bool:
+    """¿Este mensaje termino preguntandole al usuario si deriva?"""
+    return (texto or "").rstrip().endswith(PREGUNTA_DERIVAR)
+
+
+def con_pregunta_de_derivar(texto: str) -> str:
+    """
+    Deja el mensaje terminando en la pregunta, exactamente una vez.
+
+    Lo usa el orquestador cuando la respuesta la redacto el MODELO y ademas
+    quedo una propuesta abierta: el modelo no es de fiar para acordarse de
+    preguntar, y de que pregunte depende que el usuario pueda contestar que si.
+
+    Si el modelo YA pregunto a su manera, su pregunta se SUSTITUYE en vez de
+    acumularse. Anadiendo sin mas quedaba "¿Confirmas que lo derive? ¿Quieres
+    que lo derive al Responsable de Calidad para que lo revise?" -- dos veces lo
+    mismo, que es justo lo que delata a un sistema cosido a parches.
+    """
+    limpio = (texto or "").rstrip()
+    if not limpio:
+        return PREGUNTA_DERIVAR
+    if ofrece_derivar(limpio):
+        return limpio
+    if limpio.endswith("?"):
+        # El castellano abre los interrogantes, asi que la ultima "¿" marca sin
+        # ambiguedad donde empieza la pregunta que hay que reemplazar.
+        apertura = limpio.rfind("¿")
+        if apertura != -1:
+            limpio = limpio[:apertura].rstrip()
+            if not limpio:
+                return PREGUNTA_DERIVAR
+    return f"{limpio}\n\n{PREGUNTA_DERIVAR}"
+
 
 def out_of_scope_hint(hoy: date | None = None) -> str:
     """
@@ -194,13 +254,6 @@ def classify_citations(
     inexistentes = resto - conocidos
 
     return respaldados, no_recuperados, inexistentes
-
-
-PHANTOM_CITATION_MESSAGE = (
-    "No puedo darte una respuesta confiable a eso: al redactarla me referí a un documento "
-    "que no existe en el sistema documental. Prefiero no arriesgarme y derivarlo al "
-    "Responsable de Calidad."
-)
 
 
 # --- Verificacion de VERSION -------------------------------------------------

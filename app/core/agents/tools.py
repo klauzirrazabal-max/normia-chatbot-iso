@@ -1360,6 +1360,15 @@ def escalate_to_quality(
         question=_pregunta_util(db, conversation_id, question),
         reason=reason,
         trigger=trigger,
+        # PROPUESTA, no pendiente. Sin esto la escalacion entraba directa en la
+        # bandeja de Calidad por decision del modelo, sin que nadie se lo
+        # pidiera: se acumularon 306 consultas que nadie habia querido derivar,
+        # y una bandeja asi se deja de mirar -- con lo que el canal de
+        # escalacion deja de existir justo cuando hace falta.
+        #
+        # El guardrail ya nacia como propuesta; esta era la puerta que quedaba
+        # abierta. Ahora NADA llega a Calidad sin que el usuario diga que si.
+        status="propuesta",
     )
     db.add(escalation)
     db.commit()
@@ -1374,9 +1383,9 @@ def escalate_to_quality(
         "escalation_id": escalation.id,
         "reason": reason,
         "message": (
-            f"La consulta quedo registrada como escalacion #{escalation.id} para el "
-            "Responsable de Calidad. Menciona ese numero al usuario para que pueda "
-            "darle seguimiento."
+            f"Queda ANOTADA como propuesta de derivacion #{escalation.id}. TODAVIA NO "
+            "esta en la bandeja de Calidad: hace falta que el usuario confirme. "
+            "Dile lo que vas a derivar y PREGUNTALE si quiere que lo derives."
         ),
     }
 

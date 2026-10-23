@@ -37,6 +37,8 @@ from app.core.guardrails.grounding_check import (
     NO_CONTEXT_MESSAGE,
     out_of_scope_hint,
     PHANTOM_CITATION_MESSAGE,
+    con_pregunta_de_derivar,
+    ofrece_derivar,
     classify_citations,
     extract_cited_codes,
     has_sufficient_context,
@@ -648,8 +650,11 @@ def _record_escalation(
 
 
 def _retag_escalation(
-    db: Session, tool_results: list[tuple[str, dict[str, Any]]], trigger: str
-) -> None:
+    db: Session,
+    tool_results: list[tuple[str, dict[str, Any]]],
+    trigger: str,
+    reason: str = "Sin documentos vigentes que respalden la respuesta.",
+) -> bool:
     """
     Reclasifica la escalacion que acaba de crear el modelo.
 
@@ -670,11 +675,13 @@ def _retag_escalation(
         escalation = db.get(Escalation, escalation_id)
         if escalation is not None and escalation.trigger != trigger:
             escalation.trigger = trigger
-            escalation.reason = "Sin documentos vigentes que respalden la respuesta."
-            # El usuario esta leyendo una PREGUNTA, no un aviso: la herramienta
-            # la creo como pendiente, pero mientras no conteste no es un encargo.
+            escalation.reason = reason
+            # El usuario esta leyendo una PREGUNTA, no un aviso: mientras no
+            # conteste no es un encargo.
             escalation.status = "propuesta"
             db.flush()
+        return True
+    return False
 
 
 def _resolver_consentimiento(
@@ -701,7 +708,7 @@ def _resolver_consentimiento(
         .order_by(Message.id.desc())
         .first()
     )
-    if ultimo_bot is None or ultimo_bot[0] != NO_CONTEXT_MESSAGE:
+    if ultimo_bot is None or not ofrece_derivar(ultimo_bot[0]):
         return None
 
     propuesta = (
@@ -820,6 +827,95 @@ def _dominant_document(chunks: list[RetrievedChunk]) -> str | None:
 
     codigo, veces = max(conteo.items(), key=lambda kv: kv[1])
     return codigo if veces * 2 >= len(chunks) else None
+
+
+# --- Guardrail: no dar por registrada una accion correctiva que no existe -----
+#
+# Medido en vivo: el usuario contesto "se encarga el jefe de operaciones, antes
+# del 15 de noviembre" y el bot respondio "La accion correctiva quedo registrada
+# con el ID 100, asignada al Jefe de Operaciones con fecha limite 15 de
+# noviembre de 2026". No se ejecuto NINGUNA herramienta en ese turno y la
+# accion 100 no existe -- la ultima era la 9. El hallazgo se quedo `abierto`,
+# sin responsable ni fecha, mientras el usuario creia haber cerrado el ciclo.
+#
+# Es el fallo que esta tabla existe para impedir, en su version mas cara: en una
+# auditoria, una no conformidad mayor sin accion correctiva es un hallazgo
+# contra la organizacion, y aqui ademas nadie iba a enterarse.
+#
+# No se cazan formulaciones -- eso ya se intento con los carteles y se pierde
+# siempre. Se VERIFICA EL HECHO: si el turno afirma un ID de accion correctiva y
+# ese ID no esta en la base, la afirmacion es falsa. Mismo criterio que con las
+# citas de documentos.
+_ID_ACCION_RE = re.compile(
+    r"acci[oó]n correctiva[^.\n]{0,90}?\bID\s*(\d{1,6})\b"
+    r"|\bID\s*(\d{1,6})\b[^.\n]{0,90}?acci[oó]n correctiva",
+    re.IGNORECASE | re.DOTALL,
+)
+
+# El mismo fallo un nivel mas arriba, y se vio en el mismo ensayo: "He
+# registrado la no conformidad con el ID 51" cuando el ultimo hallazgo era el
+# 50 y `register_finding` no se habia ejecutado. Si ni el hallazgo existe, el
+# ciclo CAPA no empezo siquiera.
+_ID_HALLAZGO_RE = re.compile(
+    r"(?:no conformidad|hallazgo|observaci[oó]n)[^.\n]{0,90}?\bID\s*(\d{1,6})\b"
+    r"|\bID\s*(\d{1,6})\b[^.\n]{0,90}?(?:no conformidad|hallazgo)",
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+def _ids_afirmados(patron: re.Pattern[str], texto: str) -> set[int]:
+    return {int(m.group(1) or m.group(2)) for m in patron.finditer(texto or "")}
+
+
+def _registros_inventados(db: Session, texto: str) -> list[str]:
+    """
+    Lo que el texto da por registrado y no esta en la base.
+
+    Se verifica el HECHO, no la redaccion: cazar formulaciones ya se intento con
+    los carteles y se pierde siempre, porque hay infinitas maneras de decir lo
+    mismo. Un ID, en cambio, o esta en la tabla o no esta.
+    """
+    from app.models.db_models import CapaAction, Finding
+
+    faltan: list[str] = []
+    for patron, modelo, etiqueta in (
+        (_ID_ACCION_RE, CapaAction, "accion correctiva"),
+        (_ID_HALLAZGO_RE, Finding, "hallazgo"),
+    ):
+        afirmados = _ids_afirmados(patron, texto)
+        if not afirmados:
+            continue
+        existentes = {
+            fila[0] for fila in db.query(modelo.id).filter(modelo.id.in_(afirmados)).all()
+        }
+        faltan += [f"{etiqueta} #{i}" for i in sorted(afirmados - existentes)]
+    return faltan
+
+
+def _acciones_inventadas(db: Session, texto: str) -> list[int]:
+    """IDs de accion correctiva que el texto afirma y que no existen."""
+    from app.models.db_models import CapaAction
+
+    afirmados = _ids_afirmados(_ID_ACCION_RE, texto)
+    if not afirmados:
+        return []
+    existentes = {
+        fila[0]
+        for fila in db.query(CapaAction.id).filter(CapaAction.id.in_(afirmados)).all()
+    }
+    return sorted(afirmados - existentes)
+
+
+# Lo LEE una persona.
+SIN_ACCION_CORRECTIVA_MESSAGE = (
+    "No he registrado la acción correctiva todavía. Para dejarla anotada necesito "
+    "dos datos: quién se encarga de corregirlo y para cuándo. Dímelos y la registro."
+)
+
+SIN_REGISTRO_MESSAGE = (
+    "No llegué a registrar eso en el sistema, así que prefiero decírtelo en vez de "
+    "darlo por hecho. Vuelve a contarme qué encontraste y lo anoto."
+)
 
 
 # --- Guardrail: no prometer un cartel que no se esta generando ----------------
@@ -1296,15 +1392,21 @@ def handle_message(db: Session, msg: IncomingMessage) -> BotResponse:
             )
 
     if phantom_codes:
-        _record_escalation(
-            db,
-            msg,
-            conversation.id,
-            f"La respuesta cito documentos inexistentes: {', '.join(sorted(phantom_codes))}.",
-            "error",
+        motivo = (
+            f"La respuesta cito documentos inexistentes: {', '.join(sorted(phantom_codes))}."
         )
+        # Si el modelo ya llamo a la herramienta, se REETIQUETA la suya en vez de
+        # anadir otra. Sin esto, una sola pregunta dejaba dos registros --
+        # medido: #337 (pendiente, de la herramienta) y #338 (propuesta, del
+        # guardrail) para la misma consulta -- y uno de los dos saltaba la
+        # confirmacion del usuario.
+        if not _retag_escalation(db, tool_results, "error", motivo):
+            _record_escalation(db, msg, conversation.id, motivo, "error")
+        # escalate=False: la respuesta PREGUNTA si derivar. Decia True, y el
+        # widget pintaba "Esta consulta quedo derivada" sobre un registro que
+        # seguia en `propuesta` y que Calidad nunca veia.
         response = BotResponse(
-            text=PHANTOM_CITATION_MESSAGE, escalate=True, grounded=False
+            text=PHANTOM_CITATION_MESSAGE, escalate=False, grounded=False
         )
         return _persist_and_return(
             db, conversation.id, response, retrieval, executed_tools, started
@@ -1395,6 +1497,36 @@ def handle_message(db: Session, msg: IncomingMessage) -> BotResponse:
             )
             answer = SIN_MATERIAL_MESSAGE
 
+        # Y la accion correctiva: si el turno afirma un ID que no esta en la
+        # base, lo afirmado no ocurrio. Se sustituye entero en vez de corregir
+        # el numero, porque lo que falta no es el ID: es la accion.
+        inventados = _registros_inventados(db, answer)
+        if inventados:
+            logger.warning(
+                "guardrail.registro_inventado",
+                extra={
+                    "registros": inventados,
+                    "question": msg.text[:120],
+                    "tools": executed_tools,
+                },
+            )
+            # Si lo que falta es la accion, se pide lo que falta; si falta el
+            # hallazgo, no hay ciclo que continuar y se vuelve al principio.
+            answer = (
+                SIN_ACCION_CORRECTIVA_MESSAGE
+                if all(x.startswith("accion") for x in inventados)
+                else SIN_REGISTRO_MESSAGE
+            )
+
+        # La herramienta dejo una PROPUESTA de derivacion, no un encargo. Para
+        # que el usuario pueda confirmarla, la respuesta tiene que acabar
+        # preguntandoselo -- y de eso no se puede depender del modelo: a veces
+        # escribe la llamada a herramienta como texto plano y ni siquiera se
+        # entera de haberla hecho. Anadirla aqui hace que la regla se cumpla
+        # siempre: si hay propuesta abierta, al usuario se le pregunto.
+        if escalated_by_tool:
+            answer = con_pregunta_de_derivar(answer)
+
         response = BotResponse(
             text=answer,
             solicitud_imagen=solicitud,
@@ -1407,8 +1539,11 @@ def handle_message(db: Session, msg: IncomingMessage) -> BotResponse:
             # Acotado a lo documental, igual que el guardrail: si no se puede
             # bloquear ni registrar, tampoco se puede anunciar al usuario que se
             # derivo. Decia "lo derive a Calidad" sin que existiera la fila.
-            escalate=escalated_by_tool
-            or (exige_respaldo and not grounded_context and not data_tools_ran),
+            # Ya no vale `escalated_by_tool`: la herramienta solo PROPONE, y
+            # `escalate=True` es lo que pinta "Esta consulta quedo derivada" en
+            # el widget. Se anuncia derivado unicamente cuando el usuario lo
+            # confirmo, que es en `_resolver_consentimiento`.
+            escalate=False,
             # Citar un documento real que NO se recupero significa que el modelo
             # tiro de memoria, no del contexto: la respuesta deja de estar
             # fundamentada aunque el codigo exista.
