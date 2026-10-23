@@ -204,3 +204,41 @@ class TestElJuez:
         vale, motivo, _ = juzgar_alcance("la fiesta de mi hijo")
         assert vale is False
         assert "evento personal" in motivo
+
+
+# --- Presupuesto de tokens de CLIP ------------------------------------------
+#
+# CLIP corta en 77 tokens SIN AVISAR: no lanza error, no deja traza, solo
+# ignora el resto. El negativo llego a tener 135 y el generador descartaba 58,
+# entre ellos "poorly drawn face", "poorly drawn hands" y "cluttered" -- los
+# terminos que mas pesaban contra las deformidades que se veian en las piezas.
+# Estuvieron meses escritos en el fichero sin efecto ninguno.
+#
+# Un limite que se incumple sin sintoma solo se nota midiendolo.
+
+LIMITE_CLIP = 77
+
+
+def _tokens(texto: str) -> int:
+    transformers = pytest.importorskip("transformers")
+    tk = transformers.CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
+    return len(tk(texto)["input_ids"])
+
+
+def test_negativo_entra_entero_en_clip():
+    from scripts.generar_imagenes import NEGATIVO
+
+    assert _tokens(NEGATIVO) <= LIMITE_CLIP
+
+
+def test_la_marca_deja_sitio_a_la_escena():
+    """
+    La escena va PRIMERO y el estilo detras, asi que lo que se pierde al cortar
+    es el estilo. La marca sola tiene que dejar holgura para una escena normal:
+    si se la come entera, "sharp focus on the face" no llega y vuelven las caras
+    inventadas.
+    """
+    from scripts.generar_imagenes import MARCA
+
+    escena = "worker inspecting safety harness stitching before working at height"
+    assert _tokens(f"{escena}, {MARCA}") <= LIMITE_CLIP

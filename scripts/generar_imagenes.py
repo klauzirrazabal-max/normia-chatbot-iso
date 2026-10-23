@@ -63,34 +63,38 @@ GRAFITO = (0x30, 0x30, 0x30)
 # unos 40 pixeles, y con tan pocos el modelo se la inventa -- caras fundidas,
 # manos de seis dedos, piernas que no encajan. Un plano de medio cuerpo le da
 # cuatro veces mas pixeles a lo que mas se mira.
+# El estilo va DESPUES de la escena en el prompt, asi que lo que sobre de 77
+# tokens se corta por aqui. Por eso es telegrafico: cada palabra que se gasta en
+# adornos se la quita a "sharp focus on the face".
+#
+# "plain uncluttered background" y "shallow depth of field" no son estetica: son
+# lo que separa a la persona del fondo. Sin eso SDXL dibuja la estructura y la
+# figura en el mismo plano, y las vigas acaban atravesando el cuerpo.
 MARCA = (
-    "modern editorial illustration for a corporate safety campaign, "
-    "medium shot from the waist up, subject filling the frame, "
-    "clean geometric shapes with soft shading and depth, "
-    "deep corporate blue, white and safety orange palette, "
-    "single dominant subject, centered, balanced composition, "
-    "crisp edges, professional, highly detailed, sharp focus on the face"
+    "corporate safety illustration, medium shot from the waist up, "
+    "one worker centered, plain uncluttered background, shallow depth of field, "
+    "clean shapes with soft shading, deep blue white and safety orange, "
+    "sharp focus on the face, professional"
 )
 
-# El negativo carga contra el texto por partida triple -- letras, y ademas las
-# FORMAS que las invocan: un panel, una pancarta o una infografia hacen que el
-# modelo rellene el hueco con garabatos que parecen palabras. Medido: pidiendo
-# "los 4 pilares de la calidad" salio una lamina entera de texto ilegible.
 NEGATIVO = (
-    # Texto: por partida triple -- las letras, y ademas las FORMAS que las
-    # invocan. Un panel o una infografia hacen que el modelo rellene el hueco
-    # con garabatos que parecen palabras.
-    "text, letters, words, numbers, typography, caption, label, watermark, "
-    "signature, logo, brand name, infographic, chart, graph, diagram, poster, "
-    "banner, sign, signage, slide, presentation board, speech bubble, document page, "
-    # Anatomia. Lo anterior solo decia "distorted hands, extra limbs", que para
-    # SDXL es poca cosa: salian caras fundidas, dedos de mas y proporciones
-    # imposibles. Estos son los terminos que de verdad mueven la aguja.
-    "deformed, disfigured, mutated, malformed, bad anatomy, bad proportions, "
-    "extra fingers, fused fingers, missing fingers, extra arms, extra legs, "
-    "disconnected limbs, poorly drawn face, poorly drawn hands, asymmetric eyes, "
-    "cross-eyed, blurry face, featureless face, long neck, duplicate, "
-    "cluttered, lowres, jpeg artifacts, out of frame, cropped head"
+    # CABE EN 77 TOKENS, y es un requisito, no una preferencia. CLIP corta en 77
+    # SIN AVISAR: la version anterior tenia 135 y el modelo descartaba 58, entre
+    # ellos "poorly drawn face", "poorly drawn hands" y "cluttered". Los
+    # terminos que mas pesaban contra las deformidades llevaban meses escritos
+    # aqui sin llegar nunca al generador. tests/test_imagenes.py lo verifica.
+    #
+    # Texto: pocas palabras bien elegidas. SDXL generaliza de "infographic" a
+    # panel, lamina y diagrama; enumerarlos todos solo gastaba presupuesto.
+    "text, letters, watermark, logo, infographic, poster, "
+    # Anatomia.
+    "deformed, disfigured, mutated, bad anatomy, bad proportions, "
+    "extra fingers, fused fingers, extra limbs, "
+    "poorly drawn face, poorly drawn hands, blurry face, "
+    # Fondo. La queja concreta: las vigas de la estructura atravesaban al
+    # trabajador. El modelo no distinguia que era fondo y que era figura.
+    "cluttered background, objects overlapping the subject, "
+    "beams crossing the body, transparent body, out of frame, cropped head"
 )
 
 
