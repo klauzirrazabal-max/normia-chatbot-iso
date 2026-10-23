@@ -242,3 +242,77 @@ def test_la_marca_deja_sitio_a_la_escena():
 
     escena = "worker inspecting safety harness stitching before working at height"
     assert _tokens(f"{escena}, {MARCA}") <= LIMITE_CLIP
+
+
+# --- La traduccion tiene que conservar la ACCION -----------------------------
+#
+# Medido en la pantalla de material visual: "un personal en el almacen haciendo
+# un inventario con su tablet" llego al generador como "warehouse worker
+# inventory tablet". Cuatro sustantivos, ningun verbo: salio un retrato posando
+# con la tablet, no alguien haciendo inventario. El generador dibuja lo que la
+# camara veria; "doing inventory" no es una imagen, "counting boxes on a shelf
+# while tapping a tablet" si.
+
+
+def test_tiene_accion_distingue_verbo_de_sustantivo():
+    from app.channels.imagen_adapter import _tiene_accion
+
+    assert _tiene_accion("warehouse worker counting boxes on a shelf while tapping a tablet")
+    assert not _tiene_accion("warehouse worker inventory tablet")
+    assert not _tiene_accion("worker in a building with shelving and lighting")
+
+
+def test_sin_accion_se_reintenta_una_vez(monkeypatch):
+    from app.channels import imagen_adapter as ia
+
+    llamadas = []
+
+    class _Cliente:
+        def generate(self, mensajes, **_):
+            llamadas.append(mensajes)
+            if len(llamadas) == 1:
+                return {"content": "warehouse worker inventory tablet"}
+            return {"content": "warehouse worker counting boxes on a shelf while tapping a tablet"}
+
+    monkeypatch.setattr("app.services.llm_client.get_llm_client", lambda: _Cliente())
+    salida = ia._a_ingles("Un personal en el almacen haciendo un inventario con su tablet")
+    assert salida.startswith("warehouse worker counting")
+    assert len(llamadas) == 2
+    # El reintento le ensena al modelo lo que escribio y le pide la accion.
+    assert "HACIENDO" in llamadas[1][-1]["content"]
+
+
+def test_con_accion_no_se_reintenta(monkeypatch):
+    from app.channels import imagen_adapter as ia
+
+    n = {"v": 0}
+
+    class _Cliente:
+        def generate(self, mensajes, **_):
+            n["v"] += 1
+            return {"content": "worker inspecting safety harness stitching before working at height"}
+
+    monkeypatch.setattr("app.services.llm_client.get_llm_client", lambda: _Cliente())
+    assert ia._a_ingles("Un trabajador revisando las costuras de su arnes").startswith("worker inspecting")
+    assert n["v"] == 1
+
+
+def test_preparar_retraduce_si_el_juez_devuelve_sustantivos(monkeypatch):
+    """
+    El camino que usa la pantalla. El juez pedia la escena "telegrafica" y
+    devolvia "warehouse worker inventory tablet". Sin verbo, se retraduce.
+    """
+    from fastapi.testclient import TestClient
+
+    from app.channels import imagen_adapter as ia
+    from app.main import app
+
+    monkeypatch.setattr(ia, "juzgar_alcance", lambda d: (True, "", "warehouse worker inventory tablet"))
+    monkeypatch.setattr(ia, "_a_ingles", lambda d: "warehouse worker counting boxes on a shelf while tapping a tablet")
+    monkeypatch.setattr(ia, "_sugerir_clausula", lambda *a, **k: None, raising=False)
+    r = TestClient(app).post("/api/imagenes/preparar", json={
+        "descripcion": "Un personal en el almacen haciendo un inventario con su tablet",
+        "titular": "Inventario con Sistema",
+    })
+    assert r.status_code == 200, r.text
+    assert r.json()["escena_en"].startswith("warehouse worker counting")

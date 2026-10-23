@@ -311,7 +311,14 @@ def juzgar_alcance(descripcion: str) -> tuple[bool, str, str]:
         "mencionar algo para EXCLUIRLO.\n"
         "Responde SOLO un JSON: "
         '{"vale": true|false, "motivo": "<una frase, solo si vale es false>", '
-        '"escena_en": "<la escena traducida al ingles, telegrafica>"}'
+        '"escena_en": "<la escena en ingles, de como mucho 25 palabras: quien, que '
+        "esta HACIENDO fisicamente (verbo en -ing que una camara pueda ver), con que "
+        "objeto y donde. Una actividad abstracta -- inventario, auditoria -- se escribe "
+        'como su gesto visible: counting boxes on a shelf, checking a list>"}'
+        # Decia "telegrafica" a secas, y el modelo obedecio: "haciendo un
+        # inventario con su tablet" llego al generador como "warehouse worker
+        # inventory tablet", cuatro sustantivos sin verbo, y salio un retrato
+        # posando. El generador dibuja lo que la camara veria; necesita la accion.
     )
     try:
         respuesta = get_llm_client().generate([
@@ -332,6 +339,31 @@ def juzgar_alcance(descripcion: str) -> tuple[bool, str, str]:
     return vale, motivo, escena
 
 
+# La traduccion literal no basta: el generador necesita ver la ACCION. "Doing
+# inventory" no es una imagen; "counting boxes on a shelf while tapping a
+# tablet" si. La instruccion pide la version visible de lo que el usuario
+# describio, sin anadir elementos que no esten implicitos en su frase.
+_INSTRUCCION_TRADUCIR = (
+    "Traduce al ingles la descripcion de una escena para un generador de imagenes. "
+    "Devuelve SOLO una linea, sin comillas ni explicaciones, de como mucho 25 palabras, "
+    "con esta forma: quien, que esta HACIENDO fisicamente (un verbo en -ing que una "
+    "camara pueda ver), con que objeto y donde. Si el original nombra una actividad "
+    "abstracta -- inventario, auditoria, formacion -- escribe el gesto visible que la "
+    "representa (counting boxes on a shelf, checking a list, pointing at a sign). No "
+    "anadas personas ni objetos que el original no implique. Estilo telegrafico."
+)
+
+
+def _tiene_accion(texto: str) -> bool:
+    """Hay un verbo visible: alguna palabra en -ing que no sea sustantivo comun."""
+    palabras = {w.strip(".,;:").lower() for w in (texto or "").split()}
+    return any(w.endswith("ing") and w not in _ING_QUE_NO_SON_VERBO for w in palabras)
+
+
+# Sustantivos en -ing que aparecen en escenas de almacen y no son acciones.
+_ING_QUE_NO_SON_VERBO = {"building", "ceiling", "clothing", "lighting", "shelving", "packaging", "thing", "nothing", "morning", "evening", "training"}
+
+
 def _a_ingles(descripcion: str) -> str:
     """
     Traduce la escena al ingles para el modelo de difusion.
@@ -349,16 +381,28 @@ def _a_ingles(descripcion: str) -> str:
         respuesta = get_llm_client().generate([
             {
                 "role": "system",
-                "content": (
-                    "Traduce al ingles la descripcion de una escena para un generador "
-                    "de imagenes. Devuelve SOLO la traduccion, en una linea, sin "
-                    "comillas, sin explicaciones y sin anadir nada que no este en el "
-                    "original. Conserva el estilo telegrafico de un prompt."
-                ),
+                "content": _INSTRUCCION_TRADUCIR,
             },
             {"role": "user", "content": descripcion},
         ])
         traducida = (respuesta.get("content") or "").strip().strip('"').split("\n")[0]
+        # Sin un verbo visible el generador no recibe una accion sino sustantivos
+        # sueltos. Medido: "haciendo un inventario con su tablet" llego como
+        # "warehouse worker inventory tablet" y salio un retrato posando con la
+        # tablet. Un reintento con la instruccion reforzada, y solo uno.
+        if not _tiene_accion(traducida):
+            respuesta = get_llm_client().generate([
+                {"role": "system", "content": _INSTRUCCION_TRADUCIR},
+                {"role": "user", "content": descripcion},
+                {"role": "assistant", "content": traducida},
+                {"role": "user", "content": (
+                    "Falta la accion. Reescribe en una linea con el sujeto, lo que esta "
+                    "HACIENDO fisicamente (verbo en -ing), el objeto y el lugar."
+                )},
+            ])
+            segunda = (respuesta.get("content") or "").strip().strip('"').split("\n")[0]
+            if _tiene_accion(segunda):
+                traducida = segunda
     except Exception:  # noqa: BLE001 - traducir es una mejora, no un requisito
         logger.warning("imagenes.traduccion_fallida", exc_info=True)
         return descripcion
@@ -684,6 +728,10 @@ def preparar(
     # 2. El juicio, que es donde hace falta entender la frase. Devuelve ya la
     #    escena traducida, asi que no hay una segunda llamada al modelo.
     vale, motivo, escena_en = juzgar_alcance(descripcion)
+    # Red de seguridad: el juez es una llamada con dos encargos y a veces
+    # resuelve la traduccion con sustantivos sueltos. Sin verbo, se retraduce.
+    if vale and not _tiene_accion(escena_en):
+        escena_en = _a_ingles(descripcion)
     if not vale:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -785,6 +833,10 @@ def generar(
     # bastaria mandar una descripcion inocente en castellano y la escena que se
     # quisiera en ingles.
     adelantada = (peticion.escena_en or "").strip()
+    # La escena que manda el navegador puede venir de un /preparar antiguo, sin
+    # verbo. Misma red que alli: sin accion, se retraduce.
+    if adelantada and not _tiene_accion(adelantada):
+        adelantada = _a_ingles(peticion.descripcion)
     if adelantada and not _rechazo_inapelable(adelantada) and not pide_texto(adelantada):
         escena = adelantada
     else:
